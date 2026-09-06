@@ -1,0 +1,41 @@
+# Deps
+node_modules/
+.pnp
+.pnp.js
+
+# Env / secrets (Spoonacular key lives here, never commit)
+.env
+.env.local
+.env.*.local
+
+# SQLite local data (holds real user data even in dev)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
+prisma/dev.db
+prisma/*.db
+
+# Build output
+dist/
+build/
+.vite/
+.next/
+out/
+
+# Logs / OS
+logs/
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Test / coverage
+coverage/
+playwright-report/
+test-results/
+
+# Misc
+.vscode/*
+!.vscode/extensions.json
+.idea/

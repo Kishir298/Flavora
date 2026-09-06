@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Singleton row (id = 1) — single-user local app, no accounts.
+model UserProfile {
+  id            Int     @id @default(1)
+  allergies     String  @default("[]") // JSON string[]
+  avoidFoods    String  @default("[]") // JSON string[]
+  cuisines      String  @default("[]") // JSON string[]
+  spice         String  @default("medium") // mild | medium | hot
+  skill         String  @default("beginner") // beginner | intermediate | advanced
+  nutritionGoals String @default("{}") // JSON e.g. {"highProtein":true,"lowCarb":false,"maxCalories":600}
+  maxCookTime   Int     @default(30)
+  theme         String  @default("light") // light | dark
+  updatedAt     DateTime @updatedAt
+}
+
+model RecipeCache {
+  id          String   @id // e.g. "spoonacular:716429" or "mock:1"
+  source      String   // spoonacular | themealdb | mock
+  title       String
+  cuisine     String   @default("")
+  cookTime    Int      @default(30)
+  nutrition   String   @default("{}") // JSON {calories, protein, carbs, fat}
+  ingredients String   @default("[]") // JSON string[]
+  instructions String  @default("[]") // JSON string[]
+  image       String   @default("")
+  fetchedAt   DateTime @default(now())
+}
+
+model Interaction {
+  id        Int      @id @default(autoincrement())
+  recipeId  String
+  action    String   // viewed | saved | cooked | rated | skipped
+  rating    Int?
+  createdAt DateTime @default(now())
+
+  @@index([recipeId])
+  @@index([action])
+}

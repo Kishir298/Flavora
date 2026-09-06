@@ -1,0 +1,25 @@
+{
+  "name": "flavora",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Flavora — local-first AI-assisted food companion",
+  "workspaces": ["server", "client"],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=server\" \"npm run dev --workspace=client\"",
+    "dev:server": "npm run dev --workspace=server",
+    "dev:client": "npm run dev --workspace=client",
+    "build": "npm run build --workspace=server && npm run build --workspace=client",
+    "test": "npm run test --workspace=server && npm run test --workspace=client",
+    "test:e2e": "npm run test:e2e --workspace=client",
+    "db:push": "npx prisma db push --schema prisma/schema.prisma",
+    "db:seed": "npm run seed --workspace=server",
+    "db:studio": "npx prisma studio --schema prisma/schema.prisma"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1",
+    "prisma": "^5.22.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -28,10 +28,11 @@ async function main() {
         cookTime: r.cookTime ?? 30,
         nutrition: JSON.stringify(r.nutrition ?? {}),
         ingredients: JSON.stringify(r.ingredients),
-        instructions: JSON.stringify(r.instructions ?? []),
-        image: r.image ?? "",
-      },
-      update: {},
+          instructions: JSON.stringify(r.instructions ?? []),
+          image: r.image ?? "",
+          pricePerServing: r.pricePerServing ?? null,
+        },
+        update: {},
     });
   }
   console.log(JSON.stringify({ event: "seeded", recipes: MOCK_RECIPES.length }));

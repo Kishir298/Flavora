@@ -2,10 +2,11 @@ import express from "express";
 import cors from "cors";
 import { requestIdMiddleware, requestLogger } from "./logger.js";
 import { profileRouter } from "./routes/profile.js";
-import { recommendRouter } from "./routes/recommend.js";
 import { recipesRouter } from "./routes/recipes.js";
-import { interactionsRouter } from "./routes/interactions.js";
+import { recommendationsRouter } from "./routes/recommendations.js";
+import { interactionsRouterNew as interactionsRouter } from "./routes/interactions.js";
 import { devRouter } from "./routes/dev.js";
+import { debugRouter } from "./routes/debug.js";
 
 import { prisma } from "./db.js";
 
@@ -18,7 +19,7 @@ export function createApp() {
 
   app.get("/api/health", (_req, res) => res.json({ ok: true, service: "flavora" }));
   app.use("/api/profile", profileRouter);
-  app.use("/api/recommend", recommendRouter);
+  app.use("/api/recommendations", recommendationsRouter);
   app.use("/api/recipes", recipesRouter);
   app.use("/api/interactions", interactionsRouter);
   app.get("/api/saved", async (_req, res, next) => {
@@ -49,6 +50,7 @@ export function createApp() {
     }
   });
   app.use("/api/dev", devRouter);
+  app.use("/api/debug", debugRouter);
 
   // Central error handler (keeps error shape stable for frontend).
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -116,6 +116,7 @@ interface SpoonResult {
   readyInMinutes?: number;
   image?: string;
   cuisines?: string[];
+  pricePerServing?: number;
   extendedIngredients?: { original?: string; name?: string }[];
   analyzedInstructions?: { steps?: { step?: string }[] }[];
   nutrition?: { nutrients?: { name?: string; amount?: number }[] };
@@ -140,6 +141,7 @@ function spoonToRecipe(s: SpoonResult): Recipe {
       fat: nut["fat"],
     },
     image: s.image ?? "",
+    pricePerServing: s.pricePerServing,
   };
 }
 

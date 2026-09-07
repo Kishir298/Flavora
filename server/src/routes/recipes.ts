@@ -39,11 +39,12 @@ recipesRouter.get("/:id", async (req, res, next) => {
         cookTime: cached.cookTime,
         nutrition: JSON.parse(cached.nutrition),
         ingredients: JSON.parse(cached.ingredients),
-        instructions: JSON.parse(cached.instructions),
-        image: cached.image,
-        substitutions: substitutionsFor(JSON.parse(cached.ingredients)),
-        storage: "Fridge 3 days in airtight container. Reheat to 165°F/74°C.",
-        cached: true,
+          instructions: JSON.parse(cached.instructions),
+          image: cached.image,
+          pricePerServing: cached.pricePerServing,
+          substitutions: substitutionsFor(JSON.parse(cached.ingredients)),
+          storage: "Fridge 3 days in airtight container. Reheat to 165°F/74°C.",
+          cached: true,
       });
     }
     // 2. Provider (mock fixtures cover no-key path).
@@ -61,10 +62,11 @@ recipesRouter.get("/:id", async (req, res, next) => {
         cookTime: recipe.cookTime ?? 30,
         nutrition: JSON.stringify(recipe.nutrition ?? {}),
         ingredients: JSON.stringify(recipe.ingredients),
-        instructions: JSON.stringify(recipe.instructions ?? []),
-        image: recipe.image ?? "",
-      },
-      update: {},
+          instructions: JSON.stringify(recipe.instructions ?? []),
+          image: recipe.image ?? "",
+          pricePerServing: recipe.pricePerServing ?? null,
+        },
+        update: {},
     });
     await prisma.interaction.create({ data: { recipeId: id, action: "viewed" } });
     res.json({

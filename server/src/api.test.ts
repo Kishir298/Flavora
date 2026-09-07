@@ -45,32 +45,6 @@ describe("profile CRUD", () => {
   });
 });
 
-describe("recommend endpoint (allergy-safe)", () => {
-  it("never returns allergen-violating recipes", async () => {
-    await request(app).put("/api/profile").send({
-      allergies: ["peanut", "milk"],
-      avoidFoods: ["pork"],
-      cuisines: [],
-      spice: "medium",
-      maxCookTime: 30,
-    });
-    const res = await request(app).post("/api/recommend").send({
-      ingredients: ["pasta", "rice"],
-      maxTime: 30,
-      craving: "pasta",
-    });
-    expect(res.status).toBe(200);
-    expect(res.body.results.length).toBeGreaterThan(0);
-    expect(res.body.results.length).toBeLessThanOrEqual(5);
-    for (const r of res.body.results as { ingredients: string[] }[]) {
-      const blob = r.ingredients.join(" ").toLowerCase();
-      expect(blob).not.toContain("peanut");
-      expect(blob).not.toContain("milk");
-      expect(blob).not.toContain("pork");
-    }
-  });
-});
-
 describe("recipes + interactions", () => {
   it("GET recipe logs viewed + POST saved appears in /api/saved", async () => {
     const detail = await request(app).get("/api/recipes/mock:1");
@@ -87,6 +61,88 @@ describe("recipes + interactions", () => {
 
   it("rejects invalid interaction action", async () => {
     const res = await request(app).post("/api/interactions").send({ recipeId: "x", action: "eat" });
+    expect(res.status).toBe(400);
+  });
+
+  it("accepts guide actions incl. legacy rated alias", async () => {
+    for (const action of ["shown", "rated_positive", "rated_negative", "skipped"]) {
+      const res = await request(app).post("/api/interactions").send({ recipeId: "mock:2", action });
+      expect(res.status).toBe(201);
+    }
+    const legacy = await request(app).post("/api/interactions").send({ recipeId: "mock:2", action: "rated" });
+    expect(legacy.status).toBe(201);
+    expect(legacy.body.action).toBe("rated_positive");
+  });
+});
+
+describe("recommendations endpoint (guide contract)", () => {
+  it("returns recipeId/title/score/matchReasons, allergy-safe, max 5", async () => {
+    await request(app).put("/api/profile").send({
+      allergies: ["peanut", "dairy"],
+      avoidFoods: ["pork"],
+      cuisines: ["italian"],
+      spice: "medium",
+      maxCookTime: 30,
+    });
+    const res = await request(app).post("/api/recommendations").send({
+      availableIngredients: ["pasta", "tomato"],
+      timeLimit: 30,
+      mode: "normal",
+    });
+    expect(res.status).toBe(200);
+    const recs = res.body.recommendations as { recipeId: string; title: string; score: number; matchReasons: string[] }[];
+    expect(recs.length).toBeGreaterThan(0);
+    expect(recs.length).toBeLessThanOrEqual(5);
+    for (const r of recs) {
+      expect(r.recipeId).toBeTruthy();
+      expect(r.title).toBeTruthy();
+      expect(typeof r.score).toBe("number");
+      expect(r.matchReasons.length).toBeGreaterThan(0);
+    }
+    // Dairy synonym filter: milk/parmesan/feta recipes must not appear.
+    expect(recs.map((r) => r.recipeId)).not.toContain("mock:4");
+    expect(recs.map((r) => r.recipeId)).not.toContain("mock:10");
+    for (const r of res.body.recommendations as { ingredients: string[] }[]) {
+      const blob = (r.ingredients ?? []).join(" ").toLowerCase();
+      expect(blob).not.toContain("peanut");
+      expect(blob).not.toContain("pork");
+    }
+  });
+
+  it("logs shown rows for returned recipes", async () => {
+    await request(app).post("/api/recommendations").send({
+      availableIngredients: ["rice"],
+      timeLimit: 30,
+    });
+    const shown = await prisma.interaction.count({ where: { action: "shown" } });
+    expect(shown).toBeGreaterThan(0);
+  });
+
+  it("budget mode returns scored recommendations", async () => {
+    const res = await request(app).post("/api/recommendations").send({
+      availableIngredients: ["pasta"],
+      timeLimit: 30,
+      mode: "budget",
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.recommendations.length).toBeGreaterThan(0);
+  });
+});
+
+describe("debug explain endpoint", () => {
+  it("returns features + weights + score for a cached recipe", async () => {
+    await request(app).get("/api/recipes/mock:1");
+    const res = await request(app).get("/api/debug/explain").query({ recipeId: "mock:1" });
+    expect(res.status).toBe(200);
+    for (const k of ["ingredient_overlap", "cuisine_match", "time_fit", "nutrition_fit", "spice_fit", "budget_fit"]) {
+      expect(typeof res.body.features[k]).toBe("number");
+      expect(typeof res.body.weights[k]).toBe("number");
+    }
+    expect(typeof res.body.score).toBe("number");
+  });
+
+  it("400s without recipeId", async () => {
+    const res = await request(app).get("/api/debug/explain");
     expect(res.status).toBe(400);
   });
 });

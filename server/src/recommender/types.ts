@@ -1,3 +1,5 @@
+// Shared TS types for providers/routes. Scoring logic lives in
+// src/engine/*.js (literal .js guide paths); do not add logic here.
 export interface NutritionFacts {
   calories?: number;
   protein?: number; // g
@@ -16,6 +18,7 @@ export interface Recipe {
   instructions?: string[];
   nutrition?: NutritionFacts;
   image?: string;
+  pricePerServing?: number; // USD-ish; drives guide budget_fit
 }
 
 export interface UserProfileInput {

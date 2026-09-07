@@ -45,6 +45,7 @@ devRouter.post("/seed", async (_req, res, next) => {
           ingredients: JSON.stringify(r.ingredients),
           instructions: JSON.stringify(r.instructions ?? []),
           image: r.image ?? "",
+          pricePerServing: r.pricePerServing ?? null,
         },
         update: {},
       });
@@ -59,6 +60,8 @@ devRouter.post("/reset", async (_req, res, next) => {
   try {
     await prisma.interaction.deleteMany({});
     await prisma.recipeCache.deleteMany({});
+    await prisma.recommendationWeights.deleteMany({});
+    await ensureProfileRow(); // reseeds default weights for "local"
     await prisma.userProfile.update({
       where: { id: 1 },
       data: {

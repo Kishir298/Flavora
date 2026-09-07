@@ -1,10 +1,11 @@
 /**
- * Guide step 5 — POST /api/recommendations (literal .js route path).
- * Canonical AI-agent contract. Single-user local: userId defaults to "local".
+ * POST /api/recommendations — canonical AI-agent contract (§7.4).
+ * Single-user local: userId defaults to "local".
+ * Candidates come from the local `recipes` table (§5) — no external fetch.
  */
 import { Router } from "express";
 import { prisma, ensureProfileRow } from "../db.js";
-import { searchRecipes } from "../providers/recipes.js";
+import { listRecipes } from "../recipesDb.js";
 import { recommendWithEngine } from "../engine/recommend.js";
 import { resolveWeights } from "../engine/weights.js";
 import { maybeTriggerRetrain } from "../engine/retrainTrigger.js";
@@ -15,9 +16,16 @@ export const recommendationsRouter = Router();
 /** Outcomes carrying explicit signal (cold-start gate + retraining labels). */
 export const OUTCOME_ACTIONS = ["saved", "cooked", "rated_positive", "rated_negative", "rated", "skipped"];
 
+function ingredientDisplay(ing) {
+  if (typeof ing === "string") return ing;
+  const qty = ing.quantity ?? "";
+  const unit = ing.unit ?? "";
+  return `${qty} ${unit} ${ing.name}`.trim();
+}
+
 /**
  * POST /api/recommendations
- * Body: { userId?, availableIngredients?, timeLimit?, mode?: "normal"|"budget" }
+ * Body: { userId?, availableIngredients?, timeLimit?, mode?: "normal"|"food_waste"|"budget", cuisine? }
  */
 recommendationsRouter.post("/", async (req, res, next) => {
   try {
@@ -26,32 +34,38 @@ recommendationsRouter.post("/", async (req, res, next) => {
     const availableIngredients = req.body?.availableIngredients ?? [];
     const timeLimit = req.body?.timeLimit;
     const mode = req.body?.mode ?? "normal";
+    if (!["normal", "food_waste", "budget"].includes(mode)) {
+      return res.status(400).json({ error: "mode must be normal|food_waste|budget" });
+    }
     // Superset for the Cuisine Explorer: when `cuisine` is given, candidates
     // are limited to it and it counts as a favorite for cuisine_match.
     const cuisineFilter = req.body?.cuisine;
 
     const row = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
+    const favs = JSON.parse(row.favoriteCuisines);
+    const goals = JSON.parse(row.nutritionGoals);
     const profile = {
       allergies: JSON.parse(row.allergies),
       avoid_foods: JSON.parse(row.avoidFoods),
       avoidFoods: JSON.parse(row.avoidFoods),
-      cuisines: JSON.parse(row.cuisines),
-      favoriteCuisines: JSON.parse(row.cuisines),
-      spice: row.spice,
-      skill: row.skill,
-      nutritionGoals: JSON.parse(row.nutritionGoals),
-      nutrition_goals: JSON.parse(row.nutritionGoals),
-      maxCookTime: row.maxCookTime,
+      favoriteCuisines: favs,
+      favorite_cuisines: favs,
+      cuisines: favs,
+      spicePreference: row.spicePreference,
+      spice_preference: row.spicePreference,
+      spice: row.spicePreference,
+      skillLevel: row.skillLevel,
+      skill_level: row.skillLevel,
+      skill: row.skillLevel,
+      nutritionGoals: goals,
+      nutrition_goals: goals,
+      preferredCookTimeMinutes: row.preferredCookTimeMinutes,
+      maxCookTime: row.preferredCookTimeMinutes,
     };
 
-    const candidates = await searchRecipes({
-      ingredients: availableIngredients,
-      maxTime: timeLimit ?? profile.maxCookTime,
-      cuisine: cuisineFilter,
-      number: 20,
-    });
+    const candidates = await listRecipes({ cuisine: cuisineFilter, limit: 200 });
     const scoringProfile = cuisineFilter
-      ? { ...profile, cuisines: [cuisineFilter], favoriteCuisines: [cuisineFilter] }
+      ? { ...profile, cuisines: [cuisineFilter], favoriteCuisines: [cuisineFilter], favorite_cuisines: [cuisineFilter] }
       : profile;
 
     const outcomeCount = await prisma.interaction.count({
@@ -64,7 +78,7 @@ recommendationsRouter.post("/", async (req, res, next) => {
     const results = recommendWithEngine(
       candidates,
       scoringProfile,
-      { availableIngredients, timeLimit: timeLimit ?? profile.maxCookTime, mode },
+      { availableIngredients, timeLimit: timeLimit ?? profile.preferredCookTimeMinutes, mode },
       weights,
       5
     );
@@ -80,30 +94,7 @@ recommendationsRouter.post("/", async (req, res, next) => {
       scores: results.map((r) => ({ id: r.recipe.id, score: Number(r.score.toFixed(3)) })),
     });
 
-    // Cache IDs/metadata only (not full payloads long-term, per §5 1h term).
-    for (const r of results) {
-      await prisma.recipeCache.upsert({
-        where: { id: r.recipe.id },
-        create: {
-          id: r.recipe.id,
-          source: r.recipe.source,
-          title: r.recipe.title,
-          cuisine: r.recipe.cuisine ?? "",
-          cookTime: r.recipe.cookTime ?? 30,
-          nutrition: JSON.stringify(r.recipe.nutrition ?? {}),
-          ingredients: JSON.stringify(r.recipe.ingredients),
-          instructions: JSON.stringify(r.recipe.instructions ?? []),
-          image: r.recipe.image ?? "",
-          pricePerServing: r.recipe.pricePerServing ?? null,
-        },
-        update: {
-          title: r.recipe.title,
-          pricePerServing: r.recipe.pricePerServing ?? null,
-        },
-      });
-    }
-
-    // Guide step 4.5: log "shown" for each returned recipe (excluded from training labels).
+    // Log "shown" for each returned recipe (excluded from training labels).
     if (results.length > 0) {
       await prisma.interaction.createMany({
         data: results.map((r) => ({
@@ -115,8 +106,8 @@ recommendationsRouter.post("/", async (req, res, next) => {
       void maybeTriggerRetrain(prisma.interaction, userId);
     }
 
-    // Superset of the guide contract: the 4 guide fields plus display
-    // fields the client needs (avoids 5 extra detail round-trips).
+    // Superset of the contract: the 4 contract fields plus display
+    // fields the client needs (avoids extra detail round-trips).
     res.json({
       recommendations: results.map((r) => ({
         recipeId: r.recipe.id,
@@ -124,11 +115,12 @@ recommendationsRouter.post("/", async (req, res, next) => {
         score: Number(r.score.toFixed(3)),
         matchReasons: r.matchReasons,
         cuisine: r.recipe.cuisine ?? "",
-        cookTime: r.recipe.cookTime ?? 30,
-        ingredients: r.recipe.ingredients,
+        cookTime: r.recipe.cookTimeMinutes ?? 30,
+        difficulty: r.recipe.difficulty ?? "easy",
+        spiceLevel: r.recipe.spiceLevel ?? "mild",
+        costTier: r.recipe.costTier ?? "low",
+        ingredients: (r.recipe.ingredients ?? []).map(ingredientDisplay),
         nutrition: r.recipe.nutrition ?? {},
-        image: r.recipe.image ?? "",
-        pricePerServing: r.recipe.pricePerServing ?? null,
       })),
     });
   } catch (e) {

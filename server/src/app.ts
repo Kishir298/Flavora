@@ -28,21 +28,22 @@ export function createApp() {
       const latest = new Map<string, (typeof all)[number]>();
       for (const i of all) if (!latest.has(i.recipeId)) latest.set(i.recipeId, i);
       const ids = [...latest.entries()]
-        .filter(([, i]) => i.action === "saved" || i.action === "cooked")
+        .filter(([, i]) => ["saved", "cooked", "rated_positive", "rated"].includes(i.action))
         .map(([id]) => id);
       if (ids.length === 0) return res.json([]);
-      const cached = await prisma.recipeCache.findMany({ where: { id: { in: ids } } });
+      const rows = await prisma.recipe.findMany({ where: { id: { in: ids } } });
       res.json(
-        cached.map((c) => ({
+        rows.map((c) => ({
           id: c.id,
-          source: c.source,
           title: c.title,
           cuisine: c.cuisine,
-          cookTime: c.cookTime,
+          cookTime: c.cookTimeMinutes,
+          difficulty: c.difficulty,
           nutrition: JSON.parse(c.nutrition),
           ingredients: JSON.parse(c.ingredients),
           instructions: JSON.parse(c.instructions),
-          image: c.image,
+          costTier: c.costTier,
+          storage: c.storageTips,
         }))
       );
     } catch (e) {

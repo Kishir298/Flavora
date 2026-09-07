@@ -13,7 +13,7 @@ export default defineConfig({
       { find: /^..\/db\.js$/, replacement: src("db.ts") },
       { find: /^..\/app\.js$/, replacement: src("app.ts") },
       { find: /^..\/logger\.js$/, replacement: src("logger.ts") },
-      { find: /^..\/providers\/recipes\.js$/, replacement: src("providers/recipes.ts") },
+      { find: /^..\/recipesDb\.js$/, replacement: src("recipesDb.ts") },
     ],
   },
   test: {

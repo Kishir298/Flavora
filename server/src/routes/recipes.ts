@@ -1,81 +1,69 @@
 import { Router } from "express";
 import { prisma } from "../db.js";
-import { getRecipeById } from "../providers/recipes.js";
-import { MOCK_RECIPES } from "../providers/mockData.js";
+import { getRecipeById, rowToRecipe, substitutesFor } from "../recipesDb.js";
 
 export const recipesRouter = Router();
 
-// Cheap substitutions map (Phase 2 budget feature seed).
-const SUBSTITUTIONS: Record<string, string[]> = {
-  parmesan: ["nutritional yeast", "pecorino (if dairy ok)"],
-  milk: ["oat milk", "water + 1 tsp oil"],
-  butter: ["olive oil", "margarine"],
-  chicken: ["chickpeas", "tofu"],
-  pasta: ["rice", "zucchini noodles"],
-  "peanut butter": ["sunflower seed butter (nut-free)", "tahini"],
-};
+function ingredientDisplay(ing: string | { name: string; quantity?: number | null; unit?: string | null }): string {
+  if (typeof ing === "string") return ing;
+  const qty = ing.quantity ?? "";
+  const unit = ing.unit ?? "";
+  return `${qty} ${unit} ${ing.name}`.trim();
+}
 
-function substitutionsFor(ingredients: string[]): Record<string, string[]> {
-  const out: Record<string, string[]> = {};
-  for (const ing of ingredients) {
-    const key = Object.keys(SUBSTITUTIONS).find((k) => ing.toLowerCase().includes(k));
-    if (key) out[ing] = SUBSTITUTIONS[key];
-  }
-  return out;
+function toDetail(recipe: NonNullable<Awaited<ReturnType<typeof getRecipeById>>>, substitutions: Record<string, string[]>, owned?: string[]) {
+  const have = (owned ?? []).map((s) => s.toLowerCase().trim()).filter(Boolean);
+  const ingredients = recipe.ingredients.map((ing) => {
+    const name = typeof ing === "string" ? ing : ing.name;
+    const usedOwned = have.length > 0 && have.some((h) => name.toLowerCase().includes(h) || h.includes(name.toLowerCase()));
+    return { ...(typeof ing === "string" ? { name: ing, quantity: null, unit: null } : ing), display: ingredientDisplay(ing), usedOwned };
+  });
+  return {
+    id: recipe.id,
+    title: recipe.title,
+    cuisine: recipe.cuisine,
+    cookTime: recipe.cookTimeMinutes,
+    difficulty: recipe.difficulty,
+    spiceLevel: recipe.spiceLevel,
+    dietTags: recipe.dietTags,
+    // Full ingredient list, always rendered in full (§4.4 — final manual allergy check).
+    ingredients: ingredients.map((i) => i.display),
+    ingredientDetails: ingredients,
+    instructions: recipe.instructions,
+    nutrition: recipe.nutrition,
+    costTier: recipe.costTier,
+    storage: recipe.storageTips,
+    storageTips: recipe.storageTips,
+    substitutions,
+  };
 }
 
 recipesRouter.get("/:id", async (req, res, next) => {
   try {
     const id = decodeURIComponent(req.params.id);
-    // 1. Local cache first (offline-friendly).
-    const cached = await prisma.recipeCache.findUnique({ where: { id } });
-    if (cached) {
-      await prisma.interaction.create({ data: { recipeId: id, action: "viewed" } });
-      return res.json({
-        id: cached.id,
-        source: cached.source,
-        title: cached.title,
-        cuisine: cached.cuisine,
-        cookTime: cached.cookTime,
-        nutrition: JSON.parse(cached.nutrition),
-        ingredients: JSON.parse(cached.ingredients),
-          instructions: JSON.parse(cached.instructions),
-          image: cached.image,
-          pricePerServing: cached.pricePerServing,
-          substitutions: substitutionsFor(JSON.parse(cached.ingredients)),
-          storage: "Fridge 3 days in airtight container. Reheat to 165°F/74°C.",
-          cached: true,
-      });
-    }
-    // 2. Provider (mock fixtures cover no-key path).
-    const recipe =
-      (await getRecipeById(id)) ?? MOCK_RECIPES.find((r) => r.id === id) ?? null;
+    const recipe = await getRecipeById(id);
     if (!recipe) return res.status(404).json({ error: "recipe not found" });
 
-    await prisma.recipeCache.upsert({
-      where: { id: recipe.id },
-      create: {
-        id: recipe.id,
-        source: recipe.source,
-        title: recipe.title,
-        cuisine: recipe.cuisine ?? "",
-        cookTime: recipe.cookTime ?? 30,
-        nutrition: JSON.stringify(recipe.nutrition ?? {}),
-        ingredients: JSON.stringify(recipe.ingredients),
-          instructions: JSON.stringify(recipe.instructions ?? []),
-          image: recipe.image ?? "",
-          pricePerServing: recipe.pricePerServing ?? null,
-        },
-        update: {},
-    });
+    const substitutions = await substitutesFor(recipe.ingredients);
+    const have = typeof req.query.have === "string" && req.query.have.length > 0
+      ? req.query.have.split(",").map((s) => s.trim()).filter(Boolean)
+      : undefined;
+
     await prisma.interaction.create({ data: { recipeId: id, action: "viewed" } });
-    res.json({
-      ...recipe,
-      substitutions: substitutionsFor(recipe.ingredients),
-      storage: "Fridge 3 days in airtight container. Reheat to 165°F/74°C.",
-      cached: false,
-    });
+    res.json(toDetail(recipe, substitutions, have));
   } catch (e) {
     next(e);
   }
 });
+
+// Back-compat helper used by /api/saved in app.ts.
+export async function savedRecipes(ids: string[]) {
+  if (ids.length === 0) return [];
+  const rows = await prisma.recipe.findMany({ where: { id: { in: ids } } });
+  return rows.map((r) =>
+    toDetail(
+      rowToRecipe(r),
+      {}
+    )
+  );
+}

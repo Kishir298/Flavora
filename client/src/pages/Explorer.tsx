@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api, type Recommendation, type RecipeResult } from "../lib/api";
 import { RecipeCard } from "../components/RecipeCard";
 
-/** Mission cuisines (§Explorer): explore diverse dishes, still allergy-safe. */
+/** Mission cuisines (§4.6): explore diverse dishes, still allergy-safe. */
 const REGIONS = [
   "italian",
   "indian",
@@ -22,12 +22,22 @@ function toCard(r: Recommendation): RecipeResult {
     title: r.title,
     cuisine: r.cuisine,
     cookTime: r.cookTime,
+    difficulty: r.difficulty,
+    costTier: r.costTier,
     ingredients: r.ingredients ?? [],
     nutrition: r.nutrition,
-    image: r.image,
     score: r.score,
-    pricePerServing: r.pricePerServing,
   };
+}
+
+/** "Matches your profile" badge from the same feature set (§4.6): strong
+ * cuisine/nutrition/skill/spice signal, not just a high blended score. */
+function profileBadge(r: Recommendation): string | undefined {
+  const reasons = r.matchReasons.join(" ").toLowerCase();
+  if (/matches your .* preference|fits your nutrition goal|matches your skill level/.test(reasons)) {
+    return "matches your profile";
+  }
+  return undefined;
 }
 
 export function Explorer() {
@@ -65,7 +75,7 @@ export function Explorer() {
       <div className="mt-4 grid gap-3">
         {results.map((r) => (
           <div key={r.recipeId}>
-            <RecipeCard recipe={toCard(r)} />
+            <RecipeCard recipe={toCard(r)} badge={profileBadge(r)} />
             {r.matchReasons.length > 0 && (
               <p className="mt-1 ml-1 text-xs opacity-70">{r.matchReasons.join(" · ")}</p>
             )}

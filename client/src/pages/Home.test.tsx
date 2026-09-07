@@ -46,4 +46,18 @@ describe("Home assistant (guide contract)", () => {
     expect(String(init.body)).toContain("budget");
     vi.unstubAllGlobals();
   });
+
+  it("offers a food-waste mode that sends mode: food_waste", async () => {
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>
+    );
+    fireEvent.click(screen.getByText("Use what I have"));
+    fireEvent.click(screen.getByRole("button", { name: /Suggest/i }));
+    await waitFor(() => expect(screen.getByText("Tomato Pasta")).toBeInTheDocument());
+    const [, init] = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls.at(-1) as [string, RequestInit];
+    expect(String(init.body)).toContain("food_waste");
+    vi.unstubAllGlobals();
+  });
 });

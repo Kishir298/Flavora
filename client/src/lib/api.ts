@@ -1,12 +1,20 @@
 export interface Profile {
   allergies: string[];
   avoidFoods: string[];
-  cuisines: string[];
-  spice: "mild" | "medium" | "hot";
-  skill: string;
+  favoriteCuisines: string[];
+  spicePreference: "mild" | "medium" | "hot";
+  skillLevel: string;
   nutritionGoals: { highProtein?: boolean; lowCarb?: boolean; maxCalories?: number };
-  maxCookTime: number;
+  preferredCookTimeMinutes: number;
   theme: string;
+}
+
+export interface IngredientDetail {
+  name: string;
+  quantity?: number | null;
+  unit?: string | null;
+  display: string;
+  usedOwned?: boolean;
 }
 
 export interface RecipeResult {
@@ -14,17 +22,21 @@ export interface RecipeResult {
   title: string;
   cuisine?: string;
   cookTime?: number;
+  difficulty?: string;
+  spiceLevel?: string;
+  dietTags?: string[];
+  costTier?: string;
   ingredients: string[];
+  ingredientDetails?: IngredientDetail[];
   instructions?: string[];
-  nutrition?: { calories?: number; protein?: number; carbs?: number; fat?: number };
-  image?: string;
+  nutrition?: { calories?: number; protein?: number; protein_g?: number; carbs?: number; carbs_g?: number; fat?: number; fat_g?: number };
   score?: number;
-  pricePerServing?: number | null;
   substitutions?: Record<string, string[]>;
   storage?: string;
+  storageTips?: string;
 }
 
-/** Guide step-5 contract (canonical AI-agent API). */
+/** §7.4 contract (canonical AI-agent API). */
 export interface Recommendation {
   recipeId: string;
   title: string;
@@ -32,11 +44,14 @@ export interface Recommendation {
   matchReasons: string[];
   cuisine?: string;
   cookTime?: number;
+  difficulty?: string;
+  spiceLevel?: string;
+  costTier?: string;
   ingredients?: string[];
   nutrition?: RecipeResult["nutrition"];
-  image?: string;
-  pricePerServing?: number | null;
 }
+
+export type RecommendMode = "normal" | "food_waste" | "budget";
 
 const BASE = import.meta.env.VITE_API_URL ?? "";
 
@@ -54,14 +69,15 @@ export const api = {
   getProfile: () => req<Profile>("/api/profile"),
   saveProfile: (p: Partial<Profile>) =>
     req<Profile>("/api/profile", { method: "PUT", body: JSON.stringify(p) }),
-  /** Canonical guide-contract recommendations (matchReasons + mode). */
-  recommendations: (body: { availableIngredients: string[]; timeLimit?: number; mode?: "normal" | "budget"; cuisine?: string }) =>
+  /** Canonical contract recommendations (matchReasons + mode). */
+  recommendations: (body: { availableIngredients: string[]; timeLimit?: number; mode?: RecommendMode; cuisine?: string }) =>
     req<{ recommendations: Recommendation[] }>("/api/recommendations", { method: "POST", body: JSON.stringify(body) }),
-  explain: (recipeId: string) =>
+  explain: (recipeId: string, mode?: RecommendMode) =>
     req<{ recipeId: string; features: Record<string, number>; weights: Record<string, number>; score: number }>(
-      `/api/debug/explain?recipeId=${encodeURIComponent(recipeId)}`
+      `/api/debug/explain?recipeId=${encodeURIComponent(recipeId)}${mode ? `&mode=${mode}` : ""}`
     ),
-  recipe: (id: string) => req<RecipeResult>(`/api/recipes/${encodeURIComponent(id)}`),
+  recipe: (id: string, have?: string[]) =>
+    req<RecipeResult>(`/api/recipes/${encodeURIComponent(id)}${have?.length ? `?have=${encodeURIComponent(have.join(","))}` : ""}`),
   interact: (recipeId: string, action: string, rating?: number) =>
     req("/api/interactions", { method: "POST", body: JSON.stringify({ recipeId, action, rating }) }),
   saved: () => req<RecipeResult[]>("/api/saved"),

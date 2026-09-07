@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 /**
  * Critical path (§13): profile -> recommend -> open -> save.
- * Runs against mock data (USE_MOCK_RECIPES=true), no Spoonacular quota.
+ * Runs against the local recipe database (seeded from /data), fully offline.
  */
 test("profile → recommend → open → save", async ({ page }) => {
   await page.goto("/onboarding");

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api, type Recommendation, type RecipeResult } from "../lib/api";
+import { api, type Recommendation, type RecipeResult, type RecommendMode } from "../lib/api";
 import { RecipeCard } from "../components/RecipeCard";
 
 function toCard(r: Recommendation): RecipeResult {
@@ -8,20 +8,26 @@ function toCard(r: Recommendation): RecipeResult {
     title: r.title,
     cuisine: r.cuisine,
     cookTime: r.cookTime,
+    difficulty: r.difficulty,
+    costTier: r.costTier,
     ingredients: r.ingredients ?? [],
     nutrition: r.nutrition,
-    image: r.image,
     score: r.score,
-    pricePerServing: r.pricePerServing,
   };
 }
+
+const MODES: { value: RecommendMode; label: string }[] = [
+  { value: "normal", label: "Normal" },
+  { value: "food_waste", label: "Use what I have" },
+  { value: "budget", label: "Budget-friendly" },
+];
 
 /** Home / AI Food Assistant: conversational guidance → 3–5 handpicked suggestions with reasons. */
 export function Home() {
   const [ingredients, setIngredients] = useState("pasta, tomato");
   const [maxTime, setMaxTime] = useState(30);
   const [craving, setCraving] = useState("");
-  const [mode, setMode] = useState<"normal" | "budget">("normal");
+  const [mode, setMode] = useState<RecommendMode>("normal");
   const [results, setResults] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -31,9 +37,12 @@ export function Home() {
     setLoading(true);
     setError("");
     try {
-      // Craving is folded into available-ingredients matching server-side via
-      // candidate search; the guide contract itself takes ingredients + time + mode.
       const have = ingredients.split(",").map((s) => s.trim()).filter(Boolean);
+      try {
+        sessionStorage.setItem("flavora:lastHave", JSON.stringify(have));
+      } catch {
+        /* private mode — ignore */
+      }
       const res = await api.recommendations({
         availableIngredients: craving ? [...have, craving] : have,
         timeLimit: Number(maxTime),
@@ -70,11 +79,11 @@ export function Home() {
           </div>
           <fieldset>
             <legend className="text-sm font-medium">Mode</legend>
-            <div className="mt-1 flex gap-2">
-              {(["normal", "budget"] as const).map((m) => (
-                <label key={m} className="text-sm flex items-center gap-1 border rounded px-2 py-1 cursor-pointer">
-                  <input type="radio" name="mode" checked={mode === m} onChange={() => setMode(m)} />
-                  {m === "budget" ? "Budget-friendly" : "Normal"}
+            <div className="mt-1 flex gap-2 flex-wrap">
+              {MODES.map((m) => (
+                <label key={m.value} className="text-sm flex items-center gap-1 border rounded px-2 py-1 cursor-pointer">
+                  <input type="radio" name="mode" checked={mode === m.value} onChange={() => setMode(m.value)} />
+                  {m.label}
                 </label>
               ))}
             </div>

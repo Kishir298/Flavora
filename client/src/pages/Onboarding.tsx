@@ -10,8 +10,8 @@ export function Onboarding() {
 
   useEffect(() => {
     api.getProfile().then(setProfile).catch(() => setProfile({
-      allergies: [], avoidFoods: [], cuisines: [], spice: "medium",
-      skill: "beginner", nutritionGoals: {}, maxCookTime: 30, theme: "light",
+      allergies: [], avoidFoods: [], favoriteCuisines: [], spicePreference: "medium",
+      skillLevel: "beginner", nutritionGoals: {}, preferredCookTimeMinutes: 30, theme: "light",
     }));
   }, []);
 

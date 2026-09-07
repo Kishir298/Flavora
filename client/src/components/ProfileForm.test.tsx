@@ -7,7 +7,7 @@ describe("ProfileForm", () => {
     const onSave = vi.fn();
     render(
       <ProfileForm
-        initial={{ allergies: [], avoidFoods: [], cuisines: [], spice: "medium", skill: "beginner", nutritionGoals: {}, maxCookTime: 30, theme: "light" }}
+        initial={{ allergies: [], avoidFoods: [], favoriteCuisines: [], spicePreference: "medium", skillLevel: "beginner", nutritionGoals: {}, preferredCookTimeMinutes: 30, theme: "light" }}
         onSave={onSave}
       />
     );

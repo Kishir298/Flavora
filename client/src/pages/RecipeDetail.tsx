@@ -47,6 +47,10 @@ export function RecipeDetail() {
 
       <section className="mt-6">
         <h2 className="font-semibold">Ingredients</h2>
+        <p className="mt-1 text-xs opacity-70" role="note">
+          Allergy filtering is best-effort — recipe data can be incomplete or worded
+          unusually. Please check this full list yourself before cooking.
+        </p>
         <ul className="list-disc ml-5 mt-1 text-sm">
           {recipe.ingredients.map((ing, i) => <li key={i}>{ing}</li>)}
         </ul>

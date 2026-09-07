@@ -7,11 +7,11 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT = path.join(here, "retrain.py");
-const FEATURES = ["ingredient_overlap", "cuisine_match", "time_fit", "nutrition_fit", "spice_fit", "budget_fit"];
+const FEATURES = ["ingredient_overlap", "time_fit", "cuisine_match", "nutrition_fit", "skill_fit", "spice_fit", "budget_fit"];
 
 const SETUP_SQL = `
-CREATE TABLE Interaction (id INTEGER PRIMARY KEY, recipeId TEXT, action TEXT, rating INTEGER, features TEXT DEFAULT '{}', createdAt TEXT DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE RecommendationWeights (userId TEXT DEFAULT 'local', featureName TEXT, weightValue REAL, updatedAt TEXT, PRIMARY KEY (userId, featureName));
+CREATE TABLE interactions (id INTEGER PRIMARY KEY, user_id TEXT DEFAULT 'local', recipe_id TEXT, action TEXT, rating INTEGER, features TEXT DEFAULT '{}', timestamp TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE recommendation_weights (user_id TEXT DEFAULT 'local', feature_name TEXT, weight_value REAL, updated_at TEXT, PRIMARY KEY (user_id, feature_name));
 `;
 
 function makeDb(rows) {
@@ -22,7 +22,7 @@ function makeDb(rows) {
   const lines = [SETUP_SQL];
   for (const r of rows) {
     const feat = r.features ? `'${JSON.stringify(r.features).replace(/'/g, "''")}'` : "'{}'";
-    lines.push(`INSERT INTO Interaction (recipeId, action, features) VALUES ('${r.recipeId}','${r.action}',${feat});`);
+    lines.push(`INSERT INTO interactions (recipe_id, action, features) VALUES ('${r.recipeId}','${r.action}',${feat});`);
   }
   fs.writeFileSync(setup, lines.join("\n"));
   execFileSync("python3", ["-c", `import sqlite3;db=sqlite3.connect(${JSON.stringify(db)});db.executescript(open(${JSON.stringify(setup)}).read());db.commit()`]);

@@ -27,9 +27,10 @@ import sys
 
 FEATURE_NAMES = [
     "ingredient_overlap",
-    "cuisine_match",
     "time_fit",
+    "cuisine_match",
     "nutrition_fit",
+    "skill_fit",
     "spice_fit",
     "budget_fit",
 ]
@@ -60,7 +61,7 @@ def load_training_rows(conn):
     """Return (X, y) aggregated per recipe, or ([], []) if below threshold."""
     cur = conn.cursor()
     shown = cur.execute(
-        "SELECT recipeId, features FROM Interaction WHERE action = 'shown' ORDER BY id DESC"
+        "SELECT recipe_id, features FROM interactions WHERE action = 'shown' ORDER BY id DESC"
     ).fetchall()
     latest_features = {}
     for recipe_id, features_json in shown:
@@ -73,7 +74,7 @@ def load_training_rows(conn):
                 latest_features[recipe_id] = [float(vec[k]) for k in FEATURE_NAMES]
 
     outcomes = cur.execute(
-        "SELECT recipeId, action FROM Interaction WHERE action != 'shown'"
+        "SELECT recipe_id, action FROM interactions WHERE action != 'shown'"
     ).fetchall()
     label = {}
     for recipe_id, action in outcomes:
@@ -159,11 +160,11 @@ def main():
         try:
             for name, value in weights.items():
                 conn.execute(
-                    """INSERT INTO RecommendationWeights (userId, featureName, weightValue, updatedAt)
+                    """INSERT INTO recommendation_weights (user_id, feature_name, weight_value, updated_at)
                        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-                       ON CONFLICT (userId, featureName)
-                       DO UPDATE SET weightValue = excluded.weightValue,
-                                     updatedAt = CURRENT_TIMESTAMP""",
+                       ON CONFLICT (user_id, feature_name)
+                       DO UPDATE SET weight_value = excluded.weight_value,
+                                     updated_at = CURRENT_TIMESTAMP""",
                     (args.user_id, name, value),
                 )
             conn.commit()

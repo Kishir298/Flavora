@@ -1,43 +1,40 @@
 /**
- * Guide step 3 — feature extraction (literal .js path).
+ * Layer 2 — feature extraction (§7.2).
  * Computes a normalized (0–1) feature vector for a (recipe, profile, request) triple.
  *
- * Features: ingredient_overlap, cuisine_match, time_fit, nutrition_fit,
- * spice_fit, budget_fit.
+ * Features: ingredient_overlap, time_fit, cuisine_match, nutrition_fit,
+ * skill_fit, spice_fit, budget_fit.
+ *
+ * Accepts both the seed shape (cookTimeMinutes, spiceLevel, difficulty,
+ * costTier, ingredients as {name,quantity,unit}[]) and legacy camelCase
+ * shapes (cookTime, spice, pricePerServing, string[] ingredients) so unit
+ * tests and fixtures keep working.
  *
  * @typedef {Object} RecipeLike
- * @property {string} [id]
- * @property {string} [title]
- * @property {string} [cuisine]
- * @property {number} [cookTime]
- * @property {string} [spice] "mild" | "medium" | "hot"
- * @property {string[]} ingredients
- * @property {{calories?:number,protein?:number,carbs?:number,fat?:number}} [nutrition]
- * @property {number} [pricePerServing]
  * @typedef {Object} ProfileLike
- * @property {string[]} [cuisines]
- * @property {string[]} [favoriteCuisines]
- * @property {string} [spice]
- * @property {{maxCalories?:number,highProtein?:boolean,lowCarb?:boolean}} [nutritionGoals]
- * @property {{highProtein?:boolean,lowCarb?:boolean,maxCalories?:number}} [nutrition_goals]
  * @typedef {Object} RequestLike
- * @property {string[]} [availableIngredients]
- * @property {string[]} [ingredients]
- * @property {number} [timeLimit]
- * @property {number} [maxTime]
- * @property {string} [mode] "normal" | "budget"
  */
 
 export const FEATURE_NAMES = [
   "ingredient_overlap",
-  "cuisine_match",
   "time_fit",
+  "cuisine_match",
   "nutrition_fit",
+  "skill_fit",
   "spice_fit",
   "budget_fit",
 ];
 
 const SPICE_RANK = { mild: 0, medium: 1, hot: 2 };
+
+/** Beginner/intermediate/advanced × easy/medium/hard compatibility (§7.2). */
+export const SKILL_FIT_TABLE = {
+  beginner: { easy: 1.0, medium: 0.5, hard: 0.0 },
+  intermediate: { easy: 0.75, medium: 1.0, hard: 0.5 },
+  advanced: { easy: 0.5, medium: 0.75, hard: 1.0 },
+};
+
+const COST_TIER_FIT = { low: 1.0, medium: 0.5, high: 0.0 };
 
 function norm(s) {
   return String(s ?? "").toLowerCase().trim();
@@ -48,34 +45,66 @@ function clamp01(x) {
   return Math.min(1, Math.max(0, x));
 }
 
+function ingredientName(ing) {
+  return typeof ing === "string" ? ing : (ing?.name ?? "");
+}
+
 function getHave(request) {
   return (request.availableIngredients ?? request.ingredients ?? []).map(norm).filter(Boolean);
 }
 
 function getCuisines(profile) {
-  return (profile.cuisines ?? profile.favoriteCuisines ?? []).map(norm);
+  return (profile.favoriteCuisines ?? profile.favorite_cuisines ?? profile.cuisines ?? []).map(norm);
 }
 
 function getGoals(profile) {
   return profile.nutritionGoals ?? profile.nutrition_goals ?? {};
 }
 
+function getSkill(profile) {
+  return norm(profile.skillLevel ?? profile.skill_level ?? profile.skill ?? "");
+}
+
+function getDifficulty(recipe) {
+  return norm(recipe.difficulty ?? "easy");
+}
+
+function getSpice(recipe, profile) {
+  return {
+    recipe: norm(recipe.spiceLevel ?? recipe.spice ?? ""),
+    profile: norm(profile.spicePreference ?? profile.spice_preference ?? profile.spice ?? ""),
+  };
+}
+
 function getLimit(request, profile) {
   if (request.timeLimit !== undefined && request.timeLimit !== null) return Number(request.timeLimit);
   if (request.maxTime !== undefined && request.maxTime !== null) return Number(request.maxTime);
-  return profile.maxCookTime ?? 30;
+  const pref = profile.preferredCookTimeMinutes ?? profile.maxCookTime;
+  return pref !== undefined ? Number(pref) : 30;
+}
+
+function getProtein(nut) {
+  return nut.protein_g ?? nut.protein;
+}
+
+function getCarbs(nut) {
+  return nut.carbs_g ?? nut.carbs;
+}
+
+function getFat(nut) {
+  return nut.fat_g ?? nut.fat;
 }
 
 /**
  * @param {RecipeLike} recipe
  * @param {ProfileLike} profile
  * @param {RequestLike} [request]
- * @returns {{ingredient_overlap:number,cuisine_match:number,time_fit:number,nutrition_fit:number,spice_fit:number,budget_fit:number}}
+ * @returns {{ingredient_overlap:number,time_fit:number,cuisine_match:number,nutrition_fit:number,skill_fit:number,spice_fit:number,budget_fit:number}}
  */
 export function computeFeatures(recipe, profile, request = {}) {
   const ingredients = recipe.ingredients ?? [];
 
-  // ingredient_overlap: |have ∩ recipe| / |recipe| (0 when nothing matches; 0.5 neutral if user listed nothing)
+  // ingredient_overlap: |have ∩ recipe| / |recipe| (0.5 neutral if user listed nothing)
   let ingredient_overlap = 0.5;
   const have = getHave(request);
   if (have.length > 0) {
@@ -84,7 +113,7 @@ export function computeFeatures(recipe, profile, request = {}) {
     } else {
       let hits = 0;
       for (const ing of ingredients) {
-        const ingNorm = norm(ing);
+        const ingNorm = norm(ingredientName(ing));
         for (const h of have) {
           if (h && (ingNorm.includes(h) || h.includes(ingNorm))) {
             hits++;
@@ -103,9 +132,9 @@ export function computeFeatures(recipe, profile, request = {}) {
     cuisine_match = favs.includes(norm(recipe.cuisine ?? "")) ? 1 : 0;
   }
 
-  // time_fit: 1 - |cook - limit| / limit, clipped [0,1]
+  // time_fit: 1 - |recipe.cook_time - requested.time_limit| / requested.time_limit, clipped [0,1]
   const limit = getLimit(request, profile);
-  const cook = recipe.cookTime ?? 30;
+  const cook = recipe.cookTimeMinutes ?? recipe.cookTime ?? 30;
   let time_fit;
   if (!limit || limit <= 0) time_fit = 0.5;
   else time_fit = clamp01(1 - Math.abs(cook - limit) / limit);
@@ -119,25 +148,41 @@ export function computeFeatures(recipe, profile, request = {}) {
     if (goal > 0) signals.push(nut.calories <= goal ? 1 : clamp01(1 - (nut.calories - goal) / goal));
   }
   if (goals.highProtein) {
-    if (nut.protein !== undefined) signals.push(clamp01(nut.protein / 30));
+    const protein = getProtein(nut);
+    if (protein !== undefined) signals.push(clamp01(protein / 30));
   }
   if (goals.lowCarb) {
-    if (nut.carbs !== undefined) signals.push(nut.carbs <= 30 ? 1 : clamp01(1 - (nut.carbs - 30) / 50));
+    const carbs = getCarbs(nut);
+    if (carbs !== undefined) signals.push(carbs <= 30 ? 1 : clamp01(1 - (carbs - 30) / 50));
   }
   const nutrition_fit = signals.length ? signals.reduce((a, b) => a + b, 0) / signals.length : 0.5;
 
+  // skill_fit: profile.skill_level × recipe.difficulty lookup (§7.2)
+  let skill_fit = 0.5;
+  const skill = getSkill(profile);
+  const difficulty = getDifficulty(recipe);
+  if (SKILL_FIT_TABLE[skill] && SKILL_FIT_TABLE[skill][difficulty] !== undefined) {
+    skill_fit = SKILL_FIT_TABLE[skill][difficulty];
+  }
+
   // spice_fit: 1 match, 0.5 adjacent, 0 opposite (0.5 neutral when unknown)
   let spice_fit = 0.5;
-  if (recipe.spice && profile.spice && SPICE_RANK[recipe.spice] !== undefined && SPICE_RANK[profile.spice] !== undefined) {
-    const d = Math.abs(SPICE_RANK[recipe.spice] - SPICE_RANK[profile.spice]);
+  const { recipe: rSpice, profile: pSpice } = getSpice(recipe, profile);
+  if (rSpice && pSpice && SPICE_RANK[rSpice] !== undefined && SPICE_RANK[pSpice] !== undefined) {
+    const d = Math.abs(SPICE_RANK[rSpice] - SPICE_RANK[pSpice]);
     spice_fit = d === 0 ? 1 : d === 1 ? 0.5 : 0;
   }
 
-  // budget_fit: inverse of price-per-serving; neutral 0.5 when price unknown
+  // budget_fit: from cost_tier (low=1.0, medium=0.5, high=0.0); legacy
+  // pricePerServing supported as fallback; neutral 0.5 when unknown.
   let budget_fit = 0.5;
-  if (recipe.pricePerServing !== undefined && recipe.pricePerServing !== null) {
+  const tier = norm(recipe.costTier ?? recipe.cost_tier ?? "");
+  if (tier && COST_TIER_FIT[tier] !== undefined) {
+    budget_fit = COST_TIER_FIT[tier];
+  } else if (recipe.pricePerServing !== undefined && recipe.pricePerServing !== null) {
     budget_fit = clamp01(1 - Number(recipe.pricePerServing) / 5);
   }
 
-  return { ingredient_overlap, cuisine_match, time_fit, nutrition_fit, spice_fit, budget_fit };
+  void getFat;
+  return { ingredient_overlap, time_fit, cuisine_match, nutrition_fit, skill_fit, spice_fit, budget_fit };
 }

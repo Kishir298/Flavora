@@ -10,7 +10,7 @@
  * show full ingredients so the user does a final check.
  *
  * @typedef {Object} RecipeLike
- * @property {string[]} ingredients
+ * @property {(string|{name:string})[]} ingredients — seed rows use {name,quantity,unit} objects
  * @typedef {Object} ProfileLike
  * @property {string[]} [allergies]
  * @property {string[]} [avoid_foods]
@@ -70,6 +70,7 @@ export function ingredientViolatesTerm(ingredient, term) {
 
 /**
  * Guide entry point: true = passes (safe), false = reject.
+ * Accepts ingredient strings or {name,quantity,unit} objects (seed shape).
  * @param {RecipeLike} recipe
  * @param {ProfileLike} profile
  */
@@ -78,7 +79,10 @@ export function passesHardFilter(recipe, profile) {
     .map(normalize)
     .filter(Boolean);
   if (forbidden.length === 0) return true;
-  for (const ing of recipe.ingredients ?? []) {
+  const ingredients = (recipe.ingredients ?? []).map((ing) =>
+    typeof ing === "string" ? ing : (ing?.name ?? "")
+  );
+  for (const ing of ingredients) {
     for (const term of forbidden) {
       if (ingredientViolatesTerm(ing, term)) return false;
     }

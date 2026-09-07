@@ -1,12 +1,11 @@
 /**
- * Guide steps 1/6/9 — weight loading (literal .js path).
- * Single-user local app: userId is always "local".
+ * Weight loading (§7.5, §7.8). Single-user local app: userId is always "local".
  */
 import { DEFAULT_WEIGHTS } from "./scorer.js";
 
 export { DEFAULT_WEIGHTS };
 
-/** Minimum explicit outcomes before learned weights are trusted (guide step 6). */
+/** Minimum explicit outcomes before learned weights are trusted (§7.5). */
 export const COLD_START_MIN_OUTCOMES = 20;
 
 /** @param {Record<string, number>} weights */
@@ -29,7 +28,7 @@ export function weightsFromRows(rows) {
 
 /**
  * Resolve effective weights: learned rows only when outcomeCount >= threshold,
- * else static defaults (guide step 6 — never learn from too little signal).
+ * else static defaults (§7.5 — never learn from too little signal).
  * @param {{outcomeCount?: number, rows?: {featureName:string,weightValue:number}[]}} args
  */
 export function resolveWeights({ outcomeCount = 0, rows = [] } = {}) {

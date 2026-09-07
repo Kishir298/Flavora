@@ -31,16 +31,35 @@ model RecipeCache {
   ingredients String   @default("[]") // JSON string[]
   instructions String  @default("[]") // JSON string[]
   image       String   @default("")
+  pricePerServing Float? // Spoonacular price; drives budget_fit when mode:"budget"
   fetchedAt   DateTime @default(now())
 }
 
 model Interaction {
   id        Int      @id @default(autoincrement())
   recipeId  String
-  action    String   // viewed | saved | cooked | rated | skipped
+  // shown | viewed | saved | cooked | rated_positive | rated_negative | skipped
+  // (legacy "rated" also accepted as alias for rated_positive)
+  action    String
   rating    Int?
+  // Guide step 7: feature vector recorded when the recipe was shown
+  // (JSON of the 6 engine features). Empty for user-initiated actions;
+  // retrain joins labels to the latest "shown" row per recipe.
+  features  String   @default("{}")
   createdAt DateTime @default(now())
 
   @@index([recipeId])
   @@index([action])
+}
+
+// Single-user local app: user_id is always "local" (no accounts, per §10).
+// Seeded with guide step-3 defaults on profile creation so scorer never
+// sees a missing-weights case. Learning layer upserts per-feature rows.
+model RecommendationWeights {
+  userId      String   @default("local")
+  featureName String
+  weightValue Float
+  updatedAt   DateTime @updatedAt
+
+  @@id([userId, featureName])
 }

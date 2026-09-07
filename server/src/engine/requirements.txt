@@ -1,0 +1,5 @@
+# Flavora learning layer (guide step 7).
+# Install with: python3 -m pip install -r requirements.txt
+# Uses only the stdlib + scikit-learn. No API calls, runs fully locally.
+scikit-learn==1.5.2
+numpy==2.1.3

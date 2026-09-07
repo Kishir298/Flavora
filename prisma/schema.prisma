@@ -7,59 +7,80 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Naming convention (§3): every table/column in SQLite is snake_case.
+// Prisma models expose camelCase to JS/TS via @map / @@map.
+
 // Singleton row (id = 1) — single-user local app, no accounts.
 model UserProfile {
-  id            Int     @id @default(1)
-  allergies     String  @default("[]") // JSON string[]
-  avoidFoods    String  @default("[]") // JSON string[]
-  cuisines      String  @default("[]") // JSON string[]
-  spice         String  @default("medium") // mild | medium | hot
-  skill         String  @default("beginner") // beginner | intermediate | advanced
-  nutritionGoals String @default("{}") // JSON e.g. {"highProtein":true,"lowCarb":false,"maxCalories":600}
-  maxCookTime   Int     @default(30)
-  theme         String  @default("light") // light | dark
-  updatedAt     DateTime @updatedAt
+  id                      Int      @id @default(1) @map("id")
+  allergies               String   @default("[]") @map("allergies") // JSON string[]
+  avoidFoods              String   @default("[]") @map("avoid_foods") // JSON string[]
+  favoriteCuisines        String   @default("[]") @map("favorite_cuisines") // JSON string[]
+  spicePreference         String   @default("medium") @map("spice_preference") // mild | medium | hot
+  skillLevel              String   @default("beginner") @map("skill_level") // beginner | intermediate | advanced
+  nutritionGoals          String   @default("{}") @map("nutrition_goals") // JSON e.g. {"highProtein":true,"lowCarb":false,"maxCalories":600}
+  preferredCookTimeMinutes Int     @default(30) @map("preferred_cook_time_minutes")
+  theme                   String   @default("light") @map("theme") // light | dark
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  @@map("user_profile")
 }
 
-model RecipeCache {
-  id          String   @id // e.g. "spoonacular:716429" or "mock:1"
-  source      String   // spoonacular | themealdb | mock
-  title       String
-  cuisine     String   @default("")
-  cookTime    Int      @default(30)
-  nutrition   String   @default("{}") // JSON {calories, protein, carbs, fat}
-  ingredients String   @default("[]") // JSON string[]
-  instructions String  @default("[]") // JSON string[]
-  image       String   @default("")
-  pricePerServing Float? // Spoonacular price; drives budget_fit when mode:"budget"
-  fetchedAt   DateTime @default(now())
+// The source of truth (§5) — seeded from /data/recipes.json, not a cache.
+model Recipe {
+  id               String @id @map("id")
+  title            String @map("title")
+  cuisine          String @default("") @map("cuisine")
+  cookTimeMinutes  Int    @default(30) @map("cook_time_minutes")
+  difficulty       String @default("easy") @map("difficulty") // easy | medium | hard
+  spiceLevel       String @default("mild") @map("spice_level") // mild | medium | hot
+  dietTags         String @default("[]") @map("diet_tags") // JSON string[]
+  ingredients      String @default("[]") @map("ingredients") // JSON [{name, quantity, unit}]
+  instructions     String @default("[]") @map("instructions") // JSON string[]
+  nutrition        String @default("{}") @map("nutrition") // JSON {calories, protein_g, carbs_g, fat_g}
+  costTier         String @default("low") @map("cost_tier") // low | medium | high
+  storageTips      String @default("") @map("storage_tips")
+
+  @@map("recipes")
+}
+
+model IngredientSubstitute {
+  id             Int    @id @default(autoincrement()) @map("id")
+  ingredientName String @map("ingredient_name")
+  substituteName String @map("substitute_name")
+  notes          String @default("") @map("notes")
+
+  @@map("ingredient_substitutes")
 }
 
 model Interaction {
-  id        Int      @id @default(autoincrement())
-  recipeId  String
+  id        Int      @id @default(autoincrement()) @map("id")
+  userId    String   @default("local") @map("user_id")
+  recipeId  String   @map("recipe_id")
   // shown | viewed | saved | cooked | rated_positive | rated_negative | skipped
   // (legacy "rated" also accepted as alias for rated_positive)
-  action    String
-  rating    Int?
-  // Guide step 7: feature vector recorded when the recipe was shown
-  // (JSON of the 6 engine features). Empty for user-initiated actions;
+  action    String   @map("action")
+  rating    Int?     @map("rating")
+  // Feature vector recorded when the recipe was shown
+  // (JSON of the 7 engine features). Empty for user-initiated actions;
   // retrain joins labels to the latest "shown" row per recipe.
-  features  String   @default("{}")
-  createdAt DateTime @default(now())
+  features  String   @default("{}") @map("features")
+  createdAt DateTime @default(now()) @map("timestamp")
 
   @@index([recipeId])
   @@index([action])
+  @@map("interactions")
 }
 
 // Single-user local app: user_id is always "local" (no accounts, per §10).
-// Seeded with guide step-3 defaults on profile creation so scorer never
+// Seeded with §7.2 defaults on profile creation so scorer never
 // sees a missing-weights case. Learning layer upserts per-feature rows.
 model RecommendationWeights {
-  userId      String   @default("local")
-  featureName String
-  weightValue Float
-  updatedAt   DateTime @updatedAt
+  userId      String   @default("local") @map("user_id")
+  featureName String   @map("feature_name")
+  weightValue Float    @map("weight_value")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@id([userId, featureName])
+  @@map("recommendation_weights")
 }

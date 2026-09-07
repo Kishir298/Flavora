@@ -13,10 +13,11 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 export const DEFAULT_GUIDE_WEIGHTS = {
-  ingredient_overlap: 0.3,
+  ingredient_overlap: 0.25,
   time_fit: 0.2,
-  cuisine_match: 0.15,
-  nutrition_fit: 0.15,
+  cuisine_match: 0.125,
+  nutrition_fit: 0.125,
+  skill_fit: 0.1,
   spice_fit: 0.1,
   budget_fit: 0.1,
 };

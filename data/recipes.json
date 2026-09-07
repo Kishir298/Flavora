@@ -1,0 +1,2370 @@
+[
+  {
+    "id": "italian-spaghetti-aglio-e-olio",
+    "title": "Spaghetti Aglio e Olio",
+    "cuisine": "Italian",
+    "cook_time_minutes": 20,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian"],
+    "ingredients": [
+      { "name": "spaghetti", "quantity": 400, "unit": "g" },
+      { "name": "garlic cloves", "quantity": 6, "unit": null },
+      { "name": "olive oil", "quantity": 0.5, "unit": "cup" },
+      { "name": "red pepper flakes", "quantity": 1, "unit": "tsp" },
+      { "name": "parsley, chopped", "quantity": 0.25, "unit": "cup" },
+      { "name": "parmesan cheese, grated", "quantity": 0.5, "unit": "cup" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Bring a large pot of salted water to a boil and cook spaghetti until al dente, reserving 1 cup of pasta water before draining.",
+      "While the pasta cooks, thinly slice the garlic cloves.",
+      "Heat olive oil in a large skillet over medium-low heat and gently cook the garlic until golden, about 3-4 minutes, being careful not to burn it.",
+      "Add red pepper flakes and cook for 30 seconds, then add the drained spaghetti along with a splash of the reserved pasta water.",
+      "Toss everything together over medium heat for 1-2 minutes until the sauce coats the noodles, adding more pasta water if needed.",
+      "Stir in parsley and parmesan, season with salt, and serve immediately."
+    ],
+    "nutrition": { "calories": 480, "protein_g": 14, "carbs_g": 68, "fat_g": 16 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in an airtight container in the fridge for up to 3 days; reheat gently with a splash of water to loosen the sauce."
+  },
+  {
+    "id": "italian-margherita-pizza",
+    "title": "Margherita Pizza",
+    "cuisine": "Italian",
+    "cook_time_minutes": 35,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian"],
+    "ingredients": [
+      { "name": "pizza dough", "quantity": 1, "unit": "lb" },
+      { "name": "canned crushed tomatoes", "quantity": 1, "unit": "cup" },
+      { "name": "fresh mozzarella", "quantity": 8, "unit": "oz" },
+      { "name": "fresh basil leaves", "quantity": 10, "unit": null },
+      { "name": "olive oil", "quantity": 2, "unit": "tbsp" },
+      { "name": "salt", "quantity": 0.5, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Preheat the oven to 475°F (245°C) with a baking sheet or pizza stone inside.",
+      "Stretch the pizza dough out on a floured surface into a 12-inch round.",
+      "Spread the crushed tomatoes evenly over the dough, leaving a border for the crust, and season with salt.",
+      "Tear the mozzarella into pieces and scatter over the sauce.",
+      "Carefully transfer the pizza onto the hot baking sheet and bake for 10-12 minutes until the crust is golden and the cheese is bubbling.",
+      "Top with fresh basil leaves and a drizzle of olive oil before slicing."
+    ],
+    "nutrition": { "calories": 620, "protein_g": 26, "carbs_g": 78, "fat_g": 22 },
+    "cost_tier": "low",
+    "storage_tips": "Best eaten fresh; leftovers keep in the fridge for 2 days and reheat well in a hot skillet or oven."
+  },
+  {
+    "id": "italian-chicken-parmesan",
+    "title": "Chicken Parmesan",
+    "cuisine": "Italian",
+    "cook_time_minutes": 40,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "chicken breasts", "quantity": 4, "unit": null },
+      { "name": "breadcrumbs", "quantity": 1, "unit": "cup" },
+      { "name": "parmesan cheese, grated", "quantity": 0.5, "unit": "cup" },
+      { "name": "eggs", "quantity": 2, "unit": null },
+      { "name": "marinara sauce", "quantity": 2, "unit": "cup" },
+      { "name": "mozzarella cheese, shredded", "quantity": 1, "unit": "cup" },
+      { "name": "olive oil", "quantity": 3, "unit": "tbsp" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" },
+      { "name": "black pepper", "quantity": 0.5, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Pound the chicken breasts to an even thickness and season with salt and pepper.",
+      "Set up a breading station: beaten eggs in one bowl, breadcrumbs mixed with parmesan in another.",
+      "Dip each chicken breast in egg, then coat thoroughly in the breadcrumb mixture.",
+      "Heat olive oil in a skillet over medium heat and fry the chicken for 3-4 minutes per side until golden brown.",
+      "Transfer the chicken to a baking dish, top with marinara sauce and mozzarella, and bake at 400°F (200°C) for 15-20 minutes until the cheese is melted and the chicken is cooked through.",
+      "Rest for a few minutes before serving, ideally over pasta."
+    ],
+    "nutrition": { "calories": 540, "protein_g": 46, "carbs_g": 28, "fat_g": 26 },
+    "cost_tier": "medium",
+    "storage_tips": "Refrigerate for up to 3 days; reheat in the oven to keep the coating crisp."
+  },
+  {
+    "id": "italian-mushroom-risotto",
+    "title": "Mushroom Risotto",
+    "cuisine": "Italian",
+    "cook_time_minutes": 45,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "gluten_free"],
+    "ingredients": [
+      { "name": "arborio rice", "quantity": 1.5, "unit": "cup" },
+      { "name": "mixed mushrooms, sliced", "quantity": 300, "unit": "g" },
+      { "name": "vegetable stock", "quantity": 4, "unit": "cup" },
+      { "name": "white onion, diced", "quantity": 1, "unit": null },
+      { "name": "garlic cloves, minced", "quantity": 2, "unit": null },
+      { "name": "white wine", "quantity": 0.5, "unit": "cup" },
+      { "name": "parmesan cheese, grated", "quantity": 0.5, "unit": "cup" },
+      { "name": "butter", "quantity": 2, "unit": "tbsp" },
+      { "name": "olive oil", "quantity": 2, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Heat the vegetable stock in a saucepan and keep it at a gentle simmer.",
+      "In a large pan, heat olive oil and sauté the mushrooms until browned, then set aside.",
+      "In the same pan, cook the onion and garlic until softened, then add the arborio rice and toast for 1-2 minutes.",
+      "Pour in the white wine and stir until absorbed, then begin adding the warm stock one ladle at a time, stirring frequently and waiting for each addition to be absorbed before adding more.",
+      "Continue for about 20 minutes until the rice is creamy and tender, then stir the mushrooms back in.",
+      "Remove from heat and stir in butter and parmesan before serving."
+    ],
+    "nutrition": { "calories": 460, "protein_g": 12, "carbs_g": 62, "fat_g": 16 },
+    "cost_tier": "medium",
+    "storage_tips": "Best fresh, but keeps in the fridge for 2 days; reheat gently with a splash of stock to restore creaminess."
+  },
+  {
+    "id": "italian-caprese-salad",
+    "title": "Caprese Salad",
+    "cuisine": "Italian",
+    "cook_time_minutes": 10,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "gluten_free"],
+    "ingredients": [
+      { "name": "fresh tomatoes, sliced", "quantity": 4, "unit": null },
+      { "name": "fresh mozzarella, sliced", "quantity": 8, "unit": "oz" },
+      { "name": "fresh basil leaves", "quantity": 12, "unit": null },
+      { "name": "olive oil", "quantity": 3, "unit": "tbsp" },
+      { "name": "balsamic glaze", "quantity": 2, "unit": "tbsp" },
+      { "name": "salt", "quantity": 0.5, "unit": "tsp" },
+      { "name": "black pepper", "quantity": 0.25, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Arrange alternating slices of tomato and mozzarella on a serving plate.",
+      "Tuck basil leaves between the slices.",
+      "Drizzle with olive oil and balsamic glaze.",
+      "Season with salt and pepper just before serving."
+    ],
+    "nutrition": { "calories": 320, "protein_g": 16, "carbs_g": 8, "fat_g": 24 },
+    "cost_tier": "medium",
+    "storage_tips": "Best served fresh; if needed, store components separately and assemble just before eating."
+  },
+  {
+    "id": "italian-lasagna-bolognese",
+    "title": "Lasagna alla Bolognese",
+    "cuisine": "Italian",
+    "cook_time_minutes": 90,
+    "difficulty": "hard",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "lasagna noodles", "quantity": 12, "unit": null },
+      { "name": "ground beef", "quantity": 1, "unit": "lb" },
+      { "name": "onion, diced", "quantity": 1, "unit": null },
+      { "name": "carrot, diced", "quantity": 1, "unit": null },
+      { "name": "celery stalk, diced", "quantity": 1, "unit": null },
+      { "name": "canned crushed tomatoes", "quantity": 2, "unit": "cup" },
+      { "name": "whole milk", "quantity": 1, "unit": "cup" },
+      { "name": "butter", "quantity": 3, "unit": "tbsp" },
+      { "name": "flour", "quantity": 3, "unit": "tbsp" },
+      { "name": "mozzarella cheese, shredded", "quantity": 2, "unit": "cup" },
+      { "name": "parmesan cheese, grated", "quantity": 0.5, "unit": "cup" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Cook the onion, carrot, and celery in a large pot until softened, then add the ground beef and brown thoroughly.",
+      "Stir in the crushed tomatoes, season with salt, and simmer the bolognese sauce for 30-40 minutes.",
+      "Meanwhile, make a béchamel by melting butter, whisking in flour, then gradually adding milk until thickened.",
+      "Cook the lasagna noodles according to package instructions and drain.",
+      "Layer noodles, bolognese sauce, béchamel, and mozzarella in a baking dish, repeating until ingredients are used, finishing with cheese on top.",
+      "Bake at 375°F (190°C) for 30-35 minutes until bubbling and golden, then rest for 10 minutes before slicing."
+    ],
+    "nutrition": { "calories": 620, "protein_g": 34, "carbs_g": 52, "fat_g": 30 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 4 days or freezes well for up to 3 months; reheat covered in the oven."
+  },
+  {
+    "id": "italian-minestrone-soup",
+    "title": "Minestrone Soup",
+    "cuisine": "Italian",
+    "cook_time_minutes": 40,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "vegan"],
+    "ingredients": [
+      { "name": "olive oil", "quantity": 2, "unit": "tbsp" },
+      { "name": "onion, diced", "quantity": 1, "unit": null },
+      { "name": "carrots, diced", "quantity": 2, "unit": null },
+      { "name": "celery stalks, diced", "quantity": 2, "unit": null },
+      { "name": "garlic cloves, minced", "quantity": 2, "unit": null },
+      { "name": "canned diced tomatoes", "quantity": 1, "unit": "can" },
+      { "name": "vegetable stock", "quantity": 4, "unit": "cup" },
+      { "name": "canned kidney beans", "quantity": 1, "unit": "can" },
+      { "name": "small pasta", "quantity": 1, "unit": "cup" },
+      { "name": "zucchini, diced", "quantity": 1, "unit": null },
+      { "name": "salt", "quantity": 1, "unit": "tsp" },
+      { "name": "black pepper", "quantity": 0.5, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Heat olive oil in a large pot and sauté onion, carrots, celery, and garlic until softened.",
+      "Add the diced tomatoes and vegetable stock, then bring to a simmer.",
+      "Stir in the kidney beans and zucchini and cook for 10 minutes.",
+      "Add the pasta and cook until tender, about 8-10 minutes.",
+      "Season with salt and pepper before serving."
+    ],
+    "nutrition": { "calories": 260, "protein_g": 10, "carbs_g": 44, "fat_g": 6 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 5 days and freezes well; pasta will soften further on reheating."
+  },
+  {
+    "id": "italian-chicken-piccata",
+    "title": "Chicken Piccata",
+    "cuisine": "Italian",
+    "cook_time_minutes": 30,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "chicken breasts, thinly sliced", "quantity": 4, "unit": null },
+      { "name": "flour", "quantity": 0.5, "unit": "cup" },
+      { "name": "butter", "quantity": 4, "unit": "tbsp" },
+      { "name": "olive oil", "quantity": 2, "unit": "tbsp" },
+      { "name": "chicken stock", "quantity": 1, "unit": "cup" },
+      { "name": "lemon juice", "quantity": 0.25, "unit": "cup" },
+      { "name": "capers", "quantity": 2, "unit": "tbsp" },
+      { "name": "garlic cloves, minced", "quantity": 2, "unit": null },
+      { "name": "salt", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Season the chicken with salt and dredge lightly in flour.",
+      "Heat olive oil and 1 tbsp butter in a skillet and cook the chicken for 2-3 minutes per side until golden; set aside.",
+      "In the same pan, cook garlic briefly, then add chicken stock, lemon juice, and capers, scraping up any browned bits.",
+      "Simmer the sauce for 3-4 minutes to reduce slightly, then whisk in the remaining butter.",
+      "Return the chicken to the pan and spoon the sauce over before serving."
+    ],
+    "nutrition": { "calories": 420, "protein_g": 38, "carbs_g": 12, "fat_g": 24 },
+    "cost_tier": "medium",
+    "storage_tips": "Refrigerate for up to 3 days; reheat gently to avoid overcooking the chicken."
+  },
+  {
+    "id": "indian-butter-chicken",
+    "title": "Butter Chicken (Murgh Makhani)",
+    "cuisine": "Indian",
+    "cook_time_minutes": 45,
+    "difficulty": "medium",
+    "spice_level": "medium",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "chicken thighs, cubed", "quantity": 1.5, "unit": "lb" },
+      { "name": "plain yogurt", "quantity": 0.5, "unit": "cup" },
+      { "name": "garam masala", "quantity": 2, "unit": "tsp" },
+      { "name": "butter", "quantity": 4, "unit": "tbsp" },
+      { "name": "onion, diced", "quantity": 1, "unit": null },
+      { "name": "garlic cloves, minced", "quantity": 4, "unit": null },
+      { "name": "ginger, minced", "quantity": 1, "unit": "tbsp" },
+      { "name": "canned tomato puree", "quantity": 1.5, "unit": "cup" },
+      { "name": "heavy cream", "quantity": 0.5, "unit": "cup" },
+      { "name": "chili powder", "quantity": 1, "unit": "tsp" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Marinate the chicken in yogurt and half the garam masala for at least 30 minutes.",
+      "Melt butter in a large pot and sauté onion, garlic, and ginger until fragrant.",
+      "Add the marinated chicken and cook until browned on all sides.",
+      "Stir in tomato puree, chili powder, remaining garam masala, and salt, then simmer for 15-20 minutes.",
+      "Stir in the cream and simmer for another 5 minutes until the sauce thickens.",
+      "Serve with rice or naan."
+    ],
+    "nutrition": { "calories": 480, "protein_g": 32, "carbs_g": 12, "fat_g": 32 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 4 days and freezes well; the sauce may thicken further on reheating."
+  },
+  {
+    "id": "indian-chana-masala",
+    "title": "Chana Masala",
+    "cuisine": "Indian",
+    "cook_time_minutes": 30,
+    "difficulty": "easy",
+    "spice_level": "medium",
+    "diet_tags": ["vegetarian", "vegan", "gluten_free"],
+    "ingredients": [
+      { "name": "canned chickpeas", "quantity": 2, "unit": "can" },
+      { "name": "onion, diced", "quantity": 1, "unit": null },
+      { "name": "garlic cloves, minced", "quantity": 3, "unit": null },
+      { "name": "ginger, minced", "quantity": 1, "unit": "tbsp" },
+      { "name": "canned diced tomatoes", "quantity": 1, "unit": "can" },
+      { "name": "cumin", "quantity": 1, "unit": "tsp" },
+      { "name": "coriander powder", "quantity": 1, "unit": "tsp" },
+      { "name": "garam masala", "quantity": 1, "unit": "tsp" },
+      { "name": "chili powder", "quantity": 0.5, "unit": "tsp" },
+      { "name": "vegetable oil", "quantity": 2, "unit": "tbsp" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Heat oil in a pot and sauté the onion until golden.",
+      "Add garlic and ginger and cook for 1 minute.",
+      "Stir in cumin, coriander, garam masala, and chili powder, cooking until fragrant.",
+      "Add the diced tomatoes and simmer for 5 minutes.",
+      "Stir in the chickpeas and salt, and simmer for 15 minutes, mashing a few chickpeas to thicken the sauce.",
+      "Serve with rice or flatbread."
+    ],
+    "nutrition": { "calories": 280, "protein_g": 12, "carbs_g": 42, "fat_g": 8 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 5 days and freezes well; flavor improves the next day."
+  },
+  {
+    "id": "indian-vegetable-biryani",
+    "title": "Vegetable Biryani",
+    "cuisine": "Indian",
+    "cook_time_minutes": 50,
+    "difficulty": "medium",
+    "spice_level": "medium",
+    "diet_tags": ["vegetarian", "gluten_free"],
+    "ingredients": [
+      { "name": "basmati rice", "quantity": 2, "unit": "cup" },
+      { "name": "mixed vegetables, diced", "quantity": 3, "unit": "cup" },
+      { "name": "onion, sliced", "quantity": 1, "unit": null },
+      { "name": "garlic cloves, minced", "quantity": 3, "unit": null },
+      { "name": "ginger, minced", "quantity": 1, "unit": "tbsp" },
+      { "name": "plain yogurt", "quantity": 0.5, "unit": "cup" },
+      { "name": "biryani masala", "quantity": 2, "unit": "tbsp" },
+      { "name": "vegetable oil", "quantity": 3, "unit": "tbsp" },
+      { "name": "saffron strands", "quantity": 1, "unit": "pinch" },
+      { "name": "warm milk", "quantity": 2, "unit": "tbsp" },
+      { "name": "mint leaves", "quantity": 0.25, "unit": "cup" }
+    ],
+    "instructions": [
+      "Soak the rice for 20 minutes, then parboil until about 70% cooked; drain and set aside.",
+      "Soak saffron in the warm milk and set aside.",
+      "Heat oil in a large pot and fry the onion until golden brown; remove half for garnish.",
+      "Add garlic and ginger, then the mixed vegetables and biryani masala, and cook for 5-7 minutes.",
+      "Stir in the yogurt and mint, then layer the parboiled rice on top.",
+      "Drizzle the saffron milk over the rice, cover tightly, and cook on low heat for 20 minutes until the rice is fully steamed.",
+      "Fluff gently and garnish with the reserved fried onions before serving."
+    ],
+    "nutrition": { "calories": 420, "protein_g": 10, "carbs_g": 76, "fat_g": 10 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 4 days; reheat with a splash of water to keep the rice from drying out."
+  },
+  {
+    "id": "indian-palak-paneer",
+    "title": "Palak Paneer",
+    "cuisine": "Indian",
+    "cook_time_minutes": 35,
+    "difficulty": "medium",
+    "spice_level": "medium",
+    "diet_tags": ["vegetarian", "gluten_free"],
+    "ingredients": [
+      { "name": "fresh spinach", "quantity": 500, "unit": "g" },
+      { "name": "paneer, cubed", "quantity": 250, "unit": "g" },
+      { "name": "onion, diced", "quantity": 1, "unit": null },
+      { "name": "garlic cloves, minced", "quantity": 3, "unit": null },
+      { "name": "ginger, minced", "quantity": 1, "unit": "tsp" },
+      { "name": "canned diced tomatoes", "quantity": 0.5, "unit": "cup" },
+      { "name": "cumin", "quantity": 1, "unit": "tsp" },
+      { "name": "garam masala", "quantity": 1, "unit": "tsp" },
+      { "name": "heavy cream", "quantity": 2, "unit": "tbsp" },
+      { "name": "vegetable oil", "quantity": 2, "unit": "tbsp" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Blanch the spinach in boiling water for 2 minutes, then blend into a smooth puree.",
+      "Heat oil in a pan and lightly fry the paneer cubes until golden; set aside.",
+      "In the same pan, sauté onion, garlic, and ginger until softened.",
+      "Add cumin, garam masala, and tomatoes, cooking until the mixture thickens slightly.",
+      "Stir in the spinach puree and salt, and simmer for 5-8 minutes.",
+      "Add the paneer back in along with the cream, and simmer for another 3 minutes before serving."
+    ],
+    "nutrition": { "calories": 380, "protein_g": 18, "carbs_g": 14, "fat_g": 28 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 3 days; the sauce may separate slightly on reheating, so stir well."
+  },
+  {
+    "id": "indian-dal-tadka",
+    "title": "Dal Tadka",
+    "cuisine": "Indian",
+    "cook_time_minutes": 35,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "vegan", "gluten_free"],
+    "ingredients": [
+      { "name": "yellow lentils", "quantity": 1, "unit": "cup" },
+      { "name": "onion, diced", "quantity": 1, "unit": null },
+      { "name": "garlic cloves, minced", "quantity": 3, "unit": null },
+      { "name": "tomato, diced", "quantity": 1, "unit": null },
+      { "name": "turmeric", "quantity": 0.5, "unit": "tsp" },
+      { "name": "cumin seeds", "quantity": 1, "unit": "tsp" },
+      { "name": "ghee", "quantity": 2, "unit": "tbsp" },
+      { "name": "dried red chilies", "quantity": 2, "unit": null },
+      { "name": "salt", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Rinse the lentils and simmer with turmeric and salt in 3 cups of water until soft, about 20 minutes.",
+      "In a separate small pan, heat ghee and fry the cumin seeds and dried chilies until fragrant.",
+      "Add the onion and garlic to the pan and cook until golden.",
+      "Stir in the tomato and cook for 2-3 minutes until softened.",
+      "Pour this tempering over the cooked lentils and stir to combine before serving."
+    ],
+    "nutrition": { "calories": 260, "protein_g": 14, "carbs_g": 34, "fat_g": 8 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 5 days and freezes well."
+  },
+  {
+    "id": "indian-chicken-tikka-masala",
+    "title": "Chicken Tikka Masala",
+    "cuisine": "Indian",
+    "cook_time_minutes": 45,
+    "difficulty": "medium",
+    "spice_level": "medium",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "chicken breast, cubed", "quantity": 1.5, "unit": "lb" },
+      { "name": "plain yogurt", "quantity": 0.5, "unit": "cup" },
+      { "name": "garam masala", "quantity": 2, "unit": "tsp" },
+      { "name": "onion, diced", "quantity": 1, "unit": null },
+      { "name": "garlic cloves, minced", "quantity": 3, "unit": null },
+      { "name": "ginger, minced", "quantity": 1, "unit": "tbsp" },
+      { "name": "canned tomato puree", "quantity": 1.5, "unit": "cup" },
+      { "name": "heavy cream", "quantity": 0.5, "unit": "cup" },
+      { "name": "paprika", "quantity": 1, "unit": "tsp" },
+      { "name": "vegetable oil", "quantity": 2, "unit": "tbsp" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Marinate the chicken in yogurt, half the garam masala, and paprika for at least 30 minutes.",
+      "Grill or pan-sear the marinated chicken until charred and cooked through; set aside.",
+      "In a pot, heat oil and sauté onion, garlic, and ginger until soft.",
+      "Add the tomato puree, remaining garam masala, and salt, and simmer for 10 minutes.",
+      "Stir in the cream and the cooked chicken, and simmer for another 5-8 minutes.",
+      "Serve with rice or naan."
+    ],
+    "nutrition": { "calories": 460, "protein_g": 36, "carbs_g": 14, "fat_g": 28 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 4 days and freezes well."
+  },
+  {
+    "id": "indian-aloo-gobi",
+    "title": "Aloo Gobi",
+    "cuisine": "Indian",
+    "cook_time_minutes": 30,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "vegan", "gluten_free"],
+    "ingredients": [
+      { "name": "potatoes, cubed", "quantity": 2, "unit": null },
+      { "name": "cauliflower florets", "quantity": 1, "unit": "head" },
+      { "name": "onion, diced", "quantity": 1, "unit": null },
+      { "name": "garlic cloves, minced", "quantity": 2, "unit": null },
+      { "name": "turmeric", "quantity": 0.5, "unit": "tsp" },
+      { "name": "cumin seeds", "quantity": 1, "unit": "tsp" },
+      { "name": "coriander powder", "quantity": 1, "unit": "tsp" },
+      { "name": "vegetable oil", "quantity": 3, "unit": "tbsp" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" },
+      { "name": "fresh cilantro, chopped", "quantity": 2, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Heat oil in a large pan and add cumin seeds until they sizzle.",
+      "Add the onion and garlic and cook until softened.",
+      "Stir in turmeric and coriander powder, then add the potatoes and cauliflower.",
+      "Cover and cook over medium-low heat, stirring occasionally, for 15-20 minutes until the vegetables are tender.",
+      "Season with salt and garnish with cilantro before serving."
+    ],
+    "nutrition": { "calories": 220, "protein_g": 6, "carbs_g": 34, "fat_g": 8 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 4 days; reheat in a pan to keep the texture from getting mushy."
+  },
+  {
+    "id": "indian-paneer-tikka",
+    "title": "Paneer Tikka",
+    "cuisine": "Indian",
+    "cook_time_minutes": 30,
+    "difficulty": "medium",
+    "spice_level": "medium",
+    "diet_tags": ["vegetarian", "gluten_free"],
+    "ingredients": [
+      { "name": "paneer, cubed", "quantity": 300, "unit": "g" },
+      { "name": "plain yogurt", "quantity": 0.5, "unit": "cup" },
+      { "name": "bell peppers, cubed", "quantity": 2, "unit": null },
+      { "name": "onion, cubed", "quantity": 1, "unit": null },
+      { "name": "garam masala", "quantity": 1, "unit": "tsp" },
+      { "name": "chili powder", "quantity": 1, "unit": "tsp" },
+      { "name": "ginger garlic paste", "quantity": 1, "unit": "tbsp" },
+      { "name": "lemon juice", "quantity": 1, "unit": "tbsp" },
+      { "name": "vegetable oil", "quantity": 2, "unit": "tbsp" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Mix yogurt, garam masala, chili powder, ginger garlic paste, lemon juice, and salt into a marinade.",
+      "Toss the paneer, peppers, and onion in the marinade and let sit for at least 20 minutes.",
+      "Thread the paneer and vegetables onto skewers.",
+      "Grill or pan-sear over medium-high heat, turning occasionally, until lightly charred, about 10-12 minutes.",
+      "Drizzle with a little oil before serving."
+    ],
+    "nutrition": { "calories": 340, "protein_g": 16, "carbs_g": 12, "fat_g": 24 },
+    "cost_tier": "medium",
+    "storage_tips": "Best fresh; keeps in the fridge for up to 2 days, though the paneer firms up when chilled."
+  },
+  {
+    "id": "chinese-kung-pao-chicken",
+    "title": "Kung Pao Chicken",
+    "cuisine": "Chinese",
+    "cook_time_minutes": 30,
+    "difficulty": "medium",
+    "spice_level": "hot",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "chicken breast, cubed", "quantity": 1.5, "unit": "lb" },
+      { "name": "roasted peanuts", "quantity": 0.5, "unit": "cup" },
+      { "name": "dried red chilies", "quantity": 6, "unit": null },
+      { "name": "garlic cloves, minced", "quantity": 3, "unit": null },
+      { "name": "ginger, minced", "quantity": 1, "unit": "tsp" },
+      { "name": "soy sauce", "quantity": 3, "unit": "tbsp" },
+      { "name": "rice vinegar", "quantity": 1, "unit": "tbsp" },
+      { "name": "sugar", "quantity": 1, "unit": "tbsp" },
+      { "name": "cornstarch", "quantity": 1, "unit": "tbsp" },
+      { "name": "vegetable oil", "quantity": 3, "unit": "tbsp" },
+      { "name": "green onions, chopped", "quantity": 2, "unit": null }
+    ],
+    "instructions": [
+      "Toss the chicken with 1 tbsp soy sauce and cornstarch, and let sit for 10 minutes.",
+      "Mix the remaining soy sauce, rice vinegar, and sugar in a small bowl to make the sauce.",
+      "Heat oil in a wok over high heat and stir-fry the chicken until browned and cooked through; set aside.",
+      "In the same wok, quickly fry the dried chilies, garlic, and ginger until fragrant.",
+      "Return the chicken to the wok, add the sauce and peanuts, and toss until everything is coated and glossy.",
+      "Garnish with green onions before serving."
+    ],
+    "nutrition": { "calories": 420, "protein_g": 36, "carbs_g": 16, "fat_g": 24 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 3 days; peanuts may soften slightly on reheating."
+  },
+  {
+    "id": "chinese-vegetable-fried-rice",
+    "title": "Vegetable Fried Rice",
+    "cuisine": "Chinese",
+    "cook_time_minutes": 20,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian"],
+    "ingredients": [
+      { "name": "cooked rice, cold", "quantity": 4, "unit": "cup" },
+      { "name": "mixed vegetables, diced", "quantity": 1.5, "unit": "cup" },
+      { "name": "eggs", "quantity": 2, "unit": null },
+      { "name": "garlic cloves, minced", "quantity": 2, "unit": null },
+      { "name": "soy sauce", "quantity": 3, "unit": "tbsp" },
+      { "name": "sesame oil", "quantity": 1, "unit": "tbsp" },
+      { "name": "vegetable oil", "quantity": 2, "unit": "tbsp" },
+      { "name": "green onions, chopped", "quantity": 2, "unit": null }
+    ],
+    "instructions": [
+      "Heat vegetable oil in a large wok or skillet over high heat.",
+      "Scramble the eggs quickly and set aside.",
+      "Add garlic and mixed vegetables to the wok and stir-fry for 2-3 minutes.",
+      "Add the cold rice, breaking up any clumps, and stir-fry for 3-4 minutes.",
+      "Stir in the soy sauce, sesame oil, and scrambled eggs, tossing to combine.",
+      "Garnish with green onions before serving."
+    ],
+    "nutrition": { "calories": 380, "protein_g": 12, "carbs_g": 60, "fat_g": 10 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 4 days; reheat in a hot pan for the best texture."
+  },
+  {
+    "id": "chinese-mapo-tofu",
+    "title": "Mapo Tofu",
+    "cuisine": "Chinese",
+    "cook_time_minutes": 25,
+    "difficulty": "medium",
+    "spice_level": "hot",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "silken tofu, cubed", "quantity": 400, "unit": "g" },
+      { "name": "ground pork", "quantity": 200, "unit": "g" },
+      { "name": "garlic cloves, minced", "quantity": 3, "unit": null },
+      { "name": "ginger, minced", "quantity": 1, "unit": "tsp" },
+      { "name": "doubanjiang (chili bean paste)", "quantity": 2, "unit": "tbsp" },
+      { "name": "soy sauce", "quantity": 1, "unit": "tbsp" },
+      { "name": "chicken stock", "quantity": 0.5, "unit": "cup" },
+      { "name": "cornstarch", "quantity": 1, "unit": "tbsp" },
+      { "name": "sichuan peppercorns, ground", "quantity": 0.5, "unit": "tsp" },
+      { "name": "vegetable oil", "quantity": 2, "unit": "tbsp" },
+      { "name": "green onions, chopped", "quantity": 2, "unit": null }
+    ],
+    "instructions": [
+      "Heat oil in a wok and brown the ground pork thoroughly.",
+      "Add garlic, ginger, and doubanjiang, and cook until fragrant.",
+      "Pour in the chicken stock and soy sauce, then gently add the tofu cubes.",
+      "Simmer for 5 minutes, then stir in a cornstarch-water slurry to thicken the sauce.",
+      "Sprinkle with ground Sichuan peppercorns and green onions before serving."
+    ],
+    "nutrition": { "calories": 360, "protein_g": 20, "carbs_g": 10, "fat_g": 26 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 2 days; tofu texture softens further on reheating."
+  },
+  {
+    "id": "chinese-beef-and-broccoli",
+    "title": "Beef and Broccoli",
+    "cuisine": "Chinese",
+    "cook_time_minutes": 25,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "flank steak, sliced thin", "quantity": 1, "unit": "lb" },
+      { "name": "broccoli florets", "quantity": 3, "unit": "cup" },
+      { "name": "garlic cloves, minced", "quantity": 3, "unit": null },
+      { "name": "soy sauce", "quantity": 3, "unit": "tbsp" },
+      { "name": "oyster sauce", "quantity": 2, "unit": "tbsp" },
+      { "name": "brown sugar", "quantity": 1, "unit": "tbsp" },
+      { "name": "cornstarch", "quantity": 1, "unit": "tbsp" },
+      { "name": "beef stock", "quantity": 0.5, "unit": "cup" },
+      { "name": "vegetable oil", "quantity": 2, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Toss the beef with 1 tbsp cornstarch and let sit for 10 minutes.",
+      "Blanch the broccoli in boiling water for 2 minutes, then drain.",
+      "Heat oil in a wok over high heat and sear the beef quickly until browned; set aside.",
+      "Add garlic to the wok, then soy sauce, oyster sauce, brown sugar, and beef stock, and bring to a simmer.",
+      "Return the beef and broccoli to the wok and toss until the sauce thickens and coats everything."
+    ],
+    "nutrition": { "calories": 380, "protein_g": 32, "carbs_g": 14, "fat_g": 20 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 3 days; best reheated in a hot pan rather than the microwave."
+  },
+  {
+    "id": "chinese-egg-drop-soup",
+    "title": "Egg Drop Soup",
+    "cuisine": "Chinese",
+    "cook_time_minutes": 15,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian"],
+    "ingredients": [
+      { "name": "chicken stock", "quantity": 4, "unit": "cup" },
+      { "name": "eggs, beaten", "quantity": 3, "unit": null },
+      { "name": "cornstarch", "quantity": 2, "unit": "tbsp" },
+      { "name": "white pepper", "quantity": 0.5, "unit": "tsp" },
+      { "name": "green onions, chopped", "quantity": 2, "unit": null },
+      { "name": "sesame oil", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Bring the stock to a simmer in a pot.",
+      "Mix the cornstarch with a little water and stir it into the stock to thicken slightly.",
+      "Slowly drizzle in the beaten eggs while stirring gently in one direction to form ribbons.",
+      "Season with white pepper and sesame oil.",
+      "Garnish with green onions before serving."
+    ],
+    "nutrition": { "calories": 140, "protein_g": 9, "carbs_g": 6, "fat_g": 8 },
+    "cost_tier": "low",
+    "storage_tips": "Best fresh; keeps in the fridge for up to 2 days, though the egg ribbons soften."
+  },
+  {
+    "id": "chinese-sweet-and-sour-chicken",
+    "title": "Sweet and Sour Chicken",
+    "cuisine": "Chinese",
+    "cook_time_minutes": 35,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "chicken breast, cubed", "quantity": 1.5, "unit": "lb" },
+      { "name": "cornstarch", "quantity": 0.5, "unit": "cup" },
+      { "name": "eggs", "quantity": 1, "unit": null },
+      { "name": "bell peppers, cubed", "quantity": 2, "unit": null },
+      { "name": "pineapple chunks", "quantity": 1, "unit": "cup" },
+      { "name": "ketchup", "quantity": 0.25, "unit": "cup" },
+      { "name": "rice vinegar", "quantity": 3, "unit": "tbsp" },
+      { "name": "sugar", "quantity": 3, "unit": "tbsp" },
+      { "name": "soy sauce", "quantity": 1, "unit": "tbsp" },
+      { "name": "vegetable oil", "quantity": 3, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Coat the chicken in beaten egg, then dredge in cornstarch.",
+      "Fry the chicken in batches until golden and cooked through, then set aside.",
+      "In a separate pan, whisk together ketchup, rice vinegar, sugar, and soy sauce, and bring to a simmer.",
+      "Add the bell peppers and pineapple, and cook for 2-3 minutes.",
+      "Toss the fried chicken in the sauce until well coated before serving."
+    ],
+    "nutrition": { "calories": 460, "protein_g": 32, "carbs_g": 42, "fat_g": 18 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 3 days; the coating softens on reheating."
+  },
+  {
+    "id": "chinese-dan-dan-noodles",
+    "title": "Dan Dan Noodles",
+    "cuisine": "Chinese",
+    "cook_time_minutes": 25,
+    "difficulty": "medium",
+    "spice_level": "hot",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "fresh noodles", "quantity": 400, "unit": "g" },
+      { "name": "ground pork", "quantity": 200, "unit": "g" },
+      { "name": "garlic cloves, minced", "quantity": 3, "unit": null },
+      { "name": "chili oil", "quantity": 3, "unit": "tbsp" },
+      { "name": "sesame paste", "quantity": 2, "unit": "tbsp" },
+      { "name": "soy sauce", "quantity": 3, "unit": "tbsp" },
+      { "name": "black vinegar", "quantity": 1, "unit": "tbsp" },
+      { "name": "sichuan peppercorns, ground", "quantity": 0.5, "unit": "tsp" },
+      { "name": "green onions, chopped", "quantity": 2, "unit": null },
+      { "name": "vegetable oil", "quantity": 1, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Cook the noodles according to package instructions, then drain.",
+      "Heat oil in a pan and brown the ground pork with garlic until crispy.",
+      "In each serving bowl, mix chili oil, sesame paste, soy sauce, black vinegar, and Sichuan peppercorns.",
+      "Add the cooked noodles to the bowls and toss with the sauce.",
+      "Top with the pork and green onions before serving."
+    ],
+    "nutrition": { "calories": 480, "protein_g": 22, "carbs_g": 54, "fat_g": 20 },
+    "cost_tier": "medium",
+    "storage_tips": "Best fresh; store noodles and sauce separately if planning to keep leftovers."
+  },
+  {
+    "id": "chinese-vegetable-spring-rolls",
+    "title": "Vegetable Spring Rolls",
+    "cuisine": "Chinese",
+    "cook_time_minutes": 40,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "vegan"],
+    "ingredients": [
+      { "name": "spring roll wrappers", "quantity": 12, "unit": null },
+      { "name": "cabbage, shredded", "quantity": 2, "unit": "cup" },
+      { "name": "carrot, julienned", "quantity": 1, "unit": null },
+      { "name": "mushrooms, sliced", "quantity": 1, "unit": "cup" },
+      { "name": "garlic cloves, minced", "quantity": 2, "unit": null },
+      { "name": "soy sauce", "quantity": 2, "unit": "tbsp" },
+      { "name": "sesame oil", "quantity": 1, "unit": "tsp" },
+      { "name": "vegetable oil, for frying", "quantity": 2, "unit": "cup" }
+    ],
+    "instructions": [
+      "Heat a little oil in a pan and stir-fry the cabbage, carrot, mushrooms, and garlic until softened.",
+      "Season the filling with soy sauce and sesame oil, then let it cool slightly.",
+      "Place a spoonful of filling on each spring roll wrapper and roll tightly, sealing the edge with water.",
+      "Heat oil in a deep pot to 350°F (175°C) and fry the rolls in batches until golden and crisp.",
+      "Drain on paper towels before serving."
+    ],
+    "nutrition": { "calories": 260, "protein_g": 5, "carbs_g": 32, "fat_g": 12 },
+    "cost_tier": "low",
+    "storage_tips": "Best fresh and crisp; keeps in the fridge for 2 days, though reheating in an oven or air fryer restores crispness better than a microwave."
+  },
+  {
+    "id": "japanese-chicken-katsu",
+    "title": "Chicken Katsu",
+    "cuisine": "Japanese",
+    "cook_time_minutes": 30,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "chicken breasts", "quantity": 4, "unit": null },
+      { "name": "flour", "quantity": 0.5, "unit": "cup" },
+      { "name": "eggs", "quantity": 2, "unit": null },
+      { "name": "panko breadcrumbs", "quantity": 1.5, "unit": "cup" },
+      { "name": "vegetable oil, for frying", "quantity": 1, "unit": "cup" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" },
+      { "name": "katsu sauce", "quantity": 0.5, "unit": "cup" }
+    ],
+    "instructions": [
+      "Pound the chicken breasts to an even thickness and season with salt.",
+      "Dredge each breast in flour, then egg, then coat thoroughly in panko.",
+      "Heat oil in a skillet and fry the chicken for 3-4 minutes per side until golden and cooked through.",
+      "Drain on paper towels and slice into strips.",
+      "Serve with katsu sauce and steamed rice."
+    ],
+    "nutrition": { "calories": 480, "protein_g": 38, "carbs_g": 34, "fat_g": 22 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 3 days; reheat in an oven or air fryer to keep the coating crisp."
+  },
+  {
+    "id": "japanese-miso-soup",
+    "title": "Miso Soup",
+    "cuisine": "Japanese",
+    "cook_time_minutes": 15,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian"],
+    "ingredients": [
+      { "name": "dashi stock", "quantity": 4, "unit": "cup" },
+      { "name": "miso paste", "quantity": 3, "unit": "tbsp" },
+      { "name": "silken tofu, cubed", "quantity": 200, "unit": "g" },
+      { "name": "wakame seaweed, dried", "quantity": 1, "unit": "tbsp" },
+      { "name": "green onions, chopped", "quantity": 1, "unit": null }
+    ],
+    "instructions": [
+      "Heat the dashi stock in a pot until warm but not boiling.",
+      "Ladle a little hot stock into a bowl and whisk in the miso paste until smooth, then return it to the pot.",
+      "Add the tofu and wakame, and warm through gently without boiling.",
+      "Garnish with green onions before serving."
+    ],
+    "nutrition": { "calories": 90, "protein_g": 7, "carbs_g": 6, "fat_g": 3 },
+    "cost_tier": "low",
+    "storage_tips": "Best fresh, as tofu texture changes on reheating; keeps in the fridge for 1-2 days."
+  },
+  {
+    "id": "japanese-teriyaki-salmon",
+    "title": "Teriyaki Salmon",
+    "cuisine": "Japanese",
+    "cook_time_minutes": 25,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "salmon fillets", "quantity": 4, "unit": null },
+      { "name": "soy sauce", "quantity": 0.25, "unit": "cup" },
+      { "name": "mirin", "quantity": 0.25, "unit": "cup" },
+      { "name": "sugar", "quantity": 2, "unit": "tbsp" },
+      { "name": "garlic cloves, minced", "quantity": 1, "unit": null },
+      { "name": "ginger, minced", "quantity": 1, "unit": "tsp" },
+      { "name": "sesame seeds", "quantity": 1, "unit": "tsp" },
+      { "name": "vegetable oil", "quantity": 1, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Mix soy sauce, mirin, sugar, garlic, and ginger to make the teriyaki sauce.",
+      "Heat oil in a skillet over medium heat and sear the salmon skin-side down for 4 minutes.",
+      "Flip the salmon and pour the sauce over it, simmering for 3-4 minutes until the sauce thickens and glazes the fish.",
+      "Sprinkle with sesame seeds before serving."
+    ],
+    "nutrition": { "calories": 380, "protein_g": 34, "carbs_g": 12, "fat_g": 20 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 2 days; reheat gently to avoid drying out the fish."
+  },
+  {
+    "id": "japanese-vegetable-yakisoba",
+    "title": "Vegetable Yakisoba",
+    "cuisine": "Japanese",
+    "cook_time_minutes": 20,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian"],
+    "ingredients": [
+      { "name": "yakisoba noodles", "quantity": 400, "unit": "g" },
+      { "name": "cabbage, shredded", "quantity": 2, "unit": "cup" },
+      { "name": "carrot, julienned", "quantity": 1, "unit": null },
+      { "name": "bell pepper, sliced", "quantity": 1, "unit": null },
+      { "name": "yakisoba sauce", "quantity": 4, "unit": "tbsp" },
+      { "name": "vegetable oil", "quantity": 2, "unit": "tbsp" },
+      { "name": "green onions, chopped", "quantity": 2, "unit": null }
+    ],
+    "instructions": [
+      "Loosen the noodles under warm water if needed and set aside.",
+      "Heat oil in a large skillet and stir-fry the cabbage, carrot, and bell pepper until just tender.",
+      "Add the noodles to the skillet and toss to combine with the vegetables.",
+      "Pour in the yakisoba sauce and toss everything together until evenly coated.",
+      "Garnish with green onions before serving."
+    ],
+    "nutrition": { "calories": 340, "protein_g": 9, "carbs_g": 58, "fat_g": 8 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 3 days; reheat in a hot pan to keep the noodles from getting soggy."
+  },
+  {
+    "id": "japanese-onigiri",
+    "title": "Onigiri (Rice Balls)",
+    "cuisine": "Japanese",
+    "cook_time_minutes": 20,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian"],
+    "ingredients": [
+      { "name": "cooked short-grain rice", "quantity": 3, "unit": "cup" },
+      { "name": "nori sheets, cut into strips", "quantity": 4, "unit": null },
+      { "name": "salt", "quantity": 1, "unit": "tsp" },
+      { "name": "sesame seeds", "quantity": 1, "unit": "tbsp" },
+      { "name": "pickled plum (umeboshi)", "quantity": 4, "unit": null }
+    ],
+    "instructions": [
+      "Wet your hands with water and a little salt to prevent sticking.",
+      "Take a handful of warm rice and flatten it slightly in your palm.",
+      "Press a piece of umeboshi into the center and fold the rice around it.",
+      "Shape into a triangle or ball, pressing firmly so it holds together.",
+      "Wrap a strip of nori around the base and sprinkle with sesame seeds."
+    ],
+    "nutrition": { "calories": 220, "protein_g": 4, "carbs_g": 48, "fat_g": 1 },
+    "cost_tier": "low",
+    "storage_tips": "Best eaten the same day at room temperature; refrigeration makes the rice hard, though it keeps for up to 1 day."
+  },
+  {
+    "id": "japanese-gyoza",
+    "title": "Gyoza (Pan-Fried Dumplings)",
+    "cuisine": "Japanese",
+    "cook_time_minutes": 40,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "gyoza wrappers", "quantity": 24, "unit": null },
+      { "name": "ground pork", "quantity": 300, "unit": "g" },
+      { "name": "cabbage, finely chopped", "quantity": 1, "unit": "cup" },
+      { "name": "garlic cloves, minced", "quantity": 2, "unit": null },
+      { "name": "ginger, minced", "quantity": 1, "unit": "tsp" },
+      { "name": "soy sauce", "quantity": 1, "unit": "tbsp" },
+      { "name": "sesame oil", "quantity": 1, "unit": "tbsp" },
+      { "name": "vegetable oil", "quantity": 2, "unit": "tbsp" },
+      { "name": "water", "quantity": 0.5, "unit": "cup" }
+    ],
+    "instructions": [
+      "Mix the pork, cabbage, garlic, ginger, soy sauce, and sesame oil into a filling.",
+      "Place a spoonful of filling in the center of each wrapper, wet the edges, and fold into a pleated half-moon shape.",
+      "Heat vegetable oil in a skillet over medium-high heat and arrange the dumplings flat-side down.",
+      "Fry for 2 minutes until the bottoms are golden, then add the water and cover to steam for 5-6 minutes.",
+      "Remove the lid and cook until the water evaporates and the bottoms crisp up again before serving."
+    ],
+    "nutrition": { "calories": 420, "protein_g": 20, "carbs_g": 40, "fat_g": 20 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 2 days, or freeze uncooked dumplings for up to 2 months."
+  },
+  {
+    "id": "japanese-chicken-donburi",
+    "title": "Chicken Donburi (Oyakodon)",
+    "cuisine": "Japanese",
+    "cook_time_minutes": 25,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "chicken thighs, sliced", "quantity": 1, "unit": "lb" },
+      { "name": "onion, sliced", "quantity": 1, "unit": null },
+      { "name": "eggs", "quantity": 4, "unit": null },
+      { "name": "dashi stock", "quantity": 1, "unit": "cup" },
+      { "name": "soy sauce", "quantity": 3, "unit": "tbsp" },
+      { "name": "mirin", "quantity": 3, "unit": "tbsp" },
+      { "name": "sugar", "quantity": 1, "unit": "tbsp" },
+      { "name": "cooked rice", "quantity": 4, "unit": "cup" },
+      { "name": "green onions, chopped", "quantity": 2, "unit": null }
+    ],
+    "instructions": [
+      "Combine dashi, soy sauce, mirin, and sugar in a skillet and bring to a simmer.",
+      "Add the onion and chicken, and cook until the chicken is nearly cooked through.",
+      "Beat the eggs and pour them evenly over the chicken mixture, cover, and cook until the eggs are just set.",
+      "Spoon the chicken and egg mixture over bowls of steamed rice.",
+      "Garnish with green onions before serving."
+    ],
+    "nutrition": { "calories": 460, "protein_g": 32, "carbs_g": 52, "fat_g": 14 },
+    "cost_tier": "medium",
+    "storage_tips": "Best fresh, as the egg texture changes on reheating; keeps in the fridge for 1-2 days."
+  },
+  {
+    "id": "japanese-agedashi-tofu",
+    "title": "Agedashi Tofu",
+    "cuisine": "Japanese",
+    "cook_time_minutes": 25,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian"],
+    "ingredients": [
+      { "name": "silken tofu", "quantity": 400, "unit": "g" },
+      { "name": "cornstarch", "quantity": 0.5, "unit": "cup" },
+      { "name": "vegetable oil, for frying", "quantity": 1, "unit": "cup" },
+      { "name": "dashi stock", "quantity": 0.5, "unit": "cup" },
+      { "name": "soy sauce", "quantity": 2, "unit": "tbsp" },
+      { "name": "mirin", "quantity": 2, "unit": "tbsp" },
+      { "name": "green onions, chopped", "quantity": 2, "unit": null },
+      { "name": "grated daikon", "quantity": 2, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Cut the tofu into cubes and pat dry thoroughly with paper towels.",
+      "Dust each cube lightly with cornstarch.",
+      "Heat oil in a pan and fry the tofu cubes until golden and crisp on all sides.",
+      "Warm the dashi, soy sauce, and mirin together in a small pot.",
+      "Place the fried tofu in a bowl, pour the warm sauce over it, and top with green onions and grated daikon."
+    ],
+    "nutrition": { "calories": 260, "protein_g": 12, "carbs_g": 20, "fat_g": 16 },
+    "cost_tier": "low",
+    "storage_tips": "Best served immediately, as the tofu loses crispness quickly; not recommended for storage."
+  },
+  {
+    "id": "mexican-chicken-tacos",
+    "title": "Chicken Tacos",
+    "cuisine": "Mexican",
+    "cook_time_minutes": 25,
+    "difficulty": "easy",
+    "spice_level": "medium",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "chicken breast, diced", "quantity": 1.5, "unit": "lb" },
+      { "name": "taco seasoning", "quantity": 2, "unit": "tbsp" },
+      { "name": "corn tortillas", "quantity": 12, "unit": null },
+      { "name": "onion, diced", "quantity": 0.5, "unit": "cup" },
+      { "name": "fresh cilantro, chopped", "quantity": 0.25, "unit": "cup" },
+      { "name": "lime", "quantity": 2, "unit": null },
+      { "name": "vegetable oil", "quantity": 2, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Season the chicken with taco seasoning.",
+      "Heat oil in a skillet and cook the chicken until browned and cooked through, about 8-10 minutes.",
+      "Warm the tortillas in a dry pan or over an open flame.",
+      "Fill each tortilla with chicken, onion, and cilantro.",
+      "Serve with lime wedges."
+    ],
+    "nutrition": { "calories": 380, "protein_g": 30, "carbs_g": 32, "fat_g": 14 },
+    "cost_tier": "low",
+    "storage_tips": "Keep chicken and tortillas separate in the fridge for up to 3 days; assemble tacos fresh before eating."
+  },
+  {
+    "id": "mexican-black-bean-burrito",
+    "title": "Vegetarian Black Bean Burrito",
+    "cuisine": "Mexican",
+    "cook_time_minutes": 20,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "vegan"],
+    "ingredients": [
+      { "name": "canned black beans", "quantity": 2, "unit": "can" },
+      { "name": "flour tortillas", "quantity": 4, "unit": null },
+      { "name": "cooked rice", "quantity": 2, "unit": "cup" },
+      { "name": "onion, diced", "quantity": 0.5, "unit": "cup" },
+      { "name": "bell pepper, diced", "quantity": 1, "unit": null },
+      { "name": "cumin", "quantity": 1, "unit": "tsp" },
+      { "name": "chili powder", "quantity": 1, "unit": "tsp" },
+      { "name": "salsa", "quantity": 0.5, "unit": "cup" },
+      { "name": "vegetable oil", "quantity": 1, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Heat oil in a pan and sauté the onion and bell pepper until softened.",
+      "Add the black beans, cumin, and chili powder, and cook for 5 minutes, mashing some of the beans slightly.",
+      "Warm the tortillas and rice.",
+      "Layer rice, bean mixture, and salsa in the center of each tortilla.",
+      "Fold in the sides and roll tightly into a burrito."
+    ],
+    "nutrition": { "calories": 420, "protein_g": 14, "carbs_g": 72, "fat_g": 8 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 3 days; wrap tightly in foil to reheat evenly."
+  },
+  {
+    "id": "mexican-beef-enchiladas",
+    "title": "Beef Enchiladas",
+    "cuisine": "Mexican",
+    "cook_time_minutes": 45,
+    "difficulty": "medium",
+    "spice_level": "medium",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "ground beef", "quantity": 1, "unit": "lb" },
+      { "name": "corn tortillas", "quantity": 12, "unit": null },
+      { "name": "onion, diced", "quantity": 1, "unit": null },
+      { "name": "enchilada sauce", "quantity": 2, "unit": "cup" },
+      { "name": "cheddar cheese, shredded", "quantity": 1.5, "unit": "cup" },
+      { "name": "cumin", "quantity": 1, "unit": "tsp" },
+      { "name": "chili powder", "quantity": 1, "unit": "tsp" },
+      { "name": "vegetable oil", "quantity": 1, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Heat oil in a pan and cook the onion until softened, then add the ground beef and brown thoroughly.",
+      "Season the beef with cumin and chili powder.",
+      "Warm the tortillas slightly to make them pliable, then fill each with beef and a little cheese, and roll tightly.",
+      "Arrange the rolled tortillas seam-side down in a baking dish and pour the enchilada sauce over the top.",
+      "Sprinkle with remaining cheese and bake at 375°F (190°C) for 20 minutes until bubbling."
+    ],
+    "nutrition": { "calories": 520, "protein_g": 30, "carbs_g": 38, "fat_g": 28 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 4 days and freezes well before baking."
+  },
+  {
+    "id": "mexican-guacamole",
+    "title": "Guacamole & Chips",
+    "cuisine": "Mexican",
+    "cook_time_minutes": 10,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "vegan", "gluten_free"],
+    "ingredients": [
+      { "name": "ripe avocados", "quantity": 3, "unit": null },
+      { "name": "lime juice", "quantity": 2, "unit": "tbsp" },
+      { "name": "red onion, diced", "quantity": 0.25, "unit": "cup" },
+      { "name": "tomato, diced", "quantity": 1, "unit": null },
+      { "name": "fresh cilantro, chopped", "quantity": 2, "unit": "tbsp" },
+      { "name": "salt", "quantity": 0.5, "unit": "tsp" },
+      { "name": "tortilla chips", "quantity": 1, "unit": "bag" }
+    ],
+    "instructions": [
+      "Mash the avocados in a bowl to your preferred consistency.",
+      "Stir in lime juice, onion, tomato, and cilantro.",
+      "Season with salt to taste.",
+      "Serve immediately with tortilla chips."
+    ],
+    "nutrition": { "calories": 260, "protein_g": 3, "carbs_g": 22, "fat_g": 20 },
+    "cost_tier": "low",
+    "storage_tips": "Press plastic wrap directly onto the surface to limit browning; best eaten within 1 day."
+  },
+  {
+    "id": "mexican-chiles-rellenos",
+    "title": "Chiles Rellenos",
+    "cuisine": "Mexican",
+    "cook_time_minutes": 50,
+    "difficulty": "hard",
+    "spice_level": "medium",
+    "diet_tags": ["vegetarian"],
+    "ingredients": [
+      { "name": "poblano peppers", "quantity": 6, "unit": null },
+      { "name": "queso fresco or Monterey Jack", "quantity": 1.5, "unit": "cup" },
+      { "name": "eggs, separated", "quantity": 4, "unit": null },
+      { "name": "flour", "quantity": 0.5, "unit": "cup" },
+      { "name": "vegetable oil, for frying", "quantity": 1, "unit": "cup" },
+      { "name": "tomato sauce", "quantity": 1.5, "unit": "cup" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Roast the poblano peppers over an open flame or under a broiler until the skins are charred, then steam in a covered bowl for 10 minutes and peel.",
+      "Make a small slit in each pepper and remove the seeds, then stuff with cheese.",
+      "Beat the egg whites until stiff peaks form, then gently fold in the yolks.",
+      "Dust each stuffed pepper with flour, dip in the egg batter, and fry in hot oil until golden on all sides.",
+      "Warm the tomato sauce and serve the peppers topped with sauce."
+    ],
+    "nutrition": { "calories": 380, "protein_g": 16, "carbs_g": 20, "fat_g": 26 },
+    "cost_tier": "medium",
+    "storage_tips": "Best fresh, as the batter softens; keeps in the fridge for 1-2 days."
+  },
+  {
+    "id": "mexican-pozole-rojo",
+    "title": "Pozole Rojo",
+    "cuisine": "Mexican",
+    "cook_time_minutes": 90,
+    "difficulty": "hard",
+    "spice_level": "medium",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "pork shoulder, cubed", "quantity": 2, "unit": "lb" },
+      { "name": "canned hominy", "quantity": 2, "unit": "can" },
+      { "name": "dried guajillo chilies", "quantity": 4, "unit": null },
+      { "name": "garlic cloves", "quantity": 4, "unit": null },
+      { "name": "onion", "quantity": 1, "unit": null },
+      { "name": "bay leaves", "quantity": 2, "unit": null },
+      { "name": "oregano", "quantity": 1, "unit": "tsp" },
+      { "name": "cabbage, shredded", "quantity": 2, "unit": "cup" },
+      { "name": "radishes, sliced", "quantity": 4, "unit": null },
+      { "name": "lime", "quantity": 2, "unit": null }
+    ],
+    "instructions": [
+      "Simmer the pork with onion, garlic, bay leaves, and water to cover for about 1 hour until tender, then shred and reserve the broth.",
+      "Rehydrate the dried chilies in hot water, then blend into a smooth paste with a little broth.",
+      "Strain the chili paste into the broth along with the shredded pork and oregano, and simmer for 20 minutes.",
+      "Add the hominy and simmer for another 10 minutes.",
+      "Serve topped with shredded cabbage, radishes, and lime wedges."
+    ],
+    "nutrition": { "calories": 420, "protein_g": 32, "carbs_g": 30, "fat_g": 18 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 4 days and freezes well; add fresh toppings after reheating."
+  },
+  {
+    "id": "mexican-elote",
+    "title": "Elote (Mexican Street Corn)",
+    "cuisine": "Mexican",
+    "cook_time_minutes": 20,
+    "difficulty": "easy",
+    "spice_level": "medium",
+    "diet_tags": ["vegetarian", "gluten_free"],
+    "ingredients": [
+      { "name": "corn on the cob", "quantity": 4, "unit": null },
+      { "name": "mayonnaise", "quantity": 0.25, "unit": "cup" },
+      { "name": "sour cream", "quantity": 0.25, "unit": "cup" },
+      { "name": "cotija cheese, crumbled", "quantity": 0.5, "unit": "cup" },
+      { "name": "chili powder", "quantity": 1, "unit": "tsp" },
+      { "name": "lime", "quantity": 2, "unit": null },
+      { "name": "fresh cilantro, chopped", "quantity": 2, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Grill the corn over medium-high heat, turning occasionally, until charred in spots, about 10-12 minutes.",
+      "Mix the mayonnaise and sour cream together.",
+      "Brush the grilled corn generously with the mayonnaise mixture.",
+      "Sprinkle with cotija cheese and chili powder.",
+      "Squeeze lime juice over the top and garnish with cilantro before serving."
+    ],
+    "nutrition": { "calories": 260, "protein_g": 6, "carbs_g": 22, "fat_g": 18 },
+    "cost_tier": "low",
+    "storage_tips": "Best fresh off the grill; leftover corn can be refrigerated and toppings added fresh."
+  },
+  {
+    "id": "mexican-chicken-fajitas",
+    "title": "Chicken Fajitas",
+    "cuisine": "Mexican",
+    "cook_time_minutes": 30,
+    "difficulty": "easy",
+    "spice_level": "medium",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "chicken breast, sliced", "quantity": 1.5, "unit": "lb" },
+      { "name": "bell peppers, sliced", "quantity": 3, "unit": null },
+      { "name": "onion, sliced", "quantity": 1, "unit": null },
+      { "name": "fajita seasoning", "quantity": 2, "unit": "tbsp" },
+      { "name": "flour tortillas", "quantity": 8, "unit": null },
+      { "name": "vegetable oil", "quantity": 2, "unit": "tbsp" },
+      { "name": "lime", "quantity": 1, "unit": null }
+    ],
+    "instructions": [
+      "Toss the chicken with fajita seasoning.",
+      "Heat oil in a large skillet over high heat and cook the chicken until browned and cooked through; set aside.",
+      "In the same skillet, stir-fry the peppers and onion until softened with a slight char.",
+      "Return the chicken to the skillet and toss everything together with a squeeze of lime.",
+      "Serve with warm tortillas."
+    ],
+    "nutrition": { "calories": 400, "protein_g": 32, "carbs_g": 34, "fat_g": 14 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 3 days; reheat in a hot skillet to restore some char."
+  },
+  {
+    "id": "french-ratatouille",
+    "title": "Ratatouille",
+    "cuisine": "French",
+    "cook_time_minutes": 50,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "vegan", "gluten_free"],
+    "ingredients": [
+      { "name": "eggplant, diced", "quantity": 1, "unit": null },
+      { "name": "zucchini, diced", "quantity": 2, "unit": null },
+      { "name": "bell peppers, diced", "quantity": 2, "unit": null },
+      { "name": "tomatoes, diced", "quantity": 3, "unit": null },
+      { "name": "onion, diced", "quantity": 1, "unit": null },
+      { "name": "garlic cloves, minced", "quantity": 3, "unit": null },
+      { "name": "olive oil", "quantity": 3, "unit": "tbsp" },
+      { "name": "herbes de Provence", "quantity": 1, "unit": "tsp" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Heat olive oil in a large pot and sauté the onion and garlic until softened.",
+      "Add the eggplant and cook for 5 minutes, stirring occasionally.",
+      "Add the zucchini and bell peppers, and cook for another 5 minutes.",
+      "Stir in the tomatoes, herbes de Provence, and salt.",
+      "Simmer uncovered for 25-30 minutes, stirring occasionally, until the vegetables are tender and the flavors meld."
+    ],
+    "nutrition": { "calories": 180, "protein_g": 4, "carbs_g": 24, "fat_g": 10 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 5 days and tastes even better the next day; freezes well."
+  },
+  {
+    "id": "french-coq-au-vin",
+    "title": "Coq au Vin",
+    "cuisine": "French",
+    "cook_time_minutes": 90,
+    "difficulty": "hard",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "chicken thighs and drumsticks", "quantity": 3, "unit": "lb" },
+      { "name": "bacon, diced", "quantity": 4, "unit": "oz" },
+      { "name": "pearl onions", "quantity": 1, "unit": "cup" },
+      { "name": "mushrooms, sliced", "quantity": 2, "unit": "cup" },
+      { "name": "red wine", "quantity": 2, "unit": "cup" },
+      { "name": "chicken stock", "quantity": 1, "unit": "cup" },
+      { "name": "garlic cloves", "quantity": 3, "unit": null },
+      { "name": "thyme", "quantity": 1, "unit": "tsp" },
+      { "name": "butter", "quantity": 2, "unit": "tbsp" },
+      { "name": "flour", "quantity": 2, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Cook the bacon in a large pot until crisp, then remove and set aside, leaving the fat in the pot.",
+      "Brown the chicken pieces in the bacon fat on all sides, then remove.",
+      "Sauté the pearl onions and mushrooms in the same pot until golden.",
+      "Stir in the flour, then add the wine and stock, scraping up any browned bits.",
+      "Return the chicken and bacon to the pot along with garlic and thyme, cover, and simmer for 45-60 minutes until the chicken is very tender.",
+      "Finish by stirring in the butter for a glossy sauce before serving."
+    ],
+    "nutrition": { "calories": 520, "protein_g": 38, "carbs_g": 12, "fat_g": 30 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 4 days and freezes well; flavor deepens overnight."
+  },
+  {
+    "id": "french-onion-soup",
+    "title": "French Onion Soup",
+    "cuisine": "French",
+    "cook_time_minutes": 60,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian"],
+    "ingredients": [
+      { "name": "onions, thinly sliced", "quantity": 4, "unit": null },
+      { "name": "butter", "quantity": 3, "unit": "tbsp" },
+      { "name": "vegetable stock", "quantity": 6, "unit": "cup" },
+      { "name": "dry sherry", "quantity": 0.25, "unit": "cup" },
+      { "name": "baguette slices", "quantity": 4, "unit": null },
+      { "name": "gruyere cheese, shredded", "quantity": 1.5, "unit": "cup" },
+      { "name": "thyme", "quantity": 1, "unit": "tsp" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Melt butter in a large pot and cook the onions over low heat for 30-40 minutes, stirring occasionally, until deeply caramelized.",
+      "Add the sherry and cook for 1-2 minutes to deglaze the pot.",
+      "Pour in the stock and thyme, and simmer for 15-20 minutes.",
+      "Season with salt, then ladle the soup into oven-safe bowls.",
+      "Top each bowl with a baguette slice and a generous layer of gruyere.",
+      "Broil until the cheese is melted and bubbling before serving."
+    ],
+    "nutrition": { "calories": 380, "protein_g": 16, "carbs_g": 32, "fat_g": 20 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 4 days without the bread topping; add fresh bread and cheese when reheating."
+  },
+  {
+    "id": "french-quiche-lorraine",
+    "title": "Quiche Lorraine",
+    "cuisine": "French",
+    "cook_time_minutes": 55,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "pie crust", "quantity": 1, "unit": null },
+      { "name": "bacon, diced", "quantity": 6, "unit": "oz" },
+      { "name": "eggs", "quantity": 4, "unit": null },
+      { "name": "heavy cream", "quantity": 1, "unit": "cup" },
+      { "name": "gruyere cheese, shredded", "quantity": 1, "unit": "cup" },
+      { "name": "nutmeg", "quantity": 1, "unit": "pinch" },
+      { "name": "salt", "quantity": 0.5, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Preheat the oven to 375°F (190°C) and blind-bake the pie crust for 10 minutes.",
+      "Cook the bacon in a skillet until crisp and drain on paper towels.",
+      "Whisk together the eggs, cream, nutmeg, and salt.",
+      "Scatter the bacon and cheese evenly over the crust, then pour the egg mixture on top.",
+      "Bake for 30-35 minutes until the filling is set and lightly golden.",
+      "Let cool for 10 minutes before slicing."
+    ],
+    "nutrition": { "calories": 460, "protein_g": 18, "carbs_g": 20, "fat_g": 34 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 4 days; reheat slices in the oven to keep the crust crisp."
+  },
+  {
+    "id": "french-croque-monsieur",
+    "title": "Croque Monsieur",
+    "cuisine": "French",
+    "cook_time_minutes": 20,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "sandwich bread", "quantity": 8, "unit": "slices" },
+      { "name": "ham, sliced", "quantity": 8, "unit": "slices" },
+      { "name": "gruyere cheese, shredded", "quantity": 1.5, "unit": "cup" },
+      { "name": "butter", "quantity": 3, "unit": "tbsp" },
+      { "name": "flour", "quantity": 2, "unit": "tbsp" },
+      { "name": "whole milk", "quantity": 1.5, "unit": "cup" },
+      { "name": "nutmeg", "quantity": 1, "unit": "pinch" }
+    ],
+    "instructions": [
+      "Melt butter in a small saucepan, whisk in flour, and cook for 1 minute.",
+      "Gradually whisk in the milk and cook until thickened into a béchamel, then season with nutmeg.",
+      "Assemble sandwiches with ham and half the cheese between the bread slices.",
+      "Toast the sandwiches in a skillet with butter until golden on both sides.",
+      "Top each sandwich with béchamel and remaining cheese, then broil briefly until bubbling."
+    ],
+    "nutrition": { "calories": 520, "protein_g": 24, "carbs_g": 32, "fat_g": 32 },
+    "cost_tier": "medium",
+    "storage_tips": "Best fresh; the béchamel doesn't reheat well, so this is not ideal for leftovers."
+  },
+  {
+    "id": "french-beef-bourguignon",
+    "title": "Beef Bourguignon",
+    "cuisine": "French",
+    "cook_time_minutes": 120,
+    "difficulty": "hard",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "beef chuck, cubed", "quantity": 2.5, "unit": "lb" },
+      { "name": "bacon, diced", "quantity": 4, "unit": "oz" },
+      { "name": "carrots, sliced", "quantity": 2, "unit": null },
+      { "name": "onion, diced", "quantity": 1, "unit": null },
+      { "name": "garlic cloves, minced", "quantity": 3, "unit": null },
+      { "name": "red wine", "quantity": 3, "unit": "cup" },
+      { "name": "beef stock", "quantity": 1, "unit": "cup" },
+      { "name": "mushrooms, sliced", "quantity": 2, "unit": "cup" },
+      { "name": "tomato paste", "quantity": 2, "unit": "tbsp" },
+      { "name": "thyme", "quantity": 1, "unit": "tsp" },
+      { "name": "flour", "quantity": 3, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Cook the bacon in a large pot until crisp, then remove and set aside.",
+      "Brown the beef in batches in the bacon fat, then remove.",
+      "Sauté the carrots and onion until softened, then stir in the garlic and flour.",
+      "Add the tomato paste, wine, and stock, scraping up any browned bits, then return the beef and bacon to the pot.",
+      "Cover and simmer gently for 1.5-2 hours until the beef is very tender.",
+      "Stir in the mushrooms in the last 20 minutes of cooking."
+    ],
+    "nutrition": { "calories": 560, "protein_g": 42, "carbs_g": 14, "fat_g": 32 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 4 days and freezes well; flavor improves overnight."
+  },
+  {
+    "id": "french-salade-nicoise",
+    "title": "Salade Niçoise",
+    "cuisine": "French",
+    "cook_time_minutes": 30,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["gluten_free"],
+    "ingredients": [
+      { "name": "canned tuna", "quantity": 2, "unit": "can" },
+      { "name": "eggs", "quantity": 4, "unit": null },
+      { "name": "green beans", "quantity": 2, "unit": "cup" },
+      { "name": "baby potatoes", "quantity": 12, "unit": null },
+      { "name": "cherry tomatoes, halved", "quantity": 1, "unit": "cup" },
+      { "name": "niçoise olives", "quantity": 0.5, "unit": "cup" },
+      { "name": "olive oil", "quantity": 3, "unit": "tbsp" },
+      { "name": "red wine vinegar", "quantity": 1, "unit": "tbsp" },
+      { "name": "dijon mustard", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Boil the potatoes until tender, then set aside to cool slightly.",
+      "Blanch the green beans in boiling water for 2-3 minutes, then plunge into cold water.",
+      "Boil the eggs to your preferred doneness, then peel and halve.",
+      "Whisk together olive oil, red wine vinegar, and mustard for the dressing.",
+      "Arrange the tuna, potatoes, green beans, tomatoes, olives, and eggs on a platter.",
+      "Drizzle with the dressing just before serving."
+    ],
+    "nutrition": { "calories": 360, "protein_g": 28, "carbs_g": 24, "fat_g": 18 },
+    "cost_tier": "medium",
+    "storage_tips": "Best assembled fresh; components can be prepped and refrigerated separately for up to 2 days."
+  },
+  {
+    "id": "french-vichyssoise",
+    "title": "Vichyssoise (Leek and Potato Soup)",
+    "cuisine": "French",
+    "cook_time_minutes": 40,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "gluten_free"],
+    "ingredients": [
+      { "name": "leeks, sliced", "quantity": 3, "unit": null },
+      { "name": "potatoes, diced", "quantity": 3, "unit": null },
+      { "name": "vegetable stock", "quantity": 4, "unit": "cup" },
+      { "name": "heavy cream", "quantity": 0.5, "unit": "cup" },
+      { "name": "butter", "quantity": 2, "unit": "tbsp" },
+      { "name": "chives, chopped", "quantity": 2, "unit": "tbsp" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Melt butter in a pot and sauté the leeks until softened, about 5-7 minutes.",
+      "Add the potatoes and vegetable stock, and simmer for 20-25 minutes until the potatoes are very tender.",
+      "Blend the soup until smooth using an immersion or standard blender.",
+      "Stir in the cream and season with salt.",
+      "Chill in the fridge for at least 2 hours if serving cold, or serve warm, garnished with chives."
+    ],
+    "nutrition": { "calories": 280, "protein_g": 6, "carbs_g": 32, "fat_g": 14 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 4 days; can be served hot or cold."
+  },
+  {
+    "id": "american-classic-cheeseburger",
+    "title": "Classic Cheeseburger",
+    "cuisine": "American",
+    "cook_time_minutes": 20,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "ground beef", "quantity": 1.5, "unit": "lb" },
+      { "name": "burger buns", "quantity": 4, "unit": null },
+      { "name": "cheddar cheese slices", "quantity": 4, "unit": null },
+      { "name": "lettuce leaves", "quantity": 4, "unit": null },
+      { "name": "tomato, sliced", "quantity": 1, "unit": null },
+      { "name": "onion, sliced", "quantity": 1, "unit": null },
+      { "name": "salt", "quantity": 1, "unit": "tsp" },
+      { "name": "black pepper", "quantity": 0.5, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Divide the ground beef into 4 patties and season both sides with salt and pepper.",
+      "Heat a skillet or grill over medium-high heat and cook the patties for 3-4 minutes per side for medium doneness.",
+      "Add a slice of cheese to each patty in the last minute of cooking to melt.",
+      "Toast the buns lightly.",
+      "Assemble the burgers with lettuce, tomato, and onion."
+    ],
+    "nutrition": { "calories": 560, "protein_g": 34, "carbs_g": 30, "fat_g": 34 },
+    "cost_tier": "medium",
+    "storage_tips": "Cooked patties keep in the fridge for up to 3 days; assemble fresh to avoid soggy buns."
+  },
+  {
+    "id": "american-bbq-pulled-pork",
+    "title": "BBQ Pulled Pork Sandwich",
+    "cuisine": "American",
+    "cook_time_minutes": 240,
+    "difficulty": "hard",
+    "spice_level": "medium",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "pork shoulder", "quantity": 3, "unit": "lb" },
+      { "name": "bbq rub", "quantity": 3, "unit": "tbsp" },
+      { "name": "bbq sauce", "quantity": 1.5, "unit": "cup" },
+      { "name": "burger buns", "quantity": 6, "unit": null },
+      { "name": "coleslaw", "quantity": 2, "unit": "cup" }
+    ],
+    "instructions": [
+      "Rub the pork shoulder generously with the bbq rub and let sit for at least 30 minutes.",
+      "Cook the pork in a slow cooker or covered oven at 300°F (150°C) for 3.5-4 hours until it shreds easily with a fork.",
+      "Shred the pork and mix with some of its cooking juices.",
+      "Toss the shredded pork with bbq sauce.",
+      "Pile onto buns and top with coleslaw."
+    ],
+    "nutrition": { "calories": 520, "protein_g": 34, "carbs_g": 42, "fat_g": 24 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 4 days and freezes well; reheat gently with a splash of sauce to keep it moist."
+  },
+  {
+    "id": "american-mac-and-cheese",
+    "title": "Mac and Cheese",
+    "cuisine": "American",
+    "cook_time_minutes": 30,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian"],
+    "ingredients": [
+      { "name": "elbow macaroni", "quantity": 1, "unit": "lb" },
+      { "name": "cheddar cheese, shredded", "quantity": 3, "unit": "cup" },
+      { "name": "butter", "quantity": 4, "unit": "tbsp" },
+      { "name": "flour", "quantity": 4, "unit": "tbsp" },
+      { "name": "whole milk", "quantity": 3, "unit": "cup" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" },
+      { "name": "paprika", "quantity": 0.5, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Cook the macaroni according to package instructions and drain.",
+      "Melt butter in a saucepan, whisk in flour, and cook for 1 minute.",
+      "Gradually whisk in the milk and cook until thickened into a smooth sauce.",
+      "Remove from heat and stir in the cheese until melted, then season with salt and paprika.",
+      "Combine the sauce with the cooked macaroni and serve."
+    ],
+    "nutrition": { "calories": 560, "protein_g": 22, "carbs_g": 62, "fat_g": 26 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 4 days; add a splash of milk when reheating to loosen the sauce."
+  },
+  {
+    "id": "american-buffalo-wings",
+    "title": "Buffalo Chicken Wings",
+    "cuisine": "American",
+    "cook_time_minutes": 45,
+    "difficulty": "medium",
+    "spice_level": "hot",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "chicken wings", "quantity": 2, "unit": "lb" },
+      { "name": "hot sauce", "quantity": 0.5, "unit": "cup" },
+      { "name": "butter", "quantity": 4, "unit": "tbsp" },
+      { "name": "garlic powder", "quantity": 1, "unit": "tsp" },
+      { "name": "baking powder", "quantity": 1, "unit": "tbsp" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" },
+      { "name": "celery sticks, for serving", "quantity": 1, "unit": "cup" }
+    ],
+    "instructions": [
+      "Toss the wings with baking powder and salt, then arrange on a wire rack.",
+      "Bake at 425°F (220°C) for 40-45 minutes, flipping halfway, until crispy.",
+      "Melt the butter and whisk in the hot sauce and garlic powder.",
+      "Toss the baked wings in the sauce until fully coated.",
+      "Serve with celery sticks and your choice of dip."
+    ],
+    "nutrition": { "calories": 420, "protein_g": 30, "carbs_g": 4, "fat_g": 32 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 3 days; reheat in the oven to restore crispness."
+  },
+  {
+    "id": "american-cobb-salad",
+    "title": "Cobb Salad",
+    "cuisine": "American",
+    "cook_time_minutes": 25,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["gluten_free"],
+    "ingredients": [
+      { "name": "romaine lettuce, chopped", "quantity": 6, "unit": "cup" },
+      { "name": "chicken breast, cooked and diced", "quantity": 2, "unit": null },
+      { "name": "bacon, cooked and crumbled", "quantity": 4, "unit": "slices" },
+      { "name": "hard-boiled eggs", "quantity": 2, "unit": null },
+      { "name": "cherry tomatoes, halved", "quantity": 1, "unit": "cup" },
+      { "name": "blue cheese, crumbled", "quantity": 0.5, "unit": "cup" },
+      { "name": "avocado, diced", "quantity": 1, "unit": null },
+      { "name": "ranch dressing", "quantity": 0.5, "unit": "cup" }
+    ],
+    "instructions": [
+      "Arrange the chopped lettuce on a large platter as the base.",
+      "Arrange rows of chicken, bacon, eggs, tomatoes, blue cheese, and avocado on top.",
+      "Drizzle with ranch dressing just before serving, or serve on the side."
+    ],
+    "nutrition": { "calories": 480, "protein_g": 34, "carbs_g": 12, "fat_g": 34 },
+    "cost_tier": "medium",
+    "storage_tips": "Best assembled fresh; components can be prepped and stored separately for up to 2 days."
+  },
+  {
+    "id": "american-meatloaf",
+    "title": "Meatloaf",
+    "cuisine": "American",
+    "cook_time_minutes": 75,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "ground beef", "quantity": 2, "unit": "lb" },
+      { "name": "breadcrumbs", "quantity": 1, "unit": "cup" },
+      { "name": "eggs", "quantity": 2, "unit": null },
+      { "name": "onion, diced", "quantity": 1, "unit": null },
+      { "name": "ketchup", "quantity": 0.5, "unit": "cup" },
+      { "name": "worcestershire sauce", "quantity": 1, "unit": "tbsp" },
+      { "name": "garlic powder", "quantity": 1, "unit": "tsp" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" },
+      { "name": "black pepper", "quantity": 0.5, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Preheat the oven to 350°F (175°C).",
+      "Mix the ground beef, breadcrumbs, eggs, onion, worcestershire sauce, garlic powder, salt, and pepper until just combined.",
+      "Shape the mixture into a loaf and place in a baking dish.",
+      "Spread ketchup evenly over the top.",
+      "Bake for 60-65 minutes until cooked through, then rest for 10 minutes before slicing."
+    ],
+    "nutrition": { "calories": 420, "protein_g": 30, "carbs_g": 18, "fat_g": 24 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 4 days and freezes well, sliced or whole."
+  },
+  {
+    "id": "american-clam-chowder",
+    "title": "Clam Chowder",
+    "cuisine": "American",
+    "cook_time_minutes": 45,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "canned clams with juice", "quantity": 2, "unit": "can" },
+      { "name": "bacon, diced", "quantity": 4, "unit": "oz" },
+      { "name": "onion, diced", "quantity": 1, "unit": null },
+      { "name": "celery, diced", "quantity": 1, "unit": "stalk" },
+      { "name": "potatoes, diced", "quantity": 2, "unit": null },
+      { "name": "heavy cream", "quantity": 1, "unit": "cup" },
+      { "name": "whole milk", "quantity": 1, "unit": "cup" },
+      { "name": "flour", "quantity": 3, "unit": "tbsp" },
+      { "name": "butter", "quantity": 2, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Cook the bacon in a pot until crisp, then remove and set aside, leaving the fat in the pot.",
+      "Sauté the onion and celery in the bacon fat until softened.",
+      "Stir in flour and cook for 1 minute, then gradually add the milk and clam juice, stirring to avoid lumps.",
+      "Add the potatoes and simmer for 15-20 minutes until tender.",
+      "Stir in the clams, cream, and bacon, and heat through without boiling before serving."
+    ],
+    "nutrition": { "calories": 420, "protein_g": 18, "carbs_g": 28, "fat_g": 26 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 3 days; reheat gently over low heat to avoid curdling the cream."
+  },
+  {
+    "id": "american-grilled-cheese-tomato-soup",
+    "title": "Grilled Cheese & Tomato Soup",
+    "cuisine": "American",
+    "cook_time_minutes": 25,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian"],
+    "ingredients": [
+      { "name": "sandwich bread", "quantity": 4, "unit": "slices" },
+      { "name": "cheddar cheese slices", "quantity": 4, "unit": null },
+      { "name": "butter", "quantity": 2, "unit": "tbsp" },
+      { "name": "canned crushed tomatoes", "quantity": 2, "unit": "cup" },
+      { "name": "vegetable stock", "quantity": 1, "unit": "cup" },
+      { "name": "garlic cloves, minced", "quantity": 1, "unit": null },
+      { "name": "heavy cream", "quantity": 0.25, "unit": "cup" }
+    ],
+    "instructions": [
+      "Simmer the crushed tomatoes, vegetable stock, and garlic in a pot for 15 minutes.",
+      "Blend the soup until smooth, then stir in the cream and season to taste.",
+      "Butter the outside of the bread slices and assemble sandwiches with cheese in the middle.",
+      "Grill the sandwiches in a skillet over medium heat until golden and the cheese is melted, about 3 minutes per side.",
+      "Serve the sandwiches alongside bowls of the tomato soup."
+    ],
+    "nutrition": { "calories": 460, "protein_g": 16, "carbs_g": 38, "fat_g": 28 },
+    "cost_tier": "low",
+    "storage_tips": "Soup keeps in the fridge for up to 5 days; grilled cheese is best made fresh."
+  },
+  {
+    "id": "mediterranean-greek-salad",
+    "title": "Greek Salad",
+    "cuisine": "Mediterranean",
+    "cook_time_minutes": 15,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "gluten_free"],
+    "ingredients": [
+      { "name": "cucumber, diced", "quantity": 1, "unit": null },
+      { "name": "tomatoes, diced", "quantity": 3, "unit": null },
+      { "name": "red onion, sliced", "quantity": 0.5, "unit": "cup" },
+      { "name": "kalamata olives", "quantity": 0.5, "unit": "cup" },
+      { "name": "feta cheese, cubed", "quantity": 1, "unit": "cup" },
+      { "name": "olive oil", "quantity": 3, "unit": "tbsp" },
+      { "name": "red wine vinegar", "quantity": 1, "unit": "tbsp" },
+      { "name": "oregano", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Combine the cucumber, tomatoes, red onion, and olives in a large bowl.",
+      "Whisk together the olive oil, red wine vinegar, and oregano.",
+      "Toss the salad with the dressing.",
+      "Top with feta cheese just before serving."
+    ],
+    "nutrition": { "calories": 260, "protein_g": 8, "carbs_g": 12, "fat_g": 20 },
+    "cost_tier": "low",
+    "storage_tips": "Best fresh; keeps in the fridge for 1 day, though the vegetables release liquid over time."
+  },
+  {
+    "id": "mediterranean-chicken-souvlaki",
+    "title": "Chicken Souvlaki",
+    "cuisine": "Mediterranean",
+    "cook_time_minutes": 40,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "chicken breast, cubed", "quantity": 1.5, "unit": "lb" },
+      { "name": "olive oil", "quantity": 3, "unit": "tbsp" },
+      { "name": "lemon juice", "quantity": 3, "unit": "tbsp" },
+      { "name": "garlic cloves, minced", "quantity": 3, "unit": null },
+      { "name": "oregano", "quantity": 1, "unit": "tsp" },
+      { "name": "pita bread", "quantity": 4, "unit": null },
+      { "name": "tzatziki", "quantity": 0.5, "unit": "cup" }
+    ],
+    "instructions": [
+      "Marinate the chicken in olive oil, lemon juice, garlic, and oregano for at least 30 minutes.",
+      "Thread the chicken onto skewers.",
+      "Grill over medium-high heat, turning occasionally, for 10-12 minutes until cooked through and lightly charred.",
+      "Warm the pita bread.",
+      "Serve the skewers with pita and tzatziki."
+    ],
+    "nutrition": { "calories": 380, "protein_g": 36, "carbs_g": 22, "fat_g": 16 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 3 days; reheat gently to avoid drying out the chicken."
+  },
+  {
+    "id": "mediterranean-falafel-wrap",
+    "title": "Falafel Wrap",
+    "cuisine": "Mediterranean",
+    "cook_time_minutes": 40,
+    "difficulty": "medium",
+    "spice_level": "medium",
+    "diet_tags": ["vegetarian", "vegan"],
+    "ingredients": [
+      { "name": "dried chickpeas, soaked overnight", "quantity": 1.5, "unit": "cup" },
+      { "name": "onion, diced", "quantity": 0.5, "unit": "cup" },
+      { "name": "garlic cloves", "quantity": 3, "unit": null },
+      { "name": "parsley, chopped", "quantity": 0.5, "unit": "cup" },
+      { "name": "cumin", "quantity": 1, "unit": "tsp" },
+      { "name": "coriander powder", "quantity": 1, "unit": "tsp" },
+      { "name": "flour", "quantity": 2, "unit": "tbsp" },
+      { "name": "vegetable oil, for frying", "quantity": 2, "unit": "cup" },
+      { "name": "flatbreads", "quantity": 4, "unit": null },
+      { "name": "tahini sauce", "quantity": 0.5, "unit": "cup" }
+    ],
+    "instructions": [
+      "Pulse the soaked (uncooked) chickpeas, onion, garlic, parsley, cumin, and coriander in a food processor until finely ground but not pureed.",
+      "Stir in the flour and let the mixture rest for 15 minutes.",
+      "Shape into small balls or patties.",
+      "Heat oil in a pot and fry the falafel in batches until deeply golden and crisp, about 3-4 minutes.",
+      "Serve in warm flatbreads with tahini sauce and fresh vegetables."
+    ],
+    "nutrition": { "calories": 420, "protein_g": 14, "carbs_g": 48, "fat_g": 20 },
+    "cost_tier": "low",
+    "storage_tips": "Cooked falafel keeps in the fridge for up to 4 days and freezes well; reheat in an oven to restore crispness."
+  },
+  {
+    "id": "mediterranean-hummus",
+    "title": "Hummus",
+    "cuisine": "Mediterranean",
+    "cook_time_minutes": 10,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "vegan", "gluten_free"],
+    "ingredients": [
+      { "name": "canned chickpeas", "quantity": 2, "unit": "can" },
+      { "name": "tahini", "quantity": 0.33, "unit": "cup" },
+      { "name": "lemon juice", "quantity": 0.25, "unit": "cup" },
+      { "name": "garlic cloves", "quantity": 2, "unit": null },
+      { "name": "olive oil", "quantity": 3, "unit": "tbsp" },
+      { "name": "cumin", "quantity": 0.5, "unit": "tsp" },
+      { "name": "salt", "quantity": 0.5, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Combine the chickpeas, tahini, lemon juice, garlic, cumin, and salt in a food processor.",
+      "Blend until smooth, adding a little water as needed to reach a creamy consistency.",
+      "Transfer to a bowl and drizzle with olive oil before serving."
+    ],
+    "nutrition": { "calories": 220, "protein_g": 8, "carbs_g": 20, "fat_g": 14 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 5 days in an airtight container."
+  },
+  {
+    "id": "mediterranean-moussaka",
+    "title": "Greek Moussaka",
+    "cuisine": "Mediterranean",
+    "cook_time_minutes": 100,
+    "difficulty": "hard",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "eggplant, sliced", "quantity": 2, "unit": null },
+      { "name": "ground lamb", "quantity": 1, "unit": "lb" },
+      { "name": "onion, diced", "quantity": 1, "unit": null },
+      { "name": "garlic cloves, minced", "quantity": 2, "unit": null },
+      { "name": "canned crushed tomatoes", "quantity": 1.5, "unit": "cup" },
+      { "name": "cinnamon", "quantity": 0.5, "unit": "tsp" },
+      { "name": "butter", "quantity": 3, "unit": "tbsp" },
+      { "name": "flour", "quantity": 3, "unit": "tbsp" },
+      { "name": "whole milk", "quantity": 2, "unit": "cup" },
+      { "name": "parmesan cheese, grated", "quantity": 0.5, "unit": "cup" },
+      { "name": "olive oil", "quantity": 3, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Salt the eggplant slices and let sit for 20 minutes to draw out moisture, then pat dry.",
+      "Brush the eggplant with olive oil and roast or grill until softened.",
+      "Cook the onion and garlic, then brown the ground lamb and stir in the tomatoes and cinnamon, simmering for 20 minutes.",
+      "Make a béchamel by melting butter, whisking in flour, then gradually adding milk until thickened; stir in parmesan.",
+      "Layer the eggplant and meat sauce in a baking dish, top with béchamel.",
+      "Bake at 375°F (190°C) for 35-40 minutes until golden on top, then rest for 10 minutes before serving."
+    ],
+    "nutrition": { "calories": 520, "protein_g": 26, "carbs_g": 24, "fat_g": 36 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 4 days and freezes well."
+  },
+  {
+    "id": "mediterranean-shakshuka",
+    "title": "Shakshuka",
+    "cuisine": "Mediterranean",
+    "cook_time_minutes": 30,
+    "difficulty": "easy",
+    "spice_level": "medium",
+    "diet_tags": ["vegetarian", "gluten_free"],
+    "ingredients": [
+      { "name": "eggs", "quantity": 6, "unit": null },
+      { "name": "canned crushed tomatoes", "quantity": 2, "unit": "cup" },
+      { "name": "onion, diced", "quantity": 1, "unit": null },
+      { "name": "bell pepper, diced", "quantity": 1, "unit": null },
+      { "name": "garlic cloves, minced", "quantity": 3, "unit": null },
+      { "name": "cumin", "quantity": 1, "unit": "tsp" },
+      { "name": "paprika", "quantity": 1, "unit": "tsp" },
+      { "name": "olive oil", "quantity": 2, "unit": "tbsp" },
+      { "name": "feta cheese, crumbled", "quantity": 0.5, "unit": "cup" },
+      { "name": "fresh cilantro, chopped", "quantity": 2, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Heat olive oil in a large skillet and sauté the onion and bell pepper until softened.",
+      "Add the garlic, cumin, and paprika, cooking until fragrant.",
+      "Stir in the crushed tomatoes and simmer for 10-15 minutes until slightly thickened.",
+      "Make small wells in the sauce and crack an egg into each.",
+      "Cover and cook until the egg whites are set but yolks are still soft, about 6-8 minutes.",
+      "Top with feta and cilantro before serving."
+    ],
+    "nutrition": { "calories": 300, "protein_g": 16, "carbs_g": 16, "fat_g": 20 },
+    "cost_tier": "low",
+    "storage_tips": "Best fresh, as the eggs overcook on reheating; the tomato base alone keeps for up to 3 days."
+  },
+  {
+    "id": "mediterranean-tabbouleh",
+    "title": "Tabbouleh",
+    "cuisine": "Mediterranean",
+    "cook_time_minutes": 20,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "vegan"],
+    "ingredients": [
+      { "name": "bulgur wheat", "quantity": 0.5, "unit": "cup" },
+      { "name": "parsley, finely chopped", "quantity": 2, "unit": "cup" },
+      { "name": "mint, chopped", "quantity": 0.25, "unit": "cup" },
+      { "name": "tomatoes, diced", "quantity": 2, "unit": null },
+      { "name": "lemon juice", "quantity": 0.25, "unit": "cup" },
+      { "name": "olive oil", "quantity": 3, "unit": "tbsp" },
+      { "name": "salt", "quantity": 0.5, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Soak the bulgur in hot water for 15-20 minutes until softened, then drain well.",
+      "Combine the bulgur with parsley, mint, and tomatoes in a large bowl.",
+      "Whisk together the lemon juice, olive oil, and salt.",
+      "Toss the salad with the dressing and let sit for a few minutes before serving."
+    ],
+    "nutrition": { "calories": 180, "protein_g": 4, "carbs_g": 22, "fat_g": 10 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 3 days; flavor improves after a few hours."
+  },
+  {
+    "id": "mediterranean-grilled-branzino",
+    "title": "Grilled Branzino",
+    "cuisine": "Mediterranean",
+    "cook_time_minutes": 30,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": ["gluten_free"],
+    "ingredients": [
+      { "name": "whole branzino, cleaned", "quantity": 2, "unit": null },
+      { "name": "lemon, sliced", "quantity": 1, "unit": null },
+      { "name": "garlic cloves", "quantity": 3, "unit": null },
+      { "name": "fresh rosemary sprigs", "quantity": 4, "unit": null },
+      { "name": "olive oil", "quantity": 3, "unit": "tbsp" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Pat the fish dry and season the cavity and outside with salt.",
+      "Stuff each fish with lemon slices, garlic, and rosemary.",
+      "Rub the outside with olive oil.",
+      "Grill over medium-high heat for 6-8 minutes per side until the flesh flakes easily.",
+      "Serve whole or filet before plating."
+    ],
+    "nutrition": { "calories": 320, "protein_g": 38, "carbs_g": 4, "fat_g": 16 },
+    "cost_tier": "high",
+    "storage_tips": "Best eaten fresh; keeps in the fridge for up to 1 day."
+  },
+  {
+    "id": "middleeastern-chicken-shawarma",
+    "title": "Chicken Shawarma",
+    "cuisine": "Middle Eastern",
+    "cook_time_minutes": 40,
+    "difficulty": "medium",
+    "spice_level": "medium",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "chicken thighs", "quantity": 1.5, "unit": "lb" },
+      { "name": "plain yogurt", "quantity": 0.5, "unit": "cup" },
+      { "name": "garlic cloves, minced", "quantity": 3, "unit": null },
+      { "name": "lemon juice", "quantity": 2, "unit": "tbsp" },
+      { "name": "cumin", "quantity": 1, "unit": "tsp" },
+      { "name": "paprika", "quantity": 1, "unit": "tsp" },
+      { "name": "turmeric", "quantity": 0.5, "unit": "tsp" },
+      { "name": "olive oil", "quantity": 2, "unit": "tbsp" },
+      { "name": "pita bread", "quantity": 4, "unit": null },
+      { "name": "tahini sauce", "quantity": 0.5, "unit": "cup" }
+    ],
+    "instructions": [
+      "Marinate the chicken in yogurt, garlic, lemon juice, cumin, paprika, and turmeric for at least 1 hour.",
+      "Heat olive oil in a skillet and cook the chicken over medium-high heat until charred and cooked through, about 12-15 minutes.",
+      "Slice the chicken thinly.",
+      "Warm the pita bread.",
+      "Serve the sliced chicken in pita with tahini sauce and fresh vegetables."
+    ],
+    "nutrition": { "calories": 400, "protein_g": 34, "carbs_g": 24, "fat_g": 18 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 3 days; reheat gently to avoid drying out."
+  },
+  {
+    "id": "middleeastern-fattoush",
+    "title": "Fattoush Salad",
+    "cuisine": "Middle Eastern",
+    "cook_time_minutes": 20,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "vegan"],
+    "ingredients": [
+      { "name": "pita bread", "quantity": 2, "unit": null },
+      { "name": "romaine lettuce, chopped", "quantity": 4, "unit": "cup" },
+      { "name": "cucumber, diced", "quantity": 1, "unit": null },
+      { "name": "tomatoes, diced", "quantity": 2, "unit": null },
+      { "name": "radishes, sliced", "quantity": 4, "unit": null },
+      { "name": "sumac", "quantity": 1, "unit": "tsp" },
+      { "name": "lemon juice", "quantity": 3, "unit": "tbsp" },
+      { "name": "olive oil", "quantity": 4, "unit": "tbsp" },
+      { "name": "salt", "quantity": 0.5, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Toast or fry the pita bread until crisp, then break into pieces.",
+      "Combine the lettuce, cucumber, tomatoes, and radishes in a large bowl.",
+      "Whisk together the lemon juice, olive oil, sumac, and salt.",
+      "Toss the salad with the dressing.",
+      "Top with the crispy pita pieces just before serving."
+    ],
+    "nutrition": { "calories": 220, "protein_g": 4, "carbs_g": 24, "fat_g": 14 },
+    "cost_tier": "low",
+    "storage_tips": "Best assembled fresh, as the pita softens quickly; store dressing and salad separately for up to 2 days."
+  },
+  {
+    "id": "middleeastern-baba-ganoush",
+    "title": "Baba Ganoush",
+    "cuisine": "Middle Eastern",
+    "cook_time_minutes": 40,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "vegan", "gluten_free"],
+    "ingredients": [
+      { "name": "eggplants", "quantity": 2, "unit": null },
+      { "name": "tahini", "quantity": 0.25, "unit": "cup" },
+      { "name": "lemon juice", "quantity": 3, "unit": "tbsp" },
+      { "name": "garlic cloves", "quantity": 2, "unit": null },
+      { "name": "olive oil", "quantity": 2, "unit": "tbsp" },
+      { "name": "salt", "quantity": 0.5, "unit": "tsp" },
+      { "name": "fresh parsley, chopped", "quantity": 1, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Roast or grill the whole eggplants over direct flame or in a hot oven until the skin is charred and the flesh is very soft, about 25-30 minutes.",
+      "Let the eggplants cool slightly, then scoop out the flesh, discarding the skin.",
+      "Mash or blend the eggplant flesh with tahini, lemon juice, garlic, and salt.",
+      "Transfer to a bowl and drizzle with olive oil.",
+      "Garnish with parsley before serving."
+    ],
+    "nutrition": { "calories": 160, "protein_g": 4, "carbs_g": 12, "fat_g": 12 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 4 days."
+  },
+  {
+    "id": "middleeastern-kofta-kebabs",
+    "title": "Kofta Kebabs",
+    "cuisine": "Middle Eastern",
+    "cook_time_minutes": 35,
+    "difficulty": "medium",
+    "spice_level": "medium",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "ground lamb", "quantity": 1.5, "unit": "lb" },
+      { "name": "onion, grated", "quantity": 0.5, "unit": "cup" },
+      { "name": "garlic cloves, minced", "quantity": 2, "unit": null },
+      { "name": "parsley, chopped", "quantity": 0.25, "unit": "cup" },
+      { "name": "cumin", "quantity": 1, "unit": "tsp" },
+      { "name": "coriander powder", "quantity": 1, "unit": "tsp" },
+      { "name": "cinnamon", "quantity": 0.25, "unit": "tsp" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Combine the ground lamb, onion, garlic, parsley, cumin, coriander, cinnamon, and salt in a bowl, mixing until well combined.",
+      "Shape the mixture around skewers into long oval kebabs.",
+      "Grill over medium-high heat, turning occasionally, for 10-12 minutes until cooked through and charred in spots.",
+      "Rest briefly before serving."
+    ],
+    "nutrition": { "calories": 380, "protein_g": 28, "carbs_g": 4, "fat_g": 28 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 3 days and freezes well raw or cooked."
+  },
+  {
+    "id": "middleeastern-mujadara",
+    "title": "Mujadara (Lentils and Rice)",
+    "cuisine": "Middle Eastern",
+    "cook_time_minutes": 45,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "vegan", "gluten_free"],
+    "ingredients": [
+      { "name": "brown lentils", "quantity": 1, "unit": "cup" },
+      { "name": "basmati rice", "quantity": 1, "unit": "cup" },
+      { "name": "onions, thinly sliced", "quantity": 2, "unit": null },
+      { "name": "vegetable oil", "quantity": 4, "unit": "tbsp" },
+      { "name": "cumin", "quantity": 1, "unit": "tsp" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Cook the lentils in water until just tender, about 15-20 minutes, then drain.",
+      "Heat oil in a pan and fry the onions until deeply caramelized and crispy; set aside on paper towels.",
+      "In a pot, combine the lentils, rice, cumin, salt, and 2 cups of water.",
+      "Bring to a boil, then cover and simmer on low for 18-20 minutes until the rice is tender.",
+      "Fluff and top with the crispy onions before serving."
+    ],
+    "nutrition": { "calories": 380, "protein_g": 14, "carbs_g": 62, "fat_g": 10 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 4 days; the crispy onions are best stored separately."
+  },
+  {
+    "id": "middleeastern-manakish-zaatar",
+    "title": "Manakish Za'atar",
+    "cuisine": "Middle Eastern",
+    "cook_time_minutes": 40,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "vegan"],
+    "ingredients": [
+      { "name": "pizza dough", "quantity": 1, "unit": "lb" },
+      { "name": "za'atar spice blend", "quantity": 4, "unit": "tbsp" },
+      { "name": "olive oil", "quantity": 5, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Preheat the oven to 475°F (245°C).",
+      "Divide the dough into 4 portions and roll each into a thin round.",
+      "Mix the za'atar with olive oil to form a spreadable paste.",
+      "Spread the za'atar mixture generously over each dough round.",
+      "Bake for 8-10 minutes until the edges are golden and the base is cooked through."
+    ],
+    "nutrition": { "calories": 320, "protein_g": 7, "carbs_g": 42, "fat_g": 14 },
+    "cost_tier": "low",
+    "storage_tips": "Best fresh and warm; keeps for up to 2 days and reheats well in a hot oven."
+  },
+  {
+    "id": "middleeastern-maqluba",
+    "title": "Maqluba",
+    "cuisine": "Middle Eastern",
+    "cook_time_minutes": 75,
+    "difficulty": "hard",
+    "spice_level": "mild",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "chicken thighs", "quantity": 1.5, "unit": "lb" },
+      { "name": "eggplant, sliced", "quantity": 1, "unit": null },
+      { "name": "cauliflower florets", "quantity": 2, "unit": "cup" },
+      { "name": "basmati rice", "quantity": 2, "unit": "cup" },
+      { "name": "onion, sliced", "quantity": 1, "unit": null },
+      { "name": "cinnamon stick", "quantity": 1, "unit": null },
+      { "name": "allspice", "quantity": 1, "unit": "tsp" },
+      { "name": "vegetable oil, for frying", "quantity": 1, "unit": "cup" },
+      { "name": "pine nuts, toasted", "quantity": 0.25, "unit": "cup" }
+    ],
+    "instructions": [
+      "Fry the eggplant and cauliflower slices in oil until golden, then drain on paper towels.",
+      "Simmer the chicken with onion, cinnamon, and allspice in water until cooked through, then remove the chicken and reserve the broth.",
+      "Layer the fried vegetables and chicken in a large pot, then top with the rinsed rice.",
+      "Pour in the reserved broth to just cover the rice, cover the pot, and simmer on low for 25-30 minutes until the rice is tender.",
+      "Let rest for 10 minutes, then carefully invert the pot onto a large serving platter.",
+      "Garnish with toasted pine nuts before serving."
+    ],
+    "nutrition": { "calories": 520, "protein_g": 30, "carbs_g": 58, "fat_g": 20 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 3 days; reheat gently to keep the layers intact."
+  },
+  {
+    "id": "middleeastern-stuffed-grape-leaves",
+    "title": "Stuffed Grape Leaves (Warak Enab)",
+    "cuisine": "Middle Eastern",
+    "cook_time_minutes": 60,
+    "difficulty": "medium",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "vegan", "gluten_free"],
+    "ingredients": [
+      { "name": "grape leaves, jarred", "quantity": 40, "unit": null },
+      { "name": "short-grain rice", "quantity": 1.5, "unit": "cup" },
+      { "name": "tomatoes, diced", "quantity": 2, "unit": null },
+      { "name": "parsley, chopped", "quantity": 0.5, "unit": "cup" },
+      { "name": "mint, chopped", "quantity": 0.25, "unit": "cup" },
+      { "name": "olive oil", "quantity": 0.33, "unit": "cup" },
+      { "name": "lemon juice", "quantity": 0.25, "unit": "cup" },
+      { "name": "salt", "quantity": 1, "unit": "tsp" }
+    ],
+    "instructions": [
+      "Rinse the grape leaves to remove excess brine.",
+      "Mix the rice, tomatoes, parsley, mint, half the olive oil, and salt for the filling.",
+      "Place a spoonful of filling near the stem end of each leaf, fold in the sides, and roll tightly.",
+      "Arrange the rolls snugly in a pot, seam-side down, and pour over the remaining olive oil, lemon juice, and enough water to just cover.",
+      "Place a small plate on top to keep the rolls submerged, cover, and simmer on low for 40-45 minutes until the rice is tender."
+    ],
+    "nutrition": { "calories": 260, "protein_g": 5, "carbs_g": 40, "fat_g": 10 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 5 days; can be served warm or cold."
+  },
+  {
+    "id": "african-moroccan-chicken-tagine",
+    "title": "Moroccan Chicken Tagine",
+    "cuisine": "African",
+    "cook_time_minutes": 75,
+    "difficulty": "hard",
+    "spice_level": "medium",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "chicken thighs", "quantity": 2, "unit": "lb" },
+      { "name": "onion, sliced", "quantity": 1, "unit": null },
+      { "name": "garlic cloves, minced", "quantity": 3, "unit": null },
+      { "name": "dried apricots", "quantity": 0.5, "unit": "cup" },
+      { "name": "green olives", "quantity": 0.5, "unit": "cup" },
+      { "name": "preserved lemon, chopped", "quantity": 1, "unit": null },
+      { "name": "ginger", "quantity": 1, "unit": "tsp" },
+      { "name": "cinnamon", "quantity": 0.5, "unit": "tsp" },
+      { "name": "turmeric", "quantity": 1, "unit": "tsp" },
+      { "name": "olive oil", "quantity": 3, "unit": "tbsp" },
+      { "name": "chicken stock", "quantity": 1, "unit": "cup" }
+    ],
+    "instructions": [
+      "Heat olive oil in a tagine or heavy pot and brown the chicken pieces on all sides; set aside.",
+      "Sauté the onion and garlic in the same pot until softened.",
+      "Stir in ginger, cinnamon, and turmeric, then return the chicken to the pot.",
+      "Add the apricots, olives, preserved lemon, and stock.",
+      "Cover and simmer gently for 45-50 minutes until the chicken is very tender."
+    ],
+    "nutrition": { "calories": 460, "protein_g": 32, "carbs_g": 20, "fat_g": 26 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 4 days and freezes well; flavors deepen overnight."
+  },
+  {
+    "id": "african-jollof-rice",
+    "title": "Jollof Rice",
+    "cuisine": "African",
+    "cook_time_minutes": 50,
+    "difficulty": "medium",
+    "spice_level": "medium",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "long-grain rice", "quantity": 3, "unit": "cup" },
+      { "name": "canned tomatoes", "quantity": 2, "unit": "cup" },
+      { "name": "red bell pepper", "quantity": 1, "unit": null },
+      { "name": "onion", "quantity": 1, "unit": null },
+      { "name": "scotch bonnet pepper", "quantity": 1, "unit": null },
+      { "name": "tomato paste", "quantity": 2, "unit": "tbsp" },
+      { "name": "vegetable oil", "quantity": 0.33, "unit": "cup" },
+      { "name": "chicken stock", "quantity": 3, "unit": "cup" },
+      { "name": "curry powder", "quantity": 1, "unit": "tsp" },
+      { "name": "bay leaves", "quantity": 2, "unit": null }
+    ],
+    "instructions": [
+      "Blend the canned tomatoes, bell pepper, half the onion, and scotch bonnet into a smooth puree.",
+      "Heat oil in a large pot and fry the tomato paste and remaining diced onion for a few minutes.",
+      "Add the blended tomato mixture and cook down for 15-20 minutes until thickened and the raw taste is gone.",
+      "Stir in curry powder, bay leaves, and chicken stock, then add the rinsed rice.",
+      "Cover and cook on low heat for 25-30 minutes, stirring occasionally, until the rice is tender and has absorbed the sauce."
+    ],
+    "nutrition": { "calories": 380, "protein_g": 7, "carbs_g": 68, "fat_g": 10 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 4 days and freezes well; reheat with a splash of water or stock."
+  },
+  {
+    "id": "african-doro-wat",
+    "title": "Doro Wat (Ethiopian Chicken Stew)",
+    "cuisine": "African",
+    "cook_time_minutes": 90,
+    "difficulty": "hard",
+    "spice_level": "hot",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "chicken drumsticks and thighs", "quantity": 2, "unit": "lb" },
+      { "name": "onions, finely chopped", "quantity": 3, "unit": null },
+      { "name": "berbere spice blend", "quantity": 3, "unit": "tbsp" },
+      { "name": "garlic cloves, minced", "quantity": 3, "unit": null },
+      { "name": "ginger, minced", "quantity": 1, "unit": "tbsp" },
+      { "name": "butter (niter kibbeh or regular)", "quantity": 4, "unit": "tbsp" },
+      { "name": "hard-boiled eggs", "quantity": 4, "unit": null },
+      { "name": "chicken stock", "quantity": 1, "unit": "cup" }
+    ],
+    "instructions": [
+      "Cook the onions in a dry pot over medium heat, stirring frequently, until deeply softened and lightly browned, about 15-20 minutes.",
+      "Add the butter, garlic, and ginger, and cook for a few minutes.",
+      "Stir in the berbere spice blend and cook until fragrant.",
+      "Add the chicken stock and chicken pieces, cover, and simmer for 40-45 minutes until the chicken is very tender.",
+      "Add the hard-boiled eggs in the last 10 minutes to warm through and absorb the sauce."
+    ],
+    "nutrition": { "calories": 440, "protein_g": 34, "carbs_g": 10, "fat_g": 28 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 4 days and freezes well; flavor improves the next day."
+  },
+  {
+    "id": "african-egyptian-koshari",
+    "title": "Egyptian Koshari",
+    "cuisine": "African",
+    "cook_time_minutes": 60,
+    "difficulty": "medium",
+    "spice_level": "medium",
+    "diet_tags": ["vegetarian", "vegan"],
+    "ingredients": [
+      { "name": "brown lentils", "quantity": 1, "unit": "cup" },
+      { "name": "rice", "quantity": 1, "unit": "cup" },
+      { "name": "small pasta", "quantity": 1, "unit": "cup" },
+      { "name": "canned chickpeas", "quantity": 1, "unit": "can" },
+      { "name": "onions, thinly sliced", "quantity": 2, "unit": null },
+      { "name": "canned crushed tomatoes", "quantity": 2, "unit": "cup" },
+      { "name": "garlic cloves, minced", "quantity": 3, "unit": null },
+      { "name": "ground cumin", "quantity": 1, "unit": "tsp" },
+      { "name": "vinegar", "quantity": 2, "unit": "tbsp" },
+      { "name": "vegetable oil, for frying", "quantity": 1, "unit": "cup" }
+    ],
+    "instructions": [
+      "Cook the lentils, rice, and pasta separately according to package/standard instructions, then combine in a large bowl with the chickpeas.",
+      "Fry the sliced onions in oil until deeply crisp and golden; set aside.",
+      "Make the tomato sauce by cooking garlic in a little oil, then adding the crushed tomatoes, cumin, and vinegar, and simmering for 15 minutes.",
+      "Serve the lentil-rice-pasta mixture topped with tomato sauce and crispy onions."
+    ],
+    "nutrition": { "calories": 460, "protein_g": 16, "carbs_g": 78, "fat_g": 10 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps components separately in the fridge for up to 4 days; combine fresh when serving."
+  },
+  {
+    "id": "african-bobotie",
+    "title": "South African Bobotie",
+    "cuisine": "African",
+    "cook_time_minutes": 70,
+    "difficulty": "medium",
+    "spice_level": "medium",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "ground beef", "quantity": 1.5, "unit": "lb" },
+      { "name": "onion, diced", "quantity": 1, "unit": null },
+      { "name": "curry powder", "quantity": 2, "unit": "tbsp" },
+      { "name": "bread slices, soaked in milk", "quantity": 2, "unit": null },
+      { "name": "dried apricots, chopped", "quantity": 0.25, "unit": "cup" },
+      { "name": "eggs", "quantity": 2, "unit": null },
+      { "name": "milk", "quantity": 0.5, "unit": "cup" },
+      { "name": "bay leaves", "quantity": 2, "unit": null },
+      { "name": "vegetable oil", "quantity": 2, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Heat oil in a pan and cook the onion until softened, then add the ground beef and brown thoroughly.",
+      "Stir in curry powder, the soaked bread (mashed in), and dried apricots.",
+      "Transfer the mixture to a baking dish and press it into an even layer, tucking in bay leaves.",
+      "Whisk together the eggs and milk, then pour over the meat mixture.",
+      "Bake at 350°F (175°C) for 30-35 minutes until the custard topping is set and golden."
+    ],
+    "nutrition": { "calories": 420, "protein_g": 28, "carbs_g": 18, "fat_g": 26 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 3 days; reheat gently to avoid overcooking the custard top."
+  },
+  {
+    "id": "african-peanut-stew",
+    "title": "West African Peanut Stew",
+    "cuisine": "African",
+    "cook_time_minutes": 45,
+    "difficulty": "medium",
+    "spice_level": "medium",
+    "diet_tags": ["vegetarian", "vegan", "gluten_free"],
+    "ingredients": [
+      { "name": "sweet potatoes, diced", "quantity": 2, "unit": null },
+      { "name": "canned crushed tomatoes", "quantity": 1.5, "unit": "cup" },
+      { "name": "onion, diced", "quantity": 1, "unit": null },
+      { "name": "garlic cloves, minced", "quantity": 3, "unit": null },
+      { "name": "ginger, minced", "quantity": 1, "unit": "tbsp" },
+      { "name": "peanut butter", "quantity": 0.5, "unit": "cup" },
+      { "name": "vegetable stock", "quantity": 3, "unit": "cup" },
+      { "name": "chili powder", "quantity": 1, "unit": "tsp" },
+      { "name": "kale, chopped", "quantity": 2, "unit": "cup" },
+      { "name": "vegetable oil", "quantity": 2, "unit": "tbsp" }
+    ],
+    "instructions": [
+      "Heat oil in a large pot and sauté the onion, garlic, and ginger until fragrant.",
+      "Add the sweet potatoes, crushed tomatoes, chili powder, and vegetable stock, and bring to a simmer.",
+      "Cook for 15-20 minutes until the sweet potatoes are nearly tender.",
+      "Whisk in the peanut butter until fully incorporated.",
+      "Stir in the kale and simmer for another 5 minutes until wilted before serving."
+    ],
+    "nutrition": { "calories": 380, "protein_g": 12, "carbs_g": 42, "fat_g": 20 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 5 days and freezes well; the peanut base thickens further when chilled."
+  },
+  {
+    "id": "african-moroccan-couscous",
+    "title": "Moroccan Couscous with Vegetables",
+    "cuisine": "African",
+    "cook_time_minutes": 40,
+    "difficulty": "easy",
+    "spice_level": "mild",
+    "diet_tags": ["vegetarian", "vegan"],
+    "ingredients": [
+      { "name": "couscous", "quantity": 2, "unit": "cup" },
+      { "name": "vegetable stock", "quantity": 2, "unit": "cup" },
+      { "name": "carrots, diced", "quantity": 2, "unit": null },
+      { "name": "zucchini, diced", "quantity": 1, "unit": null },
+      { "name": "chickpeas, canned", "quantity": 1, "unit": "can" },
+      { "name": "onion, diced", "quantity": 1, "unit": null },
+      { "name": "cumin", "quantity": 1, "unit": "tsp" },
+      { "name": "cinnamon", "quantity": 0.25, "unit": "tsp" },
+      { "name": "olive oil", "quantity": 3, "unit": "tbsp" },
+      { "name": "raisins", "quantity": 0.25, "unit": "cup" }
+    ],
+    "instructions": [
+      "Heat olive oil in a pot and sauté the onion and carrots until slightly softened.",
+      "Add the zucchini, chickpeas, cumin, and cinnamon, and cook for 5 minutes.",
+      "Pour in half the vegetable stock and simmer until the vegetables are tender, about 10-15 minutes.",
+      "Meanwhile, bring the remaining stock to a boil, pour over the couscous, cover, and let sit for 5 minutes before fluffing with a fork.",
+      "Stir the raisins into the vegetable mixture and serve over the couscous."
+    ],
+    "nutrition": { "calories": 420, "protein_g": 12, "carbs_g": 74, "fat_g": 10 },
+    "cost_tier": "low",
+    "storage_tips": "Keeps in the fridge for up to 4 days; reheat with a splash of stock or water."
+  },
+  {
+    "id": "african-nigerian-suya",
+    "title": "Nigerian Suya (Spiced Grilled Beef Skewers)",
+    "cuisine": "African",
+    "cook_time_minutes": 30,
+    "difficulty": "medium",
+    "spice_level": "hot",
+    "diet_tags": [],
+    "ingredients": [
+      { "name": "beef sirloin, thinly sliced", "quantity": 1.5, "unit": "lb" },
+      { "name": "roasted peanuts, ground", "quantity": 0.5, "unit": "cup" },
+      { "name": "paprika", "quantity": 1, "unit": "tbsp" },
+      { "name": "cayenne pepper", "quantity": 1, "unit": "tsp" },
+      { "name": "ginger powder", "quantity": 1, "unit": "tsp" },
+      { "name": "garlic powder", "quantity": 1, "unit": "tsp" },
+      { "name": "onion powder", "quantity": 1, "unit": "tsp" },
+      { "name": "vegetable oil", "quantity": 2, "unit": "tbsp" },
+      { "name": "onion, sliced, for serving", "quantity": 1, "unit": null }
+    ],
+    "instructions": [
+      "Mix the ground peanuts, paprika, cayenne, ginger powder, garlic powder, and onion powder to make the suya spice blend.",
+      "Toss the beef slices with vegetable oil, then coat generously with the spice blend.",
+      "Thread the beef onto skewers.",
+      "Grill over high heat for 2-3 minutes per side until charred and cooked to your liking.",
+      "Serve with sliced raw onion."
+    ],
+    "nutrition": { "calories": 340, "protein_g": 32, "carbs_g": 8, "fat_g": 20 },
+    "cost_tier": "medium",
+    "storage_tips": "Keeps in the fridge for up to 3 days; reheat briefly on a hot pan to restore some char."
+  }
+]

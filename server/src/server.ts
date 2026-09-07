@@ -8,7 +8,7 @@ app.listen(config.port, () => {
       ts: new Date().toISOString(),
       event: "server_listen",
       port: config.port,
-      mock: config.useMockRecipes,
+      localRecipes: true,
     })
   );
 });

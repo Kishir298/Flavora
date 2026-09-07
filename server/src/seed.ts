@@ -1,6 +1,37 @@
-/** Seed local SQLite with demo profile + mock recipes. Zero network, zero API quota. */
+/** Seed local SQLite from /data/*.json — zero network, fully offline (§5, §14). */
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { prisma, ensureProfileRow } from "./db.js";
-import { MOCK_RECIPES } from "./providers/mockData.js";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+// src/ -> server/ -> repo root -> data/
+const DATA_DIR = path.resolve(here, "../../data");
+
+interface SeedIngredient {
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+}
+
+interface SeedRecipe {
+  id: string;
+  title: string;
+  cuisine: string;
+  cook_time_minutes: number;
+  difficulty: string;
+  spice_level: string;
+  diet_tags: string[];
+  ingredients: SeedIngredient[];
+  instructions: string[];
+  nutrition: Record<string, number>;
+  cost_tier: string;
+  storage_tips: string;
+}
+
+function loadJson<T>(file: string): T {
+  return JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), "utf8")) as T;
+}
 
 async function main() {
   await ensureProfileRow();
@@ -9,33 +40,60 @@ async function main() {
     data: {
       allergies: JSON.stringify(["peanut"]),
       avoidFoods: JSON.stringify(["pork"]),
-      cuisines: JSON.stringify(["italian", "mexican"]),
-      spice: "medium",
-      skill: "beginner",
+      favoriteCuisines: JSON.stringify(["italian", "mexican"]),
+      spicePreference: "medium",
+      skillLevel: "beginner",
       nutritionGoals: JSON.stringify({ highProtein: false, maxCalories: 600 }),
-      maxCookTime: 30,
+      preferredCookTimeMinutes: 30,
       theme: "light",
     },
   });
-  for (const r of MOCK_RECIPES) {
-    await prisma.recipeCache.upsert({
+
+  const recipes = loadJson<SeedRecipe[]>("recipes.json");
+  for (const r of recipes) {
+    await prisma.recipe.upsert({
       where: { id: r.id },
       create: {
         id: r.id,
-        source: r.source,
         title: r.title,
         cuisine: r.cuisine ?? "",
-        cookTime: r.cookTime ?? 30,
+        cookTimeMinutes: r.cook_time_minutes ?? 30,
+        difficulty: r.difficulty ?? "easy",
+        spiceLevel: r.spice_level ?? "mild",
+        dietTags: JSON.stringify(r.diet_tags ?? []),
+        ingredients: JSON.stringify(r.ingredients ?? []),
+        instructions: JSON.stringify(r.instructions ?? []),
         nutrition: JSON.stringify(r.nutrition ?? {}),
-        ingredients: JSON.stringify(r.ingredients),
-          instructions: JSON.stringify(r.instructions ?? []),
-          image: r.image ?? "",
-          pricePerServing: r.pricePerServing ?? null,
-        },
-        update: {},
+        costTier: r.cost_tier ?? "low",
+        storageTips: r.storage_tips ?? "",
+      },
+      update: {
+        title: r.title,
+        cuisine: r.cuisine ?? "",
+        cookTimeMinutes: r.cook_time_minutes ?? 30,
+        difficulty: r.difficulty ?? "easy",
+        spiceLevel: r.spice_level ?? "mild",
+        dietTags: JSON.stringify(r.diet_tags ?? []),
+        ingredients: JSON.stringify(r.ingredients ?? []),
+        instructions: JSON.stringify(r.instructions ?? []),
+        nutrition: JSON.stringify(r.nutrition ?? {}),
+        costTier: r.cost_tier ?? "low",
+        storageTips: r.storage_tips ?? "",
+      },
     });
   }
-  console.log(JSON.stringify({ event: "seeded", recipes: MOCK_RECIPES.length }));
+
+  const subs = loadJson<{ ingredient_name: string; substitute_name: string; notes: string }[]>(
+    "ingredient_substitutes.json"
+  );
+  await prisma.ingredientSubstitute.deleteMany({});
+  for (const s of subs) {
+    await prisma.ingredientSubstitute.create({
+      data: { ingredientName: s.ingredient_name, substituteName: s.substitute_name, notes: s.notes ?? "" },
+    });
+  }
+
+  console.log(JSON.stringify({ event: "seeded", recipes: recipes.length, substitutes: subs.length }));
 }
 
 main()

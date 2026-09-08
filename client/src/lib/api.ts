@@ -17,6 +17,11 @@ export interface IngredientDetail {
   usedOwned?: boolean;
 }
 
+export interface SubstituteDetail {
+  name: string;
+  notes: string;
+}
+
 export interface RecipeResult {
   id: string;
   title: string;
@@ -32,6 +37,7 @@ export interface RecipeResult {
   nutrition?: { calories?: number; protein?: number; protein_g?: number; carbs?: number; carbs_g?: number; fat?: number; fat_g?: number };
   score?: number;
   substitutions?: Record<string, string[]>;
+  substitutionDetails?: Record<string, SubstituteDetail[]>;
   storage?: string;
   storageTips?: string;
 }
@@ -53,6 +59,22 @@ export interface Recommendation {
 
 export type RecommendMode = "normal" | "food_waste" | "budget";
 
+export interface AssistantIntent {
+  availableIngredients?: string[];
+  timeLimit?: number;
+  cuisine?: string | null;
+  mode?: RecommendMode;
+  craving?: string | null;
+}
+
+export interface AssistantResponse {
+  intent: AssistantIntent;
+  source: "groq" | "heuristic" | "provided";
+  notice?: string | null;
+  reply: string;
+  recommendations: Recommendation[];
+}
+
 const BASE = import.meta.env.VITE_API_URL ?? "";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -60,18 +82,39 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json" },
     ...init,
   });
-  if (!res.ok) throw new Error(`${init?.method ?? "GET"} ${path} -> ${res.status}`);
+  if (!res.ok) {
+    let detail = `${init?.method ?? "GET"} ${path} -> ${res.status}`;
+    try {
+      const body = (await res.json()) as { error?: string };
+      if (body?.error) detail = body.error;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(detail);
+  }
   return res.json() as Promise<T>;
 }
 
 export const api = {
-  health: () => req<{ ok: boolean }>("/api/health"),
+  health: () => req<{ ok: boolean; ai?: { groqConfigured: boolean } }>("/api/health"),
   getProfile: () => req<Profile>("/api/profile"),
   saveProfile: (p: Partial<Profile>) =>
     req<Profile>("/api/profile", { method: "PUT", body: JSON.stringify(p) }),
   /** Canonical contract recommendations (matchReasons + mode). */
-  recommendations: (body: { availableIngredients: string[]; timeLimit?: number; mode?: RecommendMode; cuisine?: string }) =>
-    req<{ recommendations: Recommendation[] }>("/api/recommendations", { method: "POST", body: JSON.stringify(body) }),
+  recommendations: (body: {
+    availableIngredients: string[];
+    timeLimit?: number;
+    mode?: RecommendMode;
+    cuisine?: string;
+    craving?: string;
+  }) =>
+    req<{ recommendations: Recommendation[] }>("/api/recommendations", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  /** Natural-language assistant → intent → same deterministic engine. */
+  assistant: (body: { message: string; intent?: Partial<AssistantIntent> }) =>
+    req<AssistantResponse>("/api/assistant", { method: "POST", body: JSON.stringify(body) }),
   explain: (recipeId: string, mode?: RecommendMode) =>
     req<{ recipeId: string; features: Record<string, number>; weights: Record<string, number>; score: number }>(
       `/api/debug/explain?recipeId=${encodeURIComponent(recipeId)}${mode ? `&mode=${mode}` : ""}`

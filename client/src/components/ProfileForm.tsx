@@ -32,6 +32,7 @@ export function ProfileForm({
   const [preferredCookTimeMinutes, setPreferredCookTimeMinutes] = useState(initial.preferredCookTimeMinutes);
   const [maxCalories, setMaxCalories] = useState(initial.nutritionGoals?.maxCalories?.toString() ?? "");
   const [highProtein, setHighProtein] = useState(!!initial.nutritionGoals?.highProtein);
+  const [lowCarb, setLowCarb] = useState(!!initial.nutritionGoals?.lowCarb);
 
   const split = (s: string) => s.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
 
@@ -50,6 +51,7 @@ export function ProfileForm({
           preferredCookTimeMinutes: Number(preferredCookTimeMinutes),
           nutritionGoals: {
             highProtein,
+            lowCarb,
             ...(maxCalories ? { maxCalories: Number(maxCalories) } : {}),
           },
         });
@@ -104,10 +106,17 @@ export function ProfileForm({
           <input id="cals" type="number" min={100} className="mt-1 rounded border px-2 py-2 w-28 bg-white dark:bg-neutral-900" value={maxCalories} onChange={(e) => setMaxCalories(e.target.value)} placeholder="600" />
         </div>
       </div>
-      <label className="text-sm flex items-center gap-2">
-        <input type="checkbox" checked={highProtein} onChange={(e) => setHighProtein(e.target.checked)} />
-        High-protein goal
-      </label>
+      <div className="flex flex-wrap gap-4">
+        <label className="text-sm flex items-center gap-2">
+          <input type="checkbox" checked={highProtein} onChange={(e) => setHighProtein(e.target.checked)} />
+          High-protein goal
+        </label>
+        <label className="text-sm flex items-center gap-2">
+          <input type="checkbox" checked={lowCarb} onChange={(e) => setLowCarb(e.target.checked)} />
+          Low-carb goal
+        </label>
+      </div>
+      <p className="text-xs opacity-60">Nutrition goals influence ranking only — values are recipe estimates, not medical advice.</p>
       <button type="submit" disabled={saving} className="px-4 py-2 rounded bg-green-600 text-white disabled:opacity-50">
         {saving ? "Saving…" : "Save profile"}
       </button>

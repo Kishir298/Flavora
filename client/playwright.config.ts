@@ -12,7 +12,7 @@ export default defineConfig({
       command: "npm run dev --workspace=flavora-server -- --port 4000",
       port: 4000,
       reuseExistingServer: true,
-      env: { ...process.env, USE_MOCK_RECIPES: "true" } as Record<string, string>,
+      env: { ...process.env } as Record<string, string>,
     },
     {
       command: "npm run dev --workspace=flavora-client",

@@ -1,65 +1,103 @@
 # Flavora — AI-assisted food companion (local-first)
 
 Local-first web app: React + Vite + Tailwind (PWA) + Node + Express + SQLite (Prisma).
-All personal data **and** all recipe data stay on your machine. No network calls required.
+Personal data and recipe data stay on your machine. Core recommendations never require a network call.
 
-## Quickstart (localhost, zero config)
+## Quickstart
 
 ```bash
 cp .env.example .env
-npm install          # root (installs server + client workspaces)
-npm run db:push      # create local SQLite file (prisma/dev.db, gitignored)
-npm run db:seed      # 80 recipes + 31 substitutes from /data + demo profile, zero network
-npm run dev          # client :5173 + server :4000 concurrently
+npm install
+npm run db:push
+npm run db:seed
+npm run dev          # client :5173 + server :4000
 ```
 
-Open http://localhost:5173 → Onboarding → Assistant → Detail → Saved → Settings.
+Open http://localhost:5173 → Onboarding → Assistant → Detail → Saved → Settings / Explorer.
+
+Optional conversational AI (server-side only):
+
+```bash
+# in .env — never use a VITE_ prefix for this key
+GROQ_API_KEY=your_key_here
+```
+
+Without `GROQ_API_KEY`, natural-language requests still work via a local heuristic intent parser. Ranking and allergy filtering always run on the local engine.
+
+Optional learning layer (local venv recommended on macOS/Homebrew Python):
+
+```bash
+cd server/src/engine
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+```
+
+The retrain trigger prefers `server/src/engine/.venv/bin/python` when that venv exists.
 
 ## Scripts
 
 | cmd | what |
 |---|---|
 | `npm run dev` | client + server concurrently |
-| `npm run test` | server unit+integration (vitest) + client component tests |
-| `npm run test:e2e` | Playwright critical path (profile → recommend → open → save) |
-| `npm run db:push` / `db:seed` | init + seed local SQLite from `/data` |
+| `npm run test` | server unit+integration + client component tests |
+| `npm run test:e2e` | Playwright critical paths |
+| `npm run db:push` / `db:seed` | init + seed SQLite from `/data` |
 
-## Recipe data (`/data`, §5)
+## Architecture
 
-`data/recipes.json` (~80 recipes, 8 per cuisine across the 10 explorer cuisines)
-and `data/ingredient_substitutes.json` ship in the repo and seed the local
-`recipes` / `ingredient_substitutes` tables. Add more recipes to the JSON and
-re-run `npm run db:seed` — no schema change needed. SQLite tables/columns are
-`snake_case`; Prisma `@map`/`@@map` exposes `camelCase` to the app.
+```text
+User request (form or natural language)
+        ↓
+Intent (Groq optional / heuristic fallback)   ← never decides allergen safety
+        ↓
+Deterministic recommendation engine
+  1. Hard allergy / avoid-food filter
+  2. Feature extraction (7 scored features)
+  3. Weighted scoring (+ mode reweights)
+  4. Optional learned weights (cold start gated)
+        ↓
+Top recommendations + human matchReasons
+        ↓
+Optional short assistant reply (explains engine results only)
+```
 
-## Recommendation engine (`server/src/engine/`, literal `.js` paths)
+### Layers
 
-`filter.js` (Layer 1 hard filter + synonym map — best-effort,
-always double-check ingredients) → `features.js` (7 normalized features
-incl. `skill_fit` and `cost_tier`-based `budget_fit`) →
-`scorer.js` (Σw·f, defaults 0.25/0.20/0.125/0.125/0.10/0.10/0.10;
-`food_waste` → overlap 0.50, `budget` → budget 0.30, remainder scaled
-proportionally) → `recommend.js`
-(top 5 + human `matchReasons`, logs `shown` rows). API: `POST /api/recommendations
-{availableIngredients, timeLimit, mode: normal|food_waste|budget}` and `POST /api/interactions`
-(`shown/viewed/saved/cooked/rated_positive/rated_negative/skipped`).
-`GET /api/debug/explain?recipeId=&mode=` (dev-only) shows features + weights + score.
+- **Recipe data** — `prisma/schema.prisma`, `data/*.json`, `server/src/recipesDb.ts` (local SQLite; no network)
+- **Engine** — `server/src/engine/*` (filter → features → scorer → recommend; `retrain.py` for learning)
+- **API** — thin Express routes; business logic stays in the engine / AI modules
+- **AI** — `server/src/ai/*` provider abstraction (`GroqProvider` + heuristic). Key stays server-side.
+- **Client** — React screens talk only through `client/src/lib/api.ts`
 
-## Learning layer (local, opt-out by doing nothing)
+### Recommendation API
 
-`server/src/engine/retrain.py` (logistic regression, single-user `"local"`).
-Install once: `python3 -m pip install -r server/src/engine/requirements.txt`.
-Auto-runs in the background every 20 logged interactions; needs ≥15 positive +
-≥5 negative examples or it refuses and keeps current weights. Cold start (<20
-outcomes) uses static defaults. `recommendation_weights` table holds learned weights.
+`POST /api/recommendations`  
+`{ availableIngredients, timeLimit, mode: normal|food_waste|budget, cuisine?, craving? }`  
+→ `{ recommendations: [{ recipeId, title, score, matchReasons, … }] }`
 
-## Safety model
+`POST /api/assistant`  
+`{ message }` → `{ intent, source, notice?, reply, recommendations }`  
+Intent is validated; recipes always come from the local engine after the hard filter.
 
-Layer 1 allergy/avoid filter is absolute and runs first — it never learns or softens.
-Layer 2 weighted scoring only reorders allergy-safe recipes. Layer 3 only nudges
-Layer 2 weights and can never override Layer 1.
+`POST /api/interactions` — `shown|viewed|saved|unsaved|cooked|rated_positive|rated_negative|skipped`
 
-## Privacy / offline
+### Safety
 
-No accounts, no cloud sync, no external recipe API. `prisma/dev.db` never committed.
-PWA service worker caches app shell + viewed recipes for offline use.
+Layer 1 allergy/avoid filter is absolute and runs first. Learning and AI explanations cannot reintroduce excluded recipes. Substitutions that conflict with allergies/avoid foods are omitted and never treated as automatically safe.
+
+### Modes
+
+- **food_waste** — boosts `ingredient_overlap` (use what you have)
+- **budget** — boosts `budget_fit` from recipe **cost tiers** (low/medium/high), not live grocery prices
+
+### Learning
+
+`retrain.py` (logistic regression) updates `recommendation_weights` when there is enough labelled data (≥15 positive, ≥5 negative). Triggered about every 20 interaction rows. Cold start (&lt;20 outcomes) keeps static defaults. Requires `scikit-learn` installed locally.
+
+### Offline / PWA
+
+Service worker caches the app shell and previously viewed recipe API responses. Core browsing of cached recipes can work offline. Groq intent parsing requires network when configured; without a key, local parsing still works if the API server is reachable.
+
+### Privacy
+
+No accounts, no cloud sync of personal data, no external recipe API. `prisma/dev.db` is gitignored. Never commit `.env`.

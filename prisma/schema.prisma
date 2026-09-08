@@ -57,7 +57,7 @@ model Interaction {
   id        Int      @id @default(autoincrement()) @map("id")
   userId    String   @default("local") @map("user_id")
   recipeId  String   @map("recipe_id")
-  // shown | viewed | saved | cooked | rated_positive | rated_negative | skipped
+  // shown | viewed | saved | unsaved | cooked | rated_positive | rated_negative | skipped
   // (legacy "rated" also accepted as alias for rated_positive)
   action    String   @map("action")
   rating    Int?     @map("rating")

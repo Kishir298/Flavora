@@ -1,16 +1,27 @@
 /**
  * Retrain trigger helper (guide step 8, literal .js path).
  * After every 20 new logged interactions for a user, run retrain.py
- * in the background. Daily-or-every-N is plenty for a cooking app.
+ * in the background. Prefers engine/.venv/bin/python when present.
  */
 import { spawn } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RETRAIN_SCRIPT = path.resolve(here, "./retrain.py");
+const VENV_PYTHON = path.resolve(here, "./.venv/bin/python");
 
 export const RETRAIN_EVERY_N = 20;
+
+function resolvePython() {
+  try {
+    if (fs.existsSync(VENV_PYTHON)) return VENV_PYTHON;
+  } catch {
+    /* ignore */
+  }
+  return "python3";
+}
 
 /**
  * @param {{ count: (args: any) => Promise<number> }} interactionDelegate prisma.interaction
@@ -28,7 +39,7 @@ export async function maybeTriggerRetrain(interactionDelegate, userId = "local",
   }
   if (count === 0 || count % RETRAIN_EVERY_N !== 0) return { triggered: false, count };
   try {
-    const child = spawnFn("python3", [RETRAIN_SCRIPT, "--user-id", userId], {
+    const child = spawnFn(resolvePython(), [RETRAIN_SCRIPT, "--user-id", userId], {
       detached: true,
       stdio: "ignore",
     });

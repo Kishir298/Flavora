@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT = path.join(here, "retrain.py");
+const VENV_PY = path.join(here, ".venv", "bin", "python");
+const PYTHON = fs.existsSync(VENV_PY) ? VENV_PY : "python3";
 const FEATURES = ["ingredient_overlap", "time_fit", "cuisine_match", "nutrition_fit", "skill_fit", "spice_fit", "budget_fit"];
 
 const SETUP_SQL = `
@@ -25,13 +27,13 @@ function makeDb(rows) {
     lines.push(`INSERT INTO interactions (recipe_id, action, features) VALUES ('${r.recipeId}','${r.action}',${feat});`);
   }
   fs.writeFileSync(setup, lines.join("\n"));
-  execFileSync("python3", ["-c", `import sqlite3;db=sqlite3.connect(${JSON.stringify(db)});db.executescript(open(${JSON.stringify(setup)}).read());db.commit()`]);
+  execFileSync(PYTHON, ["-c", `import sqlite3;db=sqlite3.connect(${JSON.stringify(db)});db.executescript(open(${JSON.stringify(setup)}).read());db.commit()`]);
   return db;
 }
 
 function run(db, extra = []) {
   try {
-    const out = execFileSync("python3", [SCRIPT, "--db", db, ...extra], { encoding: "utf8" });
+    const out = execFileSync(PYTHON, [SCRIPT, "--db", db, ...extra], { encoding: "utf8" });
     return { code: 0, json: JSON.parse(out) };
   } catch (e) {
     return { code: e.status ?? 1, json: JSON.parse(String(e.stdout || "{}")) };

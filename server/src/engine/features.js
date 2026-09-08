@@ -183,6 +183,40 @@ export function computeFeatures(recipe, profile, request = {}) {
     budget_fit = clamp01(1 - Number(recipe.pricePerServing) / 5);
   }
 
+  // Soft craving_fit (not a scored weight column — used for matchReasons + light bump
+  // via cuisine/title/tag token overlap). Does not affect allergy safety.
+  let craving_fit = 0.5;
+  const craving = norm(request.craving ?? "");
+  if (craving) {
+    const tokens = craving.split(/[^a-z0-9]+/).filter((t) => t.length > 2);
+    const hay = [
+      recipe.title,
+      recipe.cuisine,
+      recipe.spiceLevel ?? recipe.spice,
+      recipe.difficulty,
+      ...(recipe.dietTags ?? []),
+      ...(ingredients ?? []).map(ingredientName),
+    ]
+      .map(norm)
+      .join(" ");
+    if (tokens.length === 0) craving_fit = 0.5;
+    else {
+      const hits = tokens.filter((t) => hay.includes(t)).length;
+      craving_fit = clamp01(hits / tokens.length);
+      // Light nudge into cuisine_match / spice when craving mentions them.
+      if (craving_fit > 0.5 && cuisine_match < 1) cuisine_match = clamp01(cuisine_match + 0.15 * craving_fit);
+    }
+  }
+
   void getFat;
-  return { ingredient_overlap, time_fit, cuisine_match, nutrition_fit, skill_fit, spice_fit, budget_fit };
+  return {
+    ingredient_overlap,
+    time_fit,
+    cuisine_match,
+    nutrition_fit,
+    skill_fit,
+    spice_fit,
+    budget_fit,
+    craving_fit,
+  };
 }

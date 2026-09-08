@@ -50,7 +50,7 @@ describe("engine/recommend.js — orchestrator", () => {
     const req = { availableIngredients: ["rice"], timeLimit: 20, mode: "budget" };
     const out = recommendWithEngine(cands, { allergies: [], preferredCookTimeMinutes: 20 }, req);
     expect(out[0].recipe.id).toBe("cheap");
-    expect(out[0].matchReasons.join(" ")).toMatch(/budget-friendly/);
+    expect(out[0].matchReasons.join(" ")).toMatch(/budget-friendly/i);
   });
 
   it("buildReasons mentions ingredients + time limit + skill", () => {
@@ -59,8 +59,18 @@ describe("engine/recommend.js — orchestrator", () => {
       { ingredient_overlap: 0.5, cuisine_match: 1, time_fit: 1, nutrition_fit: 0.5, skill_fit: 1, spice_fit: 0.5, budget_fit: 0.5 },
       { availableIngredients: ["pasta", "tomato"], timeLimit: 20 }
     );
-    expect(reasons.join(" ")).toMatch(/uses 2 of your 2/);
-    expect(reasons.join(" ")).toMatch(/20-minute/);
-    expect(reasons.join(" ")).toMatch(/skill level/);
+    const blob = reasons.join(" ");
+    expect(blob).toMatch(/uses 2 of your 2/i);
+    expect(blob).toMatch(/20-minute/i);
+    expect(blob).toMatch(/skill level/i);
+  });
+
+  it("food_waste reasons mention the food-waste goal when overlap is strong", () => {
+    const reasons = buildReasons(
+      { title: "Bowl", ingredients: ["rice", "beans", "corn"] },
+      { ingredient_overlap: 1, cuisine_match: 0.5, time_fit: 0.5, nutrition_fit: 0.5, skill_fit: 0.5, spice_fit: 0.5, budget_fit: 0.5 },
+      { availableIngredients: ["rice", "beans", "corn"], mode: "food_waste" }
+    );
+    expect(reasons.join(" ")).toMatch(/food-waste/i);
   });
 });

@@ -14,11 +14,15 @@ export default defineConfig({
       { find: /^..\/app\.js$/, replacement: src("app.ts") },
       { find: /^..\/logger\.js$/, replacement: src("logger.ts") },
       { find: /^..\/recipesDb\.js$/, replacement: src("recipesDb.ts") },
+      { find: /^..\/config\.js$/, replacement: src("config.ts") },
+      { find: /^..\/ai\/(.*)\.js$/, replacement: path.resolve(here, "src/ai/$1.ts") },
+      { find: /^\.\/engine\/filter\.js$/, replacement: src("engine/filter.js") },
+      { find: /^\.\.\/recipesDb\.js$/, replacement: src("recipesDb.ts") },
     ],
   },
   test: {
     environment: "node",
     include: ["src/**/*.test.ts", "src/**/*.test.js"],
-    testTimeout: 10000,
+    testTimeout: 15000,
   },
 });

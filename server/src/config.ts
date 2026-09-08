@@ -13,4 +13,7 @@ export const config = {
   port: Number(process.env.PORT ?? 4000),
   databaseUrl: process.env.DATABASE_URL ?? "file:./dev.db",
   isDev: (process.env.NODE_ENV ?? "development") !== "production",
+  /** Optional. Server-side only — never expose to the Vite client. */
+  groqApiKey: process.env.GROQ_API_KEY?.trim() || "",
+  groqModel: process.env.GROQ_MODEL?.trim() || "llama-3.3-70b-versatile",
 };

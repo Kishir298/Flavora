@@ -5,8 +5,10 @@ import { profileRouter } from "./routes/profile.js";
 import { recipesRouter } from "./routes/recipes.js";
 import { recommendationsRouter } from "./routes/recommendations.js";
 import { interactionsRouterNew as interactionsRouter } from "./routes/interactions.js";
+import { assistantRouter } from "./routes/assistant.js";
 import { devRouter } from "./routes/dev.js";
 import { debugRouter } from "./routes/debug.js";
+import { config } from "./config.js";
 
 import { prisma } from "./db.js";
 
@@ -17,9 +19,16 @@ export function createApp() {
   app.use(requestIdMiddleware);
   app.use(requestLogger);
 
-  app.get("/api/health", (_req, res) => res.json({ ok: true, service: "flavora" }));
+  app.get("/api/health", (_req, res) =>
+    res.json({
+      ok: true,
+      service: "flavora",
+      ai: { groqConfigured: Boolean(config.groqApiKey) },
+    })
+  );
   app.use("/api/profile", profileRouter);
   app.use("/api/recommendations", recommendationsRouter);
+  app.use("/api/assistant", assistantRouter);
   app.use("/api/recipes", recipesRouter);
   app.use("/api/interactions", interactionsRouter);
   app.get("/api/saved", async (_req, res, next) => {

@@ -34,6 +34,7 @@ recommendationsRouter.post("/", async (req, res, next) => {
     const availableIngredients = req.body?.availableIngredients ?? [];
     const timeLimit = req.body?.timeLimit;
     const mode = req.body?.mode ?? "normal";
+    const craving = typeof req.body?.craving === "string" ? req.body.craving.trim().slice(0, 120) : undefined;
     if (!["normal", "food_waste", "budget"].includes(mode)) {
       return res.status(400).json({ error: "mode must be normal|food_waste|budget" });
     }
@@ -78,7 +79,12 @@ recommendationsRouter.post("/", async (req, res, next) => {
     const results = recommendWithEngine(
       candidates,
       scoringProfile,
-      { availableIngredients, timeLimit: timeLimit ?? profile.preferredCookTimeMinutes, mode },
+      {
+        availableIngredients,
+        timeLimit: timeLimit ?? profile.preferredCookTimeMinutes,
+        mode,
+        craving: craving || undefined,
+      },
       weights,
       5
     );

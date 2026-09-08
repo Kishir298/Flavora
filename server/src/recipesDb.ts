@@ -1,6 +1,7 @@
 /** Local recipe database access (§5). The `recipes` table IS the source of
  * truth — no external fetch, no cache-freshness concerns. */
 import { prisma } from "./db.js";
+import { ingredientViolatesTerm } from "./engine/filter.js";
 import type { Recipe } from "./types.js";
 
 function parseJson<T>(raw: string, fallback: T): T {
@@ -57,19 +58,66 @@ export async function getRecipeById(id: string): Promise<Recipe | null> {
   return row ? rowToRecipe(row) : null;
 }
 
-/** Cheap-swap lookup from the local `ingredient_substitutes` table (§4.3). */
-export async function substitutesFor(ingredients: Recipe["ingredients"]): Promise<Record<string, string[]>> {
+export interface SubstituteOption {
+  name: string;
+  notes: string;
+}
+
+export interface ProfileRestrictions {
+  allergies?: string[];
+  avoidFoods?: string[];
+  avoid_foods?: string[];
+}
+
+function forbiddenTerms(profile?: ProfileRestrictions): string[] {
+  if (!profile) return [];
+  return [...(profile.allergies ?? []), ...(profile.avoidFoods ?? []), ...(profile.avoid_foods ?? [])]
+    .map((s) => String(s ?? "").toLowerCase().trim())
+    .filter(Boolean);
+}
+
+/** True if a substitute string conflicts with allergies / avoid foods. */
+export function substituteConflicts(substituteName: string, profile?: ProfileRestrictions): boolean {
+  const forbidden = forbiddenTerms(profile);
+  if (forbidden.length === 0) return false;
+  for (const term of forbidden) {
+    if (ingredientViolatesTerm(substituteName, term)) return true;
+  }
+  return false;
+}
+
+/**
+ * Cheap-swap lookup from the local `ingredient_substitutes` table (§4.3).
+ * Omits substitutes that conflict with the user's allergy/avoid profile —
+ * a substitute is never treated as automatically allergen-safe.
+ */
+export async function substitutesFor(
+  ingredients: Recipe["ingredients"],
+  profile?: ProfileRestrictions
+): Promise<Record<string, SubstituteOption[]>> {
   const names = ingredients.map((i) => (typeof i === "string" ? i : i.name).toLowerCase());
   if (names.length === 0) return {};
   const rows = await prisma.ingredientSubstitute.findMany({});
-  const out: Record<string, string[]> = {};
+  const out: Record<string, SubstituteOption[]> = {};
   for (const ing of ingredients) {
     const raw = typeof ing === "string" ? ing : ing.name;
-    const key = rows.find((r) => raw.toLowerCase().includes(r.ingredientName.toLowerCase()));
-    if (key) {
-      const label = typeof ing === "string" ? ing : ing.name;
-      out[label] = [...(out[label] ?? []), key.substituteName];
+    const label = typeof ing === "string" ? ing : ing.name;
+    const matches = rows.filter((r) => raw.toLowerCase().includes(r.ingredientName.toLowerCase()));
+    for (const row of matches) {
+      if (substituteConflicts(row.substituteName, profile)) continue;
+      const entry: SubstituteOption = { name: row.substituteName, notes: row.notes || "" };
+      const list = out[label] ?? (out[label] = []);
+      if (!list.some((x) => x.name === entry.name)) list.push(entry);
     }
+  }
+  return out;
+}
+
+/** Back-compat flat map of substitute name strings (for older callers/tests). */
+export function flattenSubstitutions(detailed: Record<string, SubstituteOption[]>): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const [k, list] of Object.entries(detailed)) {
+    out[k] = list.map((s) => s.name);
   }
   return out;
 }

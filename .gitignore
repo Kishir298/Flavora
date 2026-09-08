@@ -39,3 +39,8 @@ test-results/
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# Python learning-layer venv (optional local install)
+server/src/engine/.venv/
+**/__pycache__/
+*.pyc

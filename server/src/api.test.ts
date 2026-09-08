@@ -215,3 +215,60 @@ describe("debug explain endpoint (§7.10)", () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe("assistant NL → engine (no live Groq required)", () => {
+  it("parses a natural-language request and returns allergy-safe recommendations", async () => {
+    await request(app).put("/api/profile").send({
+      allergies: ["peanut", "dairy"],
+      avoidFoods: ["pork"],
+      favoriteCuisines: ["italian"],
+      spicePreference: "medium",
+      skillLevel: "beginner",
+      preferredCookTimeMinutes: 30,
+    });
+    const res = await request(app)
+      .post("/api/assistant")
+      .send({ message: "I have pasta and tomato. I only have 30 minutes. Something Italian and easy." });
+    expect(res.status).toBe(200);
+    expect(res.body.source).toMatch(/heuristic|groq|provided/);
+    expect(res.body.reply).toBeTruthy();
+    expect(Array.isArray(res.body.recommendations)).toBe(true);
+    expect(res.body.intent.timeLimit).toBe(30);
+    for (const r of res.body.recommendations as { recipeId: string; ingredients: string[] }[]) {
+      expect(r.recipeId).not.toBe(DAIRY_ID);
+      const blob = (r.ingredients ?? []).join(" ").toLowerCase();
+      expect(blob).not.toContain("peanut");
+      expect(blob).not.toContain("pork");
+    }
+  });
+
+  it("rejects empty assistant body", async () => {
+    const res = await request(app).post("/api/assistant").send({});
+    expect(res.status).toBe(400);
+  });
+
+  it("unsaved removes a recipe from /api/saved", async () => {
+    await request(app).post("/api/interactions").send({ recipeId: SEED_ID, action: "saved" });
+    let saved = await request(app).get("/api/saved");
+    expect(saved.body.map((r: { id: string }) => r.id)).toContain(SEED_ID);
+    await request(app).post("/api/interactions").send({ recipeId: SEED_ID, action: "unsaved" });
+    saved = await request(app).get("/api/saved");
+    expect(saved.body.map((r: { id: string }) => r.id)).not.toContain(SEED_ID);
+  });
+
+  it("omits allergy-conflicting substitutes on recipe detail", async () => {
+    await request(app).put("/api/profile").send({
+      allergies: ["peanut"],
+      avoidFoods: [],
+      favoriteCuisines: ["italian"],
+      spicePreference: "mild",
+      skillLevel: "beginner",
+      preferredCookTimeMinutes: 30,
+    });
+    // Recipe that may list tahini (sub includes peanut butter) — any peanut-named sub must be gone.
+    const res = await request(app).get(`/api/recipes/${SEED_ID}`);
+    expect(res.status).toBe(200);
+    const flat = JSON.stringify(res.body.substitutionDetails ?? res.body.substitutions ?? {}).toLowerCase();
+    expect(flat).not.toMatch(/peanut butter/);
+  });
+});

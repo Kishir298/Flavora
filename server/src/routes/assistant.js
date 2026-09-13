@@ -81,6 +81,9 @@ assistantRouter.post("/", async (req, res, next) => {
     if (intent.preferences?.spice) {
       profile = { ...profile, spicePreference: intent.preferences.spice, spice_preference: intent.preferences.spice, spice: intent.preferences.spice };
     }
+    if (intent.preferences?.spice === undefined && intent.cravingSignals?.flavors?.includes("spicy")) {
+      profile = { ...profile, spicePreference: "hot", spice_preference: "hot", spice: "hot" };
+    }
     if (intent.preferences?.skill) {
       profile = { ...profile, skillLevel: intent.preferences.skill, skill_level: intent.preferences.skill, skill: intent.preferences.skill };
     }
@@ -110,6 +113,9 @@ assistantRouter.post("/", async (req, res, next) => {
       timeLimit: intent.timeLimit ?? profile.preferredCookTimeMinutes,
       mode,
       craving: intent.craving ?? undefined,
+      cravingSignals: intent.cravingSignals ?? undefined,
+      expiringIngredients: intent.expiringIngredients ?? undefined,
+      nutritionGoals: profile.nutritionGoals,
     };
 
     const t0 = Date.now();

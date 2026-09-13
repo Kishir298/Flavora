@@ -1,6 +1,9 @@
 import { CUISINES, normalizeIntent } from "./intentSchema.js";
 import type { RecommendationIntent } from "./types.js";
 
+// Structured craving parsing lives in engine/craving.js (single source of
+// truth); assistantService layers it on top of this parser's output.
+
 /**
  * Deterministic NL → intent fallback when Groq is unavailable.
  * Never invents recipes — only structured recommendation parameters.

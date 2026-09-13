@@ -8,7 +8,7 @@ import { config } from "../config.js";
 export const devRouter = Router();
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.resolve(here, "../../data");
+const DATA_DIR = path.resolve(here, "../../../data");
 
 function guard(_req: unknown, res: { status: (n: number) => { json: (o: unknown) => void } }, next: () => void) {
   if (!config.isDev && process.env.NODE_ENV === "production") {

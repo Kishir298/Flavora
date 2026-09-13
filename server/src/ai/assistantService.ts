@@ -1,6 +1,7 @@
 import { createAIProvider } from "./provider.js";
 import { extractJsonObject, normalizeIntent } from "./intentSchema.js";
 import { parseIntentHeuristic } from "./heuristicParser.js";
+import { parseCravingSignals } from "../engine/craving.js";
 import type { AIProvider, ParsedAssistantRequest, RecommendationIntent } from "./types.js";
 
 export const INTENT_SYSTEM_PROMPT = `You are Flavora's intent parser for a local-first cooking app.
@@ -13,6 +14,15 @@ Return ONLY a JSON object with these optional fields:
   Use food_waste when they want to use what they have / leftovers.
   Use budget when they want cheap / low-cost meals.
 - craving: short free-text mood (or null)
+- cravingSignals: optional object drawn ONLY from this controlled vocabulary:
+  { textures: [crispy|crunchy|creamy|tender|fluffy|chewy],
+    flavors: [spicy|savory|sweet|tangy|smoky|fresh|cheesy|umami|herby],
+    moods: [comforting|cozy|refreshing|indulgent|homely],
+    temperature: [warm|hot dish|cold|chilled],
+    satiety: [filling|hearty|light|substantial],
+    mealStyle: [quick|one-pot|snack|breakfast|dessert|handheld] }
+  Only include values the user's words clearly imply (e.g. "spicy and comforting"
+  → { flavors: ["spicy"], moods: ["comforting"] }). Omit the field if nothing applies.
 - preferences: { spice?: mild|medium|hot, skill?: beginner|intermediate|advanced, highProtein?: boolean, lowCarb?: boolean }
 
 Rules:
@@ -55,8 +65,13 @@ export async function parseUserIntent(
     }
   }
 
+  const heuristic = parseIntentHeuristic(text);
+  // Structured craving signals from the local vocabulary parser (mission §7).
+  const signals = parseCravingSignals(text);
+  const hasSignals = Object.values(signals).some((v) => v.length > 0);
+  const intent = hasSignals ? { ...heuristic, cravingSignals: signals } : heuristic;
   return {
-    intent: parseIntentHeuristic(text),
+    intent,
     source: "heuristic",
     notice: "No GROQ_API_KEY configured — using local intent parsing. Core recommendations still run locally.",
   };

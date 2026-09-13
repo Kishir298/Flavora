@@ -25,30 +25,32 @@ function ingredientDisplay(ing) {
 
 /**
  * POST /api/recommendations
- * Body: { userId?, availableIngredients?, timeLimit?, mode?: "normal"|"food_waste"|"budget", cuisine? }
+ * Body: { userId?, availableIngredients?, timeLimit?, mode?: "normal"|"food_waste"|"budget", cuisine?, useInventory? }
  */
 recommendationsRouter.post("/", async (req, res, next) => {
   try {
     await ensureProfileRow();
     const userId = req.body?.userId ?? "local";
-    const availableIngredients = req.body?.availableIngredients ?? [];
+    let availableIngredients = req.body?.availableIngredients ?? [];
+    let expiringIngredients = req.body?.expiringIngredients ?? undefined;
     const timeLimit = req.body?.timeLimit;
     const mode = req.body?.mode ?? "normal";
     const craving = typeof req.body?.craving === "string" ? req.body.craving.trim().slice(0, 120) : undefined;
     if (!["normal", "food_waste", "budget"].includes(mode)) {
-      return res.status(400).json({ error: "mode must be normal|food_waste|budget" });
+      return res.status(400).json({ error: "VALIDATION_ERROR", message: "mode must be normal|food_waste|budget" });
     }
     // Superset for the Cuisine Explorer: when `cuisine` is given, candidates
     // are limited to it and it counts as a favorite for cuisine_match.
     const cuisineFilter = req.body?.cuisine;
 
+    const safeParse = (raw, fb) => { try { return JSON.parse(raw); } catch { return fb; } };
     const row = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
-    const favs = JSON.parse(row.favoriteCuisines);
-    const goals = JSON.parse(row.nutritionGoals);
+    const favs = safeParse(row.favoriteCuisines, []);
+    const goals = safeParse(row.nutritionGoals, {});
     const profile = {
-      allergies: JSON.parse(row.allergies),
-      avoid_foods: JSON.parse(row.avoidFoods),
-      avoidFoods: JSON.parse(row.avoidFoods),
+      allergies: safeParse(row.allergies, []),
+      avoid_foods: safeParse(row.avoidFoods, []),
+      avoidFoods: safeParse(row.avoidFoods, []),
       favoriteCuisines: favs,
       favorite_cuisines: favs,
       cuisines: favs,
@@ -69,6 +71,26 @@ recommendationsRouter.post("/", async (req, res, next) => {
       ? { ...profile, cuisines: [cuisineFilter], favoriteCuisines: [cuisineFilter], favorite_cuisines: [cuisineFilter] }
       : profile;
 
+    // Inventory integration (Flow A/B): derive have + expiring from stock when requested
+    // or when caller sent nothing but stock exists and mode is food_waste.
+    if (req.body?.useInventory || (expiringIngredients === undefined && (availableIngredients.length === 0))) {
+      try {
+        const inv = await prisma.inventoryItem.findMany({ where: { userId: "local" } });
+        if (inv.length > 0) {
+          if (req.body?.useInventory || availableIngredients.length === 0) {
+            const names = inv.map((i) => String(i.name).toLowerCase().trim()).filter(Boolean);
+            if (availableIngredients.length === 0) availableIngredients = names;
+          }
+          if (expiringIngredients === undefined) {
+            const { expiryStatus } = await import("../engine/expiry.js");
+            expiringIngredients = inv
+              .filter((i) => { const s = expiryStatus(i.expiryDate); return s === "expiring_soon" || s === "expired"; })
+              .map((i) => String(i.name).toLowerCase().trim()).filter(Boolean);
+          }
+        }
+      } catch { /* inventory optional — never block recommendations */ }
+    }
+
     const outcomeCount = await prisma.interaction.count({
       where: { action: { in: OUTCOME_ACTIONS } },
     });
@@ -84,6 +106,9 @@ recommendationsRouter.post("/", async (req, res, next) => {
         timeLimit: timeLimit ?? profile.preferredCookTimeMinutes,
         mode,
         craving: craving || undefined,
+        cravingSignals: req.body?.cravingSignals ?? undefined,
+        expiringIngredients,
+        nutritionGoals: profile.nutritionGoals,
       },
       weights,
       5

@@ -8,6 +8,10 @@ import { interactionsRouterNew as interactionsRouter } from "./routes/interactio
 import { assistantRouter } from "./routes/assistant.js";
 import { devRouter } from "./routes/dev.js";
 import { debugRouter } from "./routes/debug.js";
+import { substitutionsRouter } from "./routes/substitutions.js";
+import { inventoryRouter } from "./routes/inventory.js";
+import { groceriesRouter } from "./routes/groceries.js";
+import { mealPlansRouter } from "./routes/mealPlans.js";
 import { config } from "./config.js";
 
 import { prisma } from "./db.js";
@@ -61,6 +65,10 @@ export function createApp() {
   });
   app.use("/api/dev", devRouter);
   app.use("/api/debug", debugRouter);
+  app.use("/api/substitutions", substitutionsRouter);
+  app.use("/api/inventory", inventoryRouter);
+  app.use("/api/groceries", groceriesRouter);
+  app.use("/api/meal-plans", mealPlansRouter);
 
   // Central error handler (keeps error shape stable for frontend).
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

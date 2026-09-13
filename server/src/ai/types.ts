@@ -1,3 +1,13 @@
+/** Structured craving signals — controlled vocabulary (engine/craving.js). */
+export interface CravingSignals {
+  textures?: string[];
+  flavors?: string[];
+  moods?: string[];
+  temperature?: string[];
+  satiety?: string[];
+  mealStyle?: string[];
+}
+
 /** Structured intent extracted from natural language — never invents recipes. */
 export type RecommendMode = "normal" | "food_waste" | "budget";
 
@@ -7,6 +17,7 @@ export interface RecommendationIntent {
   cuisine?: string | null;
   mode?: RecommendMode;
   craving?: string | null;
+  cravingSignals?: CravingSignals;
   preferences?: {
     spice?: "mild" | "medium" | "hot";
     skill?: "beginner" | "intermediate" | "advanced";

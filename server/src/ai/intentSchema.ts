@@ -1,4 +1,33 @@
-import type { RecommendationIntent, RecommendMode } from "./types.js";
+import type { CravingSignals, RecommendationIntent, RecommendMode } from "./types.js";
+
+/**
+ * Controlled craving vocabulary — mirrors engine/craving.js CRAVING_VOCABULARY.
+ * Kept in sync manually; AI output values outside this set are dropped.
+ */
+const CRAVING_VOCABULARY: Record<keyof CravingSignals, string[]> = {
+  textures: ["crispy", "crunchy", "creamy", "tender", "fluffy", "chewy"],
+  flavors: ["spicy", "savory", "sweet", "tangy", "smoky", "fresh", "cheesy", "umami", "herby"],
+  moods: ["comforting", "cozy", "refreshing", "indulgent", "homely"],
+  temperature: ["warm", "hot dish", "cold", "chilled"],
+  satiety: ["filling", "hearty", "light", "substantial"],
+  mealStyle: ["quick", "one-pot", "snack", "breakfast", "dessert", "handheld"],
+};
+
+/** Validate untrusted craving signals against the controlled vocabulary. */
+function asCravingSignals(v: unknown): CravingSignals | undefined {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return undefined;
+  const src = v as Record<string, unknown>;
+  const out: CravingSignals = {};
+  for (const [dim, allowed] of Object.entries(CRAVING_VOCABULARY)) {
+    const arr = src[dim];
+    if (!Array.isArray(arr)) continue;
+    const values = arr
+      .map((x) => String(x ?? "").toLowerCase().trim())
+      .filter((x) => allowed.includes(x));
+    if (values.length) (out as Record<string, string[]>)[dim] = [...new Set(values)].slice(0, 4);
+  }
+  return Object.keys(out).length ? out : undefined;
+}
 
 const MODES = new Set<RecommendMode>(["normal", "food_waste", "budget"]);
 const SPICES = new Set(["mild", "medium", "hot"]);
@@ -79,6 +108,8 @@ export function normalizeIntent(raw: unknown): RecommendationIntent {
   } else if (src.craving === null) {
     intent.craving = null;
   }
+  const cravingSignals = asCravingSignals(src.cravingSignals);
+  if (cravingSignals) intent.cravingSignals = cravingSignals;
 
   const preferences: NonNullable<RecommendationIntent["preferences"]> = {};
   if (spice) preferences.spice = spice;
@@ -108,4 +139,4 @@ export function extractJsonObject(text: string): unknown {
   }
 }
 
-export { CUISINES, MODES };
+export { CUISINES, MODES, CRAVING_VOCABULARY };

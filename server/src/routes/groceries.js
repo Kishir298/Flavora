@@ -1,0 +1,154 @@
+import { Router } from "express";
+import { prisma, ensureProfileRow } from "../db.js";
+import { getRecipeById } from "../recipesDb.js";
+import { parseIngredient, ingredientKey, categorizeIngredient, mergeIngredientAmounts, subtractInventory, validateAmount } from "../engine/ingredients.js";
+
+export const groceriesRouter = Router();
+
+function shape(r) {
+  let recipeIds = [];
+  try { recipeIds = JSON.parse(r.recipeIds ?? "[]"); } catch { recipeIds = []; }
+  return {
+    id: r.id, name: r.name, quantity: r.quantity, unit: r.unit, note: r.note,
+    category: r.category, checked: r.checked, removed: r.removed,
+    source: r.source, recipeIds, createdAt: r.createdAt, updatedAt: r.updatedAt,
+  };
+}
+
+groceriesRouter.get("/", async (req, res, next) => {
+  try {
+    const includeRemoved = req.query.includeRemoved === "1";
+    const rows = await prisma.groceryItem.findMany({
+      where: includeRemoved ? { userId: "local" } : { userId: "local", removed: false },
+      orderBy: [{ category: "asc" }, { name: "asc" }],
+    });
+    res.json(rows.map(shape));
+  } catch (e) { next(e); }
+});
+
+groceriesRouter.post("/", async (req, res, next) => {
+  try {
+    const { name, quantity, unit, note, category } = req.body ?? {};
+    if (!name || !String(name).trim()) return res.status(400).json({ error: "VALIDATION_ERROR", message: "name is required" });
+    const err = validateAmount(quantity, unit);
+    if (err) return res.status(400).json({ error: "VALIDATION_ERROR", message: err });
+    const { name: base, note: parsedNote } = parseIngredient(name);
+    const finalNote = (note ?? parsedNote ?? "").toString().slice(0, 200);
+    const row = await prisma.groceryItem.upsert({
+      where: { userId_name_note: { userId: "local", name: ingredientKey(base), note: finalNote } },
+      create: {
+        userId: "local", name: ingredientKey(base),
+        quantity: quantity != null ? Number(quantity) : null,
+        unit: unit != null ? String(unit).slice(0, 24) : null,
+        note: finalNote, category: category ?? categorizeIngredient(base),
+        source: "manual", recipeIds: "[]",
+      },
+      update: {
+        quantity: quantity != null ? Number(quantity) : undefined,
+        removed: false,
+      },
+    });
+    res.status(201).json(shape(row));
+  } catch (e) { next(e); }
+});
+
+groceriesRouter.put("/:id", async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const { name, quantity, unit, note, category, checked } = req.body ?? {};
+    const data = {};
+    if (name != null) data.name = ingredientKey(name);
+    if (quantity !== undefined) {
+      const err = validateAmount(quantity, unit);
+      if (err) return res.status(400).json({ error: "VALIDATION_ERROR", message: err });
+      data.quantity = quantity != null ? Number(quantity) : null;
+    }
+    if (unit !== undefined) data.unit = unit != null ? String(unit).slice(0, 24) : null;
+    if (note !== undefined) data.note = String(note).slice(0, 200);
+    if (category !== undefined) data.category = String(category).slice(0, 24);
+    if (checked !== undefined) data.checked = Boolean(checked);
+    const row = await prisma.groceryItem.update({ where: { id }, data });
+    res.json(shape(row));
+  } catch (e) { next(e); }
+});
+
+groceriesRouter.delete("/:id", async (req, res, next) => {
+  try {
+    const restore = req.query.restore === "1";
+    if (restore) {
+      const row = await prisma.groceryItem.update({ where: { id: Number(req.params.id) }, data: { removed: false } });
+      return res.json(shape(row));
+    }
+    const row = await prisma.groceryItem.update({ where: { id: Number(req.params.id) }, data: { removed: true } });
+    res.json(shape(row));
+  } catch (e) { next(e); }
+});
+
+groceriesRouter.post("/clear-completed", async (_req, res, next) => {
+  try {
+    await prisma.groceryItem.updateMany({ where: { userId: "local", checked: true, removed: false }, data: { removed: true } });
+    res.json({ cleared: true });
+  } catch (e) { next(e); }
+});
+
+/**
+ * POST /api/groceries/generate { recipeIds: string[], useInventory?: boolean }
+ * Merges ingredients, applies applied-substitutions, subtracts inventory.
+ */
+groceriesRouter.post("/generate", async (req, res, next) => {
+  try {
+    const { recipeIds, useInventory = true } = req.body ?? {};
+    if (!Array.isArray(recipeIds) || recipeIds.length === 0) {
+      return res.status(400).json({ error: "VALIDATION_ERROR", message: "recipeIds must be a non-empty array" });
+    }
+    if (recipeIds.length > 50) return res.status(400).json({ error: "VALIDATION_ERROR", message: "too many recipes" });
+    const subs = await prisma.appliedSubstitution.findMany({ where: { userId: "local", recipeId: { in: recipeIds } } });
+    const subMap = new Map(subs.map((s) => [`${s.recipeId}||${ingredientKey(s.originalName)}`, s.replacementName]));
+    const needed = [];
+    for (const rid of recipeIds) {
+      const recipe = await getRecipeById(String(rid));
+      if (!recipe) return res.status(400).json({ error: "VALIDATION_ERROR", message: `unknown recipeId: ${rid}` });
+      for (const ing of recipe.ingredients) {
+        const raw = typeof ing === "string" ? { name: ing, quantity: null, unit: null } : ing;
+        const key = ingredientKey(raw.name);
+        const replacement = subMap.get(`${rid}||${key}`);
+        const { name: base, note } = parseIngredient(raw.name);
+        needed.push({
+          name: replacement ? ingredientKey(replacement) : key,
+          quantity: raw.quantity ?? null,
+          unit: raw.unit ?? null,
+          note,
+          recipeId: rid,
+        });
+      }
+    }
+    const merged = mergeIngredientAmounts(needed);
+    let toBuy = merged;
+    if (useInventory) {
+      const inv = await prisma.inventoryItem.findMany({ where: { userId: "local" } });
+      toBuy = subtractInventory(
+        merged.map((m) => ({ name: m.name, quantity: m.hasQty ? m.quantity : null, unit: m.unit })),
+        inv.map((i) => ({ name: i.name, quantity: i.quantity, unit: i.unit }))
+      ).map((r) => {
+        const orig = merged.find((m) => ingredientKey(m.name) === ingredientKey(r.name));
+        return { ...orig, quantity: r.quantity, unit: r.unit };
+      });
+    }
+    const created = [];
+    for (const item of toBuy) {
+      if (item.quantity != null && Number(item.quantity) <= 0) continue; // fully stocked
+      const row = await prisma.groceryItem.upsert({
+        where: { userId_name_note: { userId: "local", name: item.name, note: item.note ?? "" } },
+        create: {
+          userId: "local", name: item.name,
+          quantity: item.hasQty ? Number(item.quantity) : (item.quantity ?? null),
+          unit: item.unit, note: item.note ?? "", category: categorizeIngredient(item.name),
+          source: "recipe", recipeIds: JSON.stringify(recipeIds),
+        },
+        update: { removed: false, source: "recipe", recipeIds: JSON.stringify(recipeIds) },
+      });
+      created.push(shape(row));
+    }
+    res.json({ items: created, merged: merged.length, purchased: created.length });
+  } catch (e) { next(e); }
+});

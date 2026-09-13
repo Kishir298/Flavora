@@ -65,6 +65,7 @@ export interface AssistantIntent {
   cuisine?: string | null;
   mode?: RecommendMode;
   craving?: string | null;
+  cravingSignals?: Record<string, string[]>;
 }
 
 export interface AssistantResponse {
@@ -73,6 +74,28 @@ export interface AssistantResponse {
   notice?: string | null;
   reply: string;
   recommendations: Recommendation[];
+}
+
+export interface InventoryItem {
+  id: number; name: string; quantity?: number | null; unit?: string | null;
+  category: string; purchaseDate?: string | null; expiryDate?: string | null;
+  notes?: string; status?: "fresh" | "expiring_soon" | "expired" | "unknown";
+}
+
+export interface GroceryItem {
+  id: number; name: string; quantity?: number | null; unit?: string | null;
+  note: string; category: string; checked: boolean; removed: boolean;
+  source: string; recipeIds: string[];
+}
+
+export interface MealSlot {
+  id: number; day: string; date: string; meal: string; recipeId: string;
+  servings: number; appliedSubs: { originalName: string; replacementName: string }[];
+}
+
+export interface AppliedSub {
+  id?: number; recipeId: string; originalName: string; replacementName: string;
+  quantity?: number | null; unit?: string | null; safety?: "safe" | "unsafe" | "unknown";
 }
 
 const BASE = import.meta.env.VITE_API_URL ?? "";
@@ -107,6 +130,9 @@ export const api = {
     mode?: RecommendMode;
     cuisine?: string;
     craving?: string;
+    cravingSignals?: Record<string, string[]>;
+    expiringIngredients?: string[];
+    useInventory?: boolean;
   }) =>
     req<{ recommendations: Recommendation[] }>("/api/recommendations", {
       method: "POST",
@@ -126,4 +152,40 @@ export const api = {
   saved: () => req<RecipeResult[]>("/api/saved"),
   seed: () => req("/api/dev/seed", { method: "POST" }),
   reset: () => req("/api/dev/reset", { method: "POST" }),
+  // Substitutions (§5)
+  listSubs: (recipeId: string) => req<AppliedSub[]>(`/api/substitutions?recipeId=${encodeURIComponent(recipeId)}`),
+  applySub: (b: { recipeId: string; originalName: string; replacementName: string; quantity?: number | null; unit?: string | null }) =>
+    req<AppliedSub>("/api/substitutions", { method: "POST", body: JSON.stringify(b) }),
+  revertSub: (b: { recipeId: string; originalName: string }) =>
+    req("/api/substitutions", { method: "DELETE", body: JSON.stringify(b) }),
+  // Inventory (§9-10)
+  inventory: () => req<InventoryItem[]>("/api/inventory"),
+  expiring: () => req<InventoryItem[]>("/api/inventory/expiring"),
+  addInventory: (b: Partial<InventoryItem> & { name: string }) =>
+    req<InventoryItem>("/api/inventory", { method: "POST", body: JSON.stringify(b) }),
+  updateInventory: (id: number, b: Partial<InventoryItem>) =>
+    req<InventoryItem>(`/api/inventory/${id}`, { method: "PUT", body: JSON.stringify(b) }),
+  consumeInventory: (id: number, amount?: number) =>
+    req<InventoryItem>(`/api/inventory/${id}/consume`, { method: "PATCH", body: JSON.stringify({ amount }) }),
+  removeInventory: (id: number) => req(`/api/inventory/${id}`, { method: "DELETE" }),
+  // Groceries (§8)
+  groceries: () => req<GroceryItem[]>("/api/groceries"),
+  addGrocery: (b: Partial<GroceryItem> & { name: string }) =>
+    req<GroceryItem>("/api/groceries", { method: "POST", body: JSON.stringify(b) }),
+  updateGrocery: (id: number, b: Partial<GroceryItem>) =>
+    req<GroceryItem>(`/api/groceries/${id}`, { method: "PUT", body: JSON.stringify(b) }),
+  removeGrocery: (id: number, restore = false) =>
+    req<GroceryItem>(`/api/groceries/${id}${restore ? "?restore=1" : ""}`, { method: "DELETE" }),
+  clearGroceryCompleted: () => req("/api/groceries/clear-completed", { method: "POST" }),
+  generateGroceries: (b: { recipeIds: string[]; useInventory?: boolean }) =>
+    req<{ items: GroceryItem[]; merged: number; purchased: number }>("/api/groceries/generate", { method: "POST", body: JSON.stringify(b) }),
+  // Meal plans (§11)
+  mealPlans: () => req<MealSlot[]>("/api/meal-plans"),
+  addMeal: (b: { day: string; meal: string; recipeId: string; servings?: number; date?: string }) =>
+    req<MealSlot>("/api/meal-plans", { method: "POST", body: JSON.stringify(b) }),
+  updateMeal: (id: number, b: Partial<MealSlot>) =>
+    req<MealSlot>(`/api/meal-plans/${id}`, { method: "PUT", body: JSON.stringify(b) }),
+  removeMeal: (id: number) => req(`/api/meal-plans/${id}`, { method: "DELETE" }),
+  clearMealDay: (day: string) => req("/api/meal-plans/clear-day", { method: "POST", body: JSON.stringify({ day }) }),
+  mealNutrition: () => req<Record<string, { calories: number | null; protein: number | null; carbs: number | null; fat: number | null; unknown: boolean }>>("/api/meal-plans/nutrition/summary"),
 };

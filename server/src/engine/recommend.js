@@ -74,9 +74,29 @@ export function buildReasons(recipe, features, request = {}) {
     reasons.push(`Matches your preferred ${recipe.cuisine} cuisine`);
   }
   if (features.spice_fit === 1) reasons.push("Matches your spice preference");
-  if (features.nutrition_fit >= 0.8) reasons.push("Matches your nutritional goals");
+  if (features.nutrition_fit >= 0.8) {
+    const goals = request.nutritionGoals ?? {};
+    if (goals.highProtein) reasons.push("Fits your high-protein goal");
+    else if (goals.lowCarb) reasons.push("Fits your low-carb goal");
+    else reasons.push("Matches your nutritional goals");
+  }
   if (request.craving && features.craving_fit >= 0.6) {
-    reasons.push(`Aligns with “${String(request.craving).slice(0, 40)}”`);
+    // Structured craving signals (mission §7) produce concrete sentences.
+    const sig = features.cravingSignals;
+    const wanted = sig ? Object.values(sig).flat() : [];
+    if (wanted.length > 0) {
+      reasons.push(`Matches your craving for something ${wanted.slice(0, 3).join(" and ")}`);
+    } else {
+      reasons.push(`Aligns with “${String(request.craving).slice(0, 40)}”`);
+    }
+  }
+  const expiring = (request.expiringIngredients ?? []).map(norm).filter(Boolean);
+  if (expiring.length > 0) {
+    const usesExpiring = (recipe.ingredients ?? []).some((ing) => {
+      const ingNorm = norm(ingredientName(ing));
+      return expiring.some((e) => e && (ingNorm.includes(e) || e.includes(ingNorm)));
+    });
+    if (usesExpiring) reasons.push("Uses ingredients approaching their expiry date");
   }
 
   if (reasons.length === 0) reasons.push("Good all-round match from your local library");

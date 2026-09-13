@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, type RecipeResult } from "../lib/api";
+import { useSubstitutions } from "../lib/useSubstitutions";
 
 function nutritionLine(n?: RecipeResult["nutrition"]): string {
   if (!n) return "";
@@ -20,6 +21,46 @@ function costTierLabel(tier?: string): string {
   return `${tier} cost tier (recipe estimate — not live grocery prices)`;
 }
 
+function SubRow({ ingredient, options, recipeId, applied, onApply, onRevert, onMsg }: {
+  ingredient: string;
+  options: { name: string; notes: string }[];
+  recipeId: string;
+  applied?: { replacementName: string; safety?: string };
+  onApply: (original: string, replacement: string) => Promise<unknown>;
+  onRevert: (original: string) => Promise<unknown>;
+  onMsg: (m: string | null) => void;
+}) {
+  const [choice, setChoice] = useState(options[0]?.name ?? "");
+  useEffect(() => { setChoice(options[0]?.name ?? ""); }, [ingredient]);
+  return (
+    <li className="rounded border px-2 py-2">
+      <div className="font-medium">{ingredient}
+        {applied && <span className="ml-2 text-xs text-green-700">→ {applied.replacementName} ({applied.safety ?? "unknown"})</span>}
+      </div>
+      <ul className="list-disc ml-5 mt-1">
+        {options.map((s) => (
+          <li key={s.name}>{s.name}{s.notes ? <span className="opacity-70"> — {s.notes}</span> : null}</li>
+        ))}
+      </ul>
+      <div className="mt-2 flex gap-2">
+        <label className="text-xs">Replace with
+          <select aria-label={`substitute for ${ingredient}`} className="ml-1 rounded border px-1 py-1" value={choice} onChange={(e) => setChoice(e.target.value)}>
+            {options.map((o) => <option key={o.name} value={o.name}>{o.name}</option>)}
+          </select>
+        </label>
+        <button
+          className="rounded bg-green-700 px-2 py-1 text-xs text-white"
+          onClick={() => onApply(ingredient, choice).then(() => onMsg(`Applied: ${ingredient} → ${choice}. Grocery lists and meal plans will use ${choice}.`)).catch((e) => onMsg(e instanceof Error ? e.message : "Apply failed."))}
+        >Apply</button>
+        {applied && (
+          <button className="rounded border px-2 py-1 text-xs" onClick={() => onRevert(ingredient).then(() => onMsg(`Reverted ${ingredient} to original.`))}>Undo</button>
+        )}
+      </div>
+      <p className="mt-1 text-xs opacity-60">Original stays recoverable. Preview: recipe will use {applied?.replacementName ?? choice} instead of {ingredient}.</p>
+    </li>
+  );
+}
+
 export function RecipeDetail() {
   const { id = "" } = useParams();
   const [recipe, setRecipe] = useState<RecipeResult | null>(null);
@@ -27,6 +68,9 @@ export function RecipeDetail() {
   const [saved, setSaved] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [busy, setBusy] = useState("");
+  const [subMsg, setSubMsg] = useState<string | null>(null);
+  const decodedId = decodeURIComponent(id);
+  const { subs, apply, revert } = useSubstitutions(decodedId);
 
   useEffect(() => {
     let have: string[] | undefined;
@@ -197,26 +241,18 @@ export function RecipeDetail() {
             <summary className="font-semibold cursor-pointer">Substitutions</summary>
             <p className="mt-1 text-xs opacity-70" role="note">
               Swaps may change flavour, texture, cooking behaviour, or nutrition. Substitutes that conflict with your
-              allergies or avoid list are hidden — still double-check every ingredient.
+              allergies or avoid list are hidden — still double-check every ingredient. Nutrition does not change unless
+              replacement nutrition is known.
             </p>
-            <ul className="text-sm mt-2 space-y-2">
+            {subMsg && <p role="status" className="mt-1 text-xs text-green-700">{subMsg}</p>}
+            <ul className="text-sm mt-2 space-y-3">
               {subDetails && Object.keys(subDetails).length > 0
-                ? Object.entries(subDetails).map(([ing, subs]) => (
-                    <li key={ing}>
-                      <span className="font-medium">{ing}</span>
-                      <ul className="list-disc ml-5 mt-1">
-                        {subs.map((s) => (
-                          <li key={s.name}>
-                            {s.name}
-                            {s.notes ? <span className="opacity-70"> — {s.notes}</span> : null}
-                          </li>
-                        ))}
-                      </ul>
-                    </li>
+                ? Object.entries(subDetails).map(([ing, options]) => (
+                    <SubRow key={ing} ingredient={ing} options={options} recipeId={decodedId} applied={subs.find((s) => s.originalName.toLowerCase() === ing.toLowerCase())} onApply={apply} onRevert={revert} onMsg={setSubMsg} />
                   ))
-                : Object.entries(recipe.substitutions ?? {}).map(([ing, subs]) => (
+                : Object.entries(recipe.substitutions ?? {}).map(([ing, names]) => (
                     <li key={ing}>
-                      <span className="font-medium">{ing}:</span> {subs.join(", ")}
+                      <span className="font-medium">{ing}:</span> {names.join(", ")}
                     </li>
                   ))}
             </ul>

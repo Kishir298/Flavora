@@ -13,13 +13,14 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 export const DEFAULT_GUIDE_WEIGHTS = {
-  ingredient_overlap: 0.25,
-  time_fit: 0.2,
-  cuisine_match: 0.125,
-  nutrition_fit: 0.125,
-  skill_fit: 0.1,
-  spice_fit: 0.1,
-  budget_fit: 0.1,
+  ingredient_overlap: 0.23,
+  time_fit: 0.184,
+  cuisine_match: 0.115,
+  nutrition_fit: 0.115,
+  skill_fit: 0.092,
+  spice_fit: 0.092,
+  budget_fit: 0.092,
+  craving_fit: 0.08,
 };
 
 export async function ensureProfileRow() {

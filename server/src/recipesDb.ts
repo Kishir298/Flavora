@@ -99,10 +99,19 @@ export async function substitutesFor(
   if (names.length === 0) return {};
   const rows = await prisma.ingredientSubstitute.findMany({});
   const out: Record<string, SubstituteOption[]> = {};
+  const matchesKey = (rawLower: string, keyLower: string): boolean => {
+    if (!keyLower) return false;
+    // Short keys (<4 chars) over-match ("milk" in "oat milk" is fine, but
+    // "oil" in "boil" is not) — require word-boundary for short keys.
+    if (keyLower.length < 4) {
+      return new RegExp(`\\b${keyLower.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(rawLower);
+    }
+    return rawLower.includes(keyLower);
+  };
   for (const ing of ingredients) {
     const raw = typeof ing === "string" ? ing : ing.name;
     const label = typeof ing === "string" ? ing : ing.name;
-    const matches = rows.filter((r) => raw.toLowerCase().includes(r.ingredientName.toLowerCase()));
+    const matches = rows.filter((r) => matchesKey(raw.toLowerCase(), r.ingredientName.toLowerCase()));
     for (const row of matches) {
       if (substituteConflicts(row.substituteName, profile)) continue;
       const entry: SubstituteOption = { name: row.substituteName, notes: row.notes || "" };

@@ -3,7 +3,7 @@
  * Computes a normalized (0–1) feature vector for a (recipe, profile, request) triple.
  *
  * Features: ingredient_overlap, time_fit, cuisine_match, nutrition_fit,
- * skill_fit, spice_fit, budget_fit.
+ * skill_fit, spice_fit, budget_fit, craving_fit.
  *
  * Accepts both the seed shape (cookTimeMinutes, spiceLevel, difficulty,
  * costTier, ingredients as {name,quantity,unit}[]) and legacy camelCase
@@ -15,6 +15,8 @@
  * @typedef {Object} RequestLike
  */
 
+import { parseCravingSignals, recipeCravingSignals, cravingSignalsFit } from "./craving.js";
+
 export const FEATURE_NAMES = [
   "ingredient_overlap",
   "time_fit",
@@ -23,6 +25,7 @@ export const FEATURE_NAMES = [
   "skill_fit",
   "spice_fit",
   "budget_fit",
+  "craving_fit",
 ];
 
 const SPICE_RANK = { mild: 0, medium: 1, hot: 2 };
@@ -83,6 +86,11 @@ function getLimit(request, profile) {
   return pref !== undefined ? Number(pref) : 30;
 }
 
+/** Ingredient names the user recorded as expiring soon/expired (local inventory). */
+function getExpiring(request) {
+  return (request.expiringIngredients ?? []).map(norm).filter(Boolean);
+}
+
 function getProtein(nut) {
   return nut.protein_g ?? nut.protein;
 }
@@ -99,7 +107,7 @@ function getFat(nut) {
  * @param {RecipeLike} recipe
  * @param {ProfileLike} profile
  * @param {RequestLike} [request]
- * @returns {{ingredient_overlap:number,time_fit:number,cuisine_match:number,nutrition_fit:number,skill_fit:number,spice_fit:number,budget_fit:number}}
+ * @returns {{ingredient_overlap:number,time_fit:number,cuisine_match:number,nutrition_fit:number,skill_fit:number,spice_fit:number,budget_fit:number,craving_fit:number}}
  */
 export function computeFeatures(recipe, profile, request = {}) {
   const ingredients = recipe.ingredients ?? [];
@@ -183,29 +191,55 @@ export function computeFeatures(recipe, profile, request = {}) {
     budget_fit = clamp01(1 - Number(recipe.pricePerServing) / 5);
   }
 
-  // Soft craving_fit (not a scored weight column — used for matchReasons + light bump
-  // via cuisine/title/tag token overlap). Does not affect allergy safety.
+  // Soft craving_fit: structured vocabulary matching when available (mission §7),
+  // falling back to raw token overlap. Feeds matchReasons + a light bump into
+  // cuisine_match. Does not affect allergy safety.
   let craving_fit = 0.5;
+  let cravingSignalsOut;
   const craving = norm(request.craving ?? "");
   if (craving) {
-    const tokens = craving.split(/[^a-z0-9]+/).filter((t) => t.length > 2);
-    const hay = [
-      recipe.title,
-      recipe.cuisine,
-      recipe.spiceLevel ?? recipe.spice,
-      recipe.difficulty,
-      ...(recipe.dietTags ?? []),
-      ...(ingredients ?? []).map(ingredientName),
-    ]
-      .map(norm)
-      .join(" ");
-    if (tokens.length === 0) craving_fit = 0.5;
-    else {
-      const hits = tokens.filter((t) => hay.includes(t)).length;
-      craving_fit = clamp01(hits / tokens.length);
-      // Light nudge into cuisine_match / spice when craving mentions them.
+    const signals = request.cravingSignals ?? parseCravingSignals(craving);
+    const wanted = Object.values(signals).flat().length;
+    if (wanted > 0) {
+      cravingSignalsOut = signals;
+      craving_fit = cravingSignalsFit(signals, recipeCravingSignals(recipe));
       if (craving_fit > 0.5 && cuisine_match < 1) cuisine_match = clamp01(cuisine_match + 0.15 * craving_fit);
+    } else {
+      const tokens = craving.split(/[^a-z0-9]+/).filter((t) => t.length > 2);
+      const hay = [
+        recipe.title,
+        recipe.cuisine,
+        recipe.spiceLevel ?? recipe.spice,
+        recipe.difficulty,
+        ...(recipe.dietTags ?? []),
+        ...(ingredients ?? []).map(ingredientName),
+      ]
+        .map(norm)
+        .join(" ");
+      if (tokens.length === 0) craving_fit = 0.5;
+      else {
+        const hits = tokens.filter((t) => hay.includes(t)).length;
+        craving_fit = clamp01(hits / tokens.length);
+        if (craving_fit > 0.5 && cuisine_match < 1) cuisine_match = clamp01(cuisine_match + 0.15 * craving_fit);
+      }
     }
+  }
+
+  // ingredient_overlap bump for on-hand inventory items approaching expiry
+  // (mission §10): recorded via request.expiringIngredients.
+  const expiring = getExpiring(request);
+  if (expiring.length > 0) {
+    let expiringHits = 0;
+    for (const ing of ingredients) {
+      const ingNorm = norm(ingredientName(ing));
+      for (const e of expiring) {
+        if (e && (ingNorm.includes(e) || e.includes(ingNorm))) {
+          expiringHits++;
+          break;
+        }
+      }
+    }
+    if (expiringHits > 0) ingredient_overlap = clamp01(ingredient_overlap + 0.1 * expiringHits);
   }
 
   void getFat;
@@ -218,5 +252,6 @@ export function computeFeatures(recipe, profile, request = {}) {
     spice_fit,
     budget_fit,
     craving_fit,
+    ...(cravingSignalsOut ? { cravingSignals: cravingSignalsOut } : {}),
   };
 }

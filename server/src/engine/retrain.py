@@ -33,6 +33,7 @@ FEATURE_NAMES = [
     "skill_fit",
     "spice_fit",
     "budget_fit",
+    "craving_fit",
 ]
 
 POSITIVE = {"saved", "cooked", "rated_positive", "rated"}
@@ -41,6 +42,10 @@ NO_SIGNAL = {"shown", "viewed"}
 
 MIN_POSITIVE = 15
 MIN_NEGATIVE = 5
+
+# Core features that must exist in a stored feature vector. craving_fit was
+# added later; older rows default to neutral 0.5 so history stays usable.
+REQUIRED_FEATURES = [f for f in FEATURE_NAMES if f != "craving_fit"]
 
 
 def resolve_db(path_arg):
@@ -70,8 +75,8 @@ def load_training_rows(conn):
                 vec = json.loads(features_json or "{}")
             except json.JSONDecodeError:
                 continue
-            if all(k in vec for k in FEATURE_NAMES):
-                latest_features[recipe_id] = [float(vec[k]) for k in FEATURE_NAMES]
+            if all(k in vec for k in REQUIRED_FEATURES):
+                latest_features[recipe_id] = [float(vec.get(k, 0.5)) for k in FEATURE_NAMES]
 
     outcomes = cur.execute(
         "SELECT recipe_id, action FROM interactions WHERE action != 'shown'"

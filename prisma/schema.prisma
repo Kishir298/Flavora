@@ -84,3 +84,81 @@ model RecommendationWeights {
   @@id([userId, featureName])
   @@map("recommendation_weights")
 }
+
+// Local ingredient inventory (mission §9). Single-user; dates are
+// user-entered estimates, never presented as scientifically exact.
+model InventoryItem {
+  id           Int      @id @default(autoincrement()) @map("id")
+  userId       String   @default("local") @map("user_id")
+  name         String   @map("name")
+  quantity     Float?   @map("quantity")
+  unit         String?  @map("unit")
+  category     String   @default("other") @map("category") // produce | dairy | meat | pantry | frozen | other
+  purchaseDate DateTime? @map("purchase_date")
+  expiryDate   DateTime? @map("expiry_date")
+  notes        String   @default("") @map("notes")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, category])
+  @@index([expiryDate])
+  @@unique([userId, name])
+  @@map("inventory_items")
+}
+
+// Multi-day meal plan slots (mission §11). One row per day/meal slot.
+// Extended: date/servings/subs support; day kept for back-compat.
+model MealPlanSlot {
+  id          Int    @id @default(autoincrement()) @map("id")
+  userId      String @default("local") @map("user_id")
+  day         String @map("day") // monday..sunday (legacy); date preferred when set
+  date        String @default("") @map("date") // YYYY-MM-DD when scheduled by date
+  meal        String @map("meal") // breakfast | lunch | dinner | snack
+  recipeId    String @map("recipe_id")
+  servings    Int    @default(1) @map("servings")
+  appliedSubs String @default("[]") @map("applied_subs") // JSON [{originalName,replacementName}]
+
+  @@unique([userId, day, meal])
+  @@index([userId, date])
+  @@map("meal_plan_slots")
+}
+
+// Grocery list items (mission §8). Authoritative list lives here; the
+// client mirrors it for offline reads and queues writes when offline.
+model GroceryItem {
+  id        Int     @id @default(autoincrement()) @map("id")
+  userId    String  @default("local") @map("user_id")
+  name      String  @map("name")
+  quantity  Float?  @map("quantity")
+  unit      String? @map("unit")
+  note      String  @default("") @map("note") // preparation note, e.g. "chopped"
+  category  String  @default("other") @map("category")
+  checked   Boolean @default(false) @map("checked")
+  removed   Boolean @default(false) @map("removed") // soft delete so items can be restored
+  source    String  @default("manual") @map("source") // manual | recipe | mealplan
+  recipeIds String  @default("[]") @map("recipe_ids") // JSON string[] provenance
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, name, note])
+  @@index([userId, checked, removed])
+  @@map("grocery_items")
+}
+
+// Applied substitutions (§5). Persisted per user+recipe+original so detail,
+// grocery generation, and meal plans share state. Original always recoverable.
+model AppliedSubstitution {
+  id              Int      @id @default(autoincrement()) @map("id")
+  userId          String   @default("local") @map("user_id")
+  recipeId        String   @map("recipe_id")
+  originalName    String   @map("original_name")
+  replacementName String   @map("replacement_name")
+  quantity        Float?   @map("quantity")
+  unit            String?  @map("unit")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, recipeId, originalName])
+  @@index([userId, recipeId])
+  @@map("applied_substitutions")
+}

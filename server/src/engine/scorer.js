@@ -5,36 +5,39 @@
  */
 import { computeFeatures, FEATURE_NAMES } from "./features.js";
 
-/** Static defaults before any learning exists (normal mode, §7.2). */
+/** Static defaults before any learning exists (normal mode, §7.2). 8 features sum to 1. */
 export const DEFAULT_WEIGHTS = {
-  ingredient_overlap: 0.25,
-  time_fit: 0.2,
-  cuisine_match: 0.125,
-  nutrition_fit: 0.125,
-  skill_fit: 0.1,
-  spice_fit: 0.1,
-  budget_fit: 0.1,
+  ingredient_overlap: 0.23,
+  time_fit: 0.184,
+  cuisine_match: 0.115,
+  nutrition_fit: 0.115,
+  skill_fit: 0.092,
+  spice_fit: 0.092,
+  budget_fit: 0.092,
+  craving_fit: 0.08,
 };
 
 /** Result of proportional re-weighting applied to DEFAULT_WEIGHTS. */
 export const FOOD_WASTE_WEIGHTS = {
   ingredient_overlap: 0.5,
-  time_fit: 0.133,
-  cuisine_match: 0.083,
-  nutrition_fit: 0.083,
-  skill_fit: 0.067,
-  spice_fit: 0.067,
-  budget_fit: 0.067,
+  time_fit: 0.12,
+  cuisine_match: 0.075,
+  nutrition_fit: 0.075,
+  skill_fit: 0.06,
+  spice_fit: 0.06,
+  budget_fit: 0.06,
+  craving_fit: 0.052,
 };
 
 export const BUDGET_WEIGHTS = {
-  ingredient_overlap: 0.194,
-  time_fit: 0.156,
-  cuisine_match: 0.097,
-  nutrition_fit: 0.097,
-  skill_fit: 0.078,
-  spice_fit: 0.078,
+  ingredient_overlap: 0.177,
+  time_fit: 0.142,
+  cuisine_match: 0.089,
+  nutrition_fit: 0.089,
+  skill_fit: 0.071,
+  spice_fit: 0.071,
   budget_fit: 0.3,
+  craving_fit: 0.062,
 };
 
 /** Which feature each mode boosts and to what value (§7.2). */

@@ -9,7 +9,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT = path.join(here, "retrain.py");
 const VENV_PY = path.join(here, ".venv", "bin", "python");
 const PYTHON = fs.existsSync(VENV_PY) ? VENV_PY : "python3";
-const FEATURES = ["ingredient_overlap", "time_fit", "cuisine_match", "nutrition_fit", "skill_fit", "spice_fit", "budget_fit"];
+const FEATURES = ["ingredient_overlap", "time_fit", "cuisine_match", "nutrition_fit", "skill_fit", "spice_fit", "budget_fit", "craving_fit"];
 
 const SETUP_SQL = `
 CREATE TABLE interactions (id INTEGER PRIMARY KEY, user_id TEXT DEFAULT 'local', recipe_id TEXT, action TEXT, rating INTEGER, features TEXT DEFAULT '{}', timestamp TEXT DEFAULT CURRENT_TIMESTAMP);

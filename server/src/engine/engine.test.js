@@ -4,9 +4,9 @@ import { DEFAULT_WEIGHTS, FOOD_WASTE_WEIGHTS, BUDGET_WEIGHTS, weightsForMode, sc
 import { resolveWeights, normalizeWeights, COLD_START_MIN_OUTCOMES } from "./weights.js";
 
 describe("engine/features.js — normalized feature vector", () => {
-  it("exposes the 7 §7.2 features", () => {
+  it("exposes the 8 §7.2 features", () => {
     expect([...FEATURE_NAMES].sort()).toEqual(
-      ["ingredient_overlap", "time_fit", "cuisine_match", "nutrition_fit", "skill_fit", "spice_fit", "budget_fit"].sort()
+      ["ingredient_overlap", "time_fit", "cuisine_match", "nutrition_fit", "skill_fit", "spice_fit", "budget_fit", "craving_fit"].sort()
     );
   });
 
@@ -80,7 +80,10 @@ describe("engine/features.js — normalized feature vector", () => {
       { favoriteCuisines: ["y"], spicePreference: "mild", nutritionGoals: { maxCalories: 100 } },
       { availableIngredients: ["zzz"], timeLimit: 5 }
     );
-    for (const v of Object.values(f)) expect(v).toBeGreaterThanOrEqual(0), expect(v).toBeLessThanOrEqual(1);
+    for (const [k, v] of Object.entries(f)) {
+      if (k === "cravingSignals") continue;
+      expect(v).toBeGreaterThanOrEqual(0), expect(v).toBeLessThanOrEqual(1);
+    }
   });
 });
 
@@ -106,9 +109,9 @@ describe("engine/scorer.js — fixed weights ranking", () => {
   });
 
   it("fixed weights + fixed features → expected order", () => {
-    const w = { ingredient_overlap: 1, time_fit: 0, cuisine_match: 0, nutrition_fit: 0, skill_fit: 0, spice_fit: 0, budget_fit: 0 };
-    const a = scoreWithFeatures({ ingredient_overlap: 1, cuisine_match: 0, time_fit: 0, nutrition_fit: 0, skill_fit: 0, spice_fit: 0, budget_fit: 0 }, w);
-    const b = scoreWithFeatures({ ingredient_overlap: 0, cuisine_match: 1, time_fit: 1, nutrition_fit: 1, skill_fit: 1, spice_fit: 1, budget_fit: 1 }, w);
+    const w = { ingredient_overlap: 1, time_fit: 0, cuisine_match: 0, nutrition_fit: 0, skill_fit: 0, spice_fit: 0, budget_fit: 0, craving_fit: 0 };
+    const a = scoreWithFeatures({ ingredient_overlap: 1, cuisine_match: 0, time_fit: 0, nutrition_fit: 0, skill_fit: 0, spice_fit: 0, budget_fit: 0, craving_fit: 0 }, w);
+    const b = scoreWithFeatures({ ingredient_overlap: 0, cuisine_match: 1, time_fit: 1, nutrition_fit: 1, skill_fit: 1, spice_fit: 1, budget_fit: 1, craving_fit: 1 }, w);
     expect(a).toBeGreaterThan(b);
   });
 

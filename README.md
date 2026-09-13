@@ -51,8 +51,8 @@ User request (form or natural language)
 Intent (Groq optional / heuristic fallback)   ← never decides allergen safety
         ↓
 Deterministic recommendation engine
-  1. Hard allergy / avoid-food filter
-  2. Feature extraction (7 scored features)
+  1. Hard allergy + avoid-food filter
+  2. Feature extraction (8 scored features incl. craving_fit)
   3. Weighted scoring (+ mode reweights)
   4. Optional learned weights (cold start gated)
         ↓
@@ -72,14 +72,23 @@ Optional short assistant reply (explains engine results only)
 ### Recommendation API
 
 `POST /api/recommendations`  
-`{ availableIngredients, timeLimit, mode: normal|food_waste|budget, cuisine?, craving? }`  
+`{ availableIngredients, timeLimit, mode: normal|food_waste|budget, cuisine?, craving?, cravingSignals?, expiringIngredients?, useInventory? }`  
 → `{ recommendations: [{ recipeId, title, score, matchReasons, … }] }`
+Inventory names/expiry are auto-derived when `useInventory:true` or nothing typed.
 
 `POST /api/assistant`  
 `{ message }` → `{ intent, source, notice?, reply, recommendations }`  
 Intent is validated; recipes always come from the local engine after the hard filter.
 
 `POST /api/interactions` — `shown|viewed|saved|unsaved|cooked|rated_positive|rated_negative|skipped`
+
+### Substitutions / Inventory / Groceries / Meal plans
+
+- `GET/POST/DELETE /api/substitutions` — apply/revert with `safe|unsafe|unknown` revalidation; unsafe blocked. Detail UI previews, grocery + meal plans respect replacements. Nutrition never silently changes.
+- `GET/POST/PUT/PATCH/DELETE /api/inventory` (+ `/expiring`, `/consume`) — qty/unit/category/expiry/notes; expiry statuses `fresh|expiring_soon(≤2d)|expired|unknown`. Food Waste Mode boosts expiring-stock recipes. Language is “you marked as expiring soon”, never a safety verdict.
+- `GET/POST/PUT/DELETE /api/groceries` (+ `/generate`, `/clear-completed`) — merge compatible quantities, keep prep notes, subtract inventory unit-aware, soft-delete restore.
+- `GET/POST/PUT/DELETE /api/meal-plans` (+ `/clear-day`, `/nutrition/summary`) — day/meal slots with servings + applied subs snapshot; unsafe recipes rejected; week/day nutrition aggregates with `unknown` flags, never invented.
+- Client pages: `/inventory`, `/groceries`, `/meal-plan` (+ sync banner). All mutations queue offline via IndexedDB and replay in order (max 5 attempts, dedupe by id).
 
 ### Safety
 
@@ -96,7 +105,14 @@ Layer 1 allergy/avoid filter is absolute and runs first. Learning and AI explana
 
 ### Offline / PWA
 
-Service worker caches the app shell and previously viewed recipe API responses. Core browsing of cached recipes can work offline. Groq intent parsing requires network when configured; without a key, local parsing still works if the API server is reachable.
+Service worker caches the app shell and previously viewed recipe API responses. Inventory/grocery/meal/sub/interact mutations work offline: optimistic UI + persistent IndexedDB queue + ordered replay + pending/failed banner. Not “fully offline” — first-visit recommendations and Groq still need the local API/network; cached recipes + queued mutations do not.
+
+### Limitations (honest)
+
+- Structured cravings cover common vocab with negation handling; nuanced prose still falls back to token overlap.
+- Unit conversion is allowlist-only (g/kg, ml/l/tsp/tbsp/cup, pieces); ambiguous units never convert.
+- Budget uses authored cost tiers, never live prices.
+- Expiry dates are user estimates, never food-safety verdicts.
 
 ### Privacy
 

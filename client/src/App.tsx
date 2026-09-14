@@ -62,11 +62,19 @@ export function App() {
 
 function SyncBanner() {
   const { online, pending, syncState, syncNow } = useOnlineStatus();
-  if (online && pending === 0) return null;
+  if (online && pending === 0 && syncState !== "syncing") return null;
   return (
-    <div role="status" className="bg-amber-100 px-4 py-1 text-xs text-amber-900">
-      {!online ? `Offline — ${pending} change(s) queued locally.` : syncState === "failed" ? "Some changes failed to sync." : `${pending} change(s) pending sync.`}
-      {online && pending > 0 && <button onClick={() => void syncNow()} className="ml-2 underline">Sync now</button>}
+    <div role="status" aria-live="polite" className="bg-amber-100 px-4 py-1 text-xs text-amber-900">
+      {!online
+        ? `Offline — ${pending} change(s) saved locally and will sync when connection returns.`
+        : syncState === "syncing"
+          ? "Syncing changes…"
+          : syncState === "failed"
+            ? "Some changes failed to sync. They stay saved locally — press Sync now to retry."
+            : `${pending} change(s) pending sync.`}
+      {online && pending > 0 && syncState !== "syncing" && (
+        <button onClick={() => void syncNow()} className="ml-2 underline">Sync now</button>
+      )}
     </div>
   );
 }

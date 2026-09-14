@@ -70,7 +70,7 @@ export interface AssistantIntent {
 
 export interface AssistantResponse {
   intent: AssistantIntent;
-  source: "groq" | "heuristic" | "provided";
+  source: "local" | "groq" | "heuristic" | "provided";
   notice?: string | null;
   reply: string;
   recommendations: Recommendation[];
@@ -119,7 +119,16 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  health: () => req<{ ok: boolean; ai?: { groqConfigured: boolean } }>("/api/health"),
+  health: () =>
+    req<{
+      ok: boolean;
+      ai?: {
+        groqConfigured: boolean;
+        providerSelection?: string;
+        resolvedProvider?: string;
+        localLlm?: { enabled: boolean; host: string; model: string; available: boolean };
+      };
+    }>("/api/health"),
   getProfile: () => req<Profile>("/api/profile"),
   saveProfile: (p: Partial<Profile>) =>
     req<Profile>("/api/profile", { method: "PUT", body: JSON.stringify(p) }),

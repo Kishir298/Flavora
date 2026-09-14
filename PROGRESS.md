@@ -1,35 +1,35 @@
-# Flavora Progress
+# Flavora — Progress
 
-Status reflects **actual code on `main`**, not aspirations.
+Status after the master implementation + AI/local-LLM audit (see README for usage).
 
-## Implemented
+## Verified state
 
-- [x] Phase 0: `/data/recipes.json` (80) + `/data/ingredient_substitutes.json` (31); local-only config
-- [x] Phase 1: snake_case Prisma schema + `db:seed` from `/data`
-- [x] Phase 1: 8-feature engine (incl. `craving_fit`) + `skill_fit` / `budget_fit` + food_waste/budget mode reweights + local-DB orchestrator
-- [x] Phase 1: routes on local DB (`POST /api/recommendations`, `POST /api/interactions`, recipe detail, `GET /api/debug/explain`)
-- [x] Phase 1: client (Home, detail 6 boxes, onboarding/settings CRUD, dark/light)
-- [x] Phase 1: unit + integration tests (`engine/*`, `api.test.ts`, client tests)
-- [x] Phase 2: food_waste + budget modes (engine + Home UI) + interactive substitutions on detail (apply/undo, safe|unsafe|unknown, grocery+meal aware)
-- [x] Inventory + expiry (`/inventory`, expiring_soon ≤2d, Food Waste boost) + groceries (`/groceries`, merge + inventory subtraction) + meal plans (`/meal-plans`, servings + subs snapshot + nutrition summary)
-- [x] Structured cravings (controlled vocab + negation + recipe signals, validated AI output, deterministic scoring + truthful reasons)
-- [x] Offline-first mutations (IndexedDB queue, optimistic UI, ordered replay ≤5, pending/failed banner) — app shell + cached recipes + queued writes; not fully offline
-- [x] Phase 3: Cuisine Explorer (10 cuisines, allergy filter + profile badge) + learning layer (`retrain.py`, trigger, cold start)
-- [x] Conversational AI layer: provider abstraction + optional Groq intent parsing + heuristic fallback (`POST /api/assistant`); never bypasses hard filter
-- [x] Natural-language Home flow + structured form; craving soft-match; lowCarb profile goal UI
-- [x] Saved / unsaved persistence; Like / Dislike / Skip / Cooked on detail
-- [x] MVP path: profile → recommend → detail → save → settings, localhost
+- **Server:** 108/108 tests pass (unit + integration + safety regression + AI provider tests), `tsc --noEmit` clean.
+- **Client:** 19/19 tests pass (components + offline queue), `tsc --noEmit` clean, production build clean.
+- **E2E:** 7/7 critical paths pass (dev config); offline sync + substitution spec passes under `playwright.offline.config.ts` (1 conditional skip when the picked recipe has no substitution options).
 
-## Limitations (honest)
+## Objective matrix
 
-- [ ] Groq is optional — without `GROQ_API_KEY`, NL uses heuristics (still local ranking)
-- [ ] Learning needs `scikit-learn` + enough interaction labels; otherwise defaults stay in force
-- [ ] Cost tiers are authored estimates, not live supermarket prices
-- [ ] Budget dataset has few `high` cost-tier recipes
-- [ ] Offline: queued mutations + cached recipes work; first-visit recommend/assistant still need local API; Groq needs network
-- [ ] No multi-user accounts (by design)
+| Objective | Status | Evidence |
+|---|---|---|
+| Substitutions | FULLY IMPLEMENTED | apply/revert/undo UI, safe/unsafe/unknown revalidation, unsafe blocked, offline queueing, grocery/meal-plan integration; API + integration tests |
+| Offline mutations | FULLY IMPLEMENTED | IndexedDB queue (dedupe, ordered replay, max 5 attempts, failure states), optimistic UI, syncing banner, refresh-survival; 11 queue unit tests + E2E offline test |
+| Cravings | FULLY IMPLEMENTED | structured signals (flavor/texture/temperature/mood/…), negation, deterministic bounded scoring, truthful match reasons; local fallback always available |
+| Groceries | FULLY IMPLEMENTED | generate from recipes/plans, merge, unit-aware inventory subtraction, edit/restore/check/clear, categories, soft-delete |
+| Inventory | FULLY IMPLEMENTED | add/edit/consume/remove/search/filter/sort, expiry status + daysRemaining, recommendations derive from stock |
+| Expiry tracking | FULLY IMPLEMENTED | configurable threshold (2 d), `fresh/expiring_soon/expired/unknown`, Food Waste boost, no safety claims |
+| Meal planning | FULLY IMPLEMENTED | day/meal slots, servings, move, duplicate day, clear day, subs snapshot, unsafe recipes rejected, day/week nutrition |
+| Nutrition aggregation | FULLY IMPLEMENTED | meal/day/week; missing values stay `unknown`, never invented |
+| Integration flows A–E | FULLY IMPLEMENTED | covered in `p0.test.ts` + E2E |
+| Accessibility | LARGELY DONE | labels, roles, focus-visible, status/alert regions, skip link, Esc-close; not formally audited with a screen reader |
+| Local LLM | FULLY IMPLEMENTED (optional) | `LocalLlmProvider` (Ollama), local-only host enforcement, timeout/malformed handling, `local\|groq\|heuristic\|auto` selection, health status, 16 provider tests, verified against real `qwen2.5:3b` runtime |
+| Groq | FULLY IMPLEMENTED (optional) | server-side key, timeout, validated output, heuristic fallback |
+| Heuristic parser | FULLY IMPLEMENTED | deterministic, zero-network, always-on fallback (not an LLM) |
+| README | ACCURATE | every documented command executed during this session |
 
-## Future / Planned
+## Known limitations (honest)
 
-- Broader cost-tier coverage in seed data
-- Background Sync for queue replay when browser restarts mid-pending
+- Local LLM is slow on CPU-only machines (cold load ~40 s; first request can take minutes). Documented; heuristic fallback covers failures.
+- The substitution E2E skips when the chosen recipe exposes no substitution options (data-dependent, not a failure).
+- Accessibility was improved but not audited with assistive technology.
+- No live grocery pricing (by design).

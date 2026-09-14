@@ -80,6 +80,7 @@ export interface InventoryItem {
   id: number; name: string; quantity?: number | null; unit?: string | null;
   category: string; purchaseDate?: string | null; expiryDate?: string | null;
   notes?: string; status?: "fresh" | "expiring_soon" | "expired" | "unknown";
+  daysRemaining?: number | null;
 }
 
 export interface GroceryItem {
@@ -178,7 +179,8 @@ export const api = {
     req<InventoryItem>(`/api/inventory/${id}/consume`, { method: "PATCH", body: JSON.stringify({ amount }) }),
   removeInventory: (id: number) => req(`/api/inventory/${id}`, { method: "DELETE" }),
   // Groceries (§8)
-  groceries: () => req<GroceryItem[]>("/api/groceries"),
+  groceries: (includeRemoved = false) =>
+    req<GroceryItem[]>(`/api/groceries${includeRemoved ? "?includeRemoved=1" : ""}`),
   addGrocery: (b: Partial<GroceryItem> & { name: string }) =>
     req<GroceryItem>("/api/groceries", { method: "POST", body: JSON.stringify(b) }),
   updateGrocery: (id: number, b: Partial<GroceryItem>) =>

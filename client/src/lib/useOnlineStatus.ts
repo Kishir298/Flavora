@@ -84,6 +84,9 @@ async function executeMutation(m: QueuedMutation): Promise<void> {
     case "inventory.consume":
       await api.consumeInventory(Number(p.id), p.amount as number | undefined);
       break;
+    case "inventory.update":
+      await api.updateInventory(Number(p.id), p as { name?: string; quantity?: number | null; unit?: string | null; expiryDate?: string | null; notes?: string });
+      break;
     case "inventory.remove":
       await api.removeInventory(Number(p.id));
       break;
@@ -98,6 +101,9 @@ async function executeMutation(m: QueuedMutation): Promise<void> {
       break;
     case "meal.remove":
       await api.removeMeal(Number(p.id));
+      break;
+    case "meal.update":
+      await api.updateMeal(Number(p.id), p as { day?: string; meal?: string; servings?: number; recipeId?: string });
       break;
     case "meal.clearDay":
       await api.clearMealDay(String(p.day));

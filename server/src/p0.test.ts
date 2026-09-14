@@ -2,9 +2,12 @@ import { describe, it, expect, beforeAll, beforeEach } from "vitest";
 import request from "supertest";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execSync } from "node:child_process";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const TEST_DB_ABS = path.resolve(__dirname, "../../prisma/test.db");
+// Own throwaway DB — api.test.ts force-resets its test.db in a parallel worker,
+// and concurrent writers corrupt a shared SQLite file.
+const TEST_DB_ABS = path.resolve(__dirname, "../../prisma/p0-test.db");
 process.env.DATABASE_URL = `file:${TEST_DB_ABS}`;
 
 const { createApp } = await import("./app.js");
@@ -12,6 +15,12 @@ const { prisma } = await import("./db.js");
 const app = createApp();
 
 beforeAll(async () => {
+  execSync("npx prisma db push --schema ../prisma/schema.prisma --skip-generate --force-reset", {
+    env: { ...process.env, DATABASE_URL: `file:${TEST_DB_ABS}` },
+    cwd: process.cwd().endsWith("/server") ? process.cwd() : process.cwd() + "/server",
+    stdio: "pipe",
+  });
+  await prisma.$connect();
   await request(app).post("/api/dev/seed");
   await prisma.inventoryItem.deleteMany({});
   await prisma.groceryItem.deleteMany({});

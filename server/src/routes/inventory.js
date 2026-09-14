@@ -6,11 +6,20 @@ import { expiryStatus } from "../engine/expiry.js";
 export const inventoryRouter = Router();
 const VALID_CATEGORIES = new Set(["produce", "protein", "dairy", "grains", "pantry", "spices", "frozen", "other"]);
 
+function daysRemaining(expiryDate, now = new Date()) {
+  if (!expiryDate) return null;
+  const d = expiryDate instanceof Date ? expiryDate : new Date(expiryDate);
+  if (Number.isNaN(d.getTime())) return null;
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return Math.round((day.getTime() - today.getTime()) / 86400000);
+}
+
 function shape(r) {
   return {
     id: r.id, name: r.name, quantity: r.quantity, unit: r.unit,
     category: r.category, purchaseDate: r.purchaseDate, expiryDate: r.expiryDate,
-    notes: r.notes, status: expiryStatus(r.expiryDate),
+    notes: r.notes, status: expiryStatus(r.expiryDate), daysRemaining: daysRemaining(r.expiryDate),
   };
 }
 

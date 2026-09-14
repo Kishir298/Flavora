@@ -51,6 +51,19 @@ export function MealPlan() {
     } catch { await load(); }
   };
 
+  const move = async (s: MealSlot, targetDay: string, targetMeal: string) => {
+    if (targetDay === s.day && targetMeal === s.meal) return;
+    setMsg(null);
+    try {
+      if (!online) await enqueueMutation({ operation: "meal.update", entityType: "meal", entityId: String(s.id), payload: { id: s.id, day: targetDay, meal: targetMeal } });
+      else await api.updateMeal(s.id, { day: targetDay, meal: targetMeal });
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Move failed — is that day/meal slot already occupied?");
+      await load();
+    }
+  };
+
   const duplicateDay = async (src: string) => {
     const target = DAYS[(DAYS.indexOf(src) + 1) % DAYS.length];
     const daySlots = slots.filter((s) => s.day === src);
@@ -148,8 +161,25 @@ export function MealPlan() {
                 </div>
                 <ul className="mt-1 space-y-1 text-sm">
                   {daySlots.map((s) => (
-                    <li key={s.id} className="flex items-center gap-2">
+                    <li key={s.id} className="flex flex-wrap items-center gap-2">
                       <span><strong>{s.meal}</strong>: {s.recipeId}</span>
+                      <label className="text-xs opacity-80">Move
+                        <select
+                          aria-label={`move ${s.meal} on ${d}`}
+                          className="ml-1 rounded border px-1 py-0.5 text-xs"
+                          value={`${s.day}:${s.meal}`}
+                          onChange={(e) => {
+                            const [td, tm] = e.target.value.split(":");
+                            void move(s, td, tm);
+                          }}
+                        >
+                          {DAYS.map((td) =>
+                            MEALS.map((tm) => (
+                              <option key={`${td}:${tm}`} value={`${td}:${tm}`}>{td} {tm}</option>
+                            ))
+                          )}
+                        </select>
+                      </label>
                       <span className="flex items-center gap-1" aria-label={`servings for ${s.meal} ${d}`}>
                         <button onClick={() => void changeServings(s, -1)} className="rounded border px-1 text-xs" aria-label={`decrease servings ${s.meal} ${d}`}>−</button>
                         ×{s.servings}

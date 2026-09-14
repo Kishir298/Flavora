@@ -1,13 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 
+/**
+ * Offline E2E config — runs against a PRODUCTION build (vite preview).
+ * The service worker + app-shell precache only exist in a real build, so a
+ * reload while offline requires this mode (dev server cannot serve offline).
+ */
 export default defineConfig({
   testDir: "./e2e",
-  // Offline spec requires the production build (vite preview, service worker);
-  // run it with: npx playwright test --config=playwright.offline.config.ts
-  testIgnore: "**/offline.spec.ts",
-  timeout: 30_000,
+  timeout: 45_000,
   use: {
-    baseURL: "http://localhost:5173",
+    baseURL: "http://localhost:4173",
     trace: "retain-on-failure",
   },
   webServer: [
@@ -18,8 +20,8 @@ export default defineConfig({
       env: { ...process.env } as Record<string, string>,
     },
     {
-      command: "npm run dev --workspace=flavora-client",
-      port: 5173,
+      command: "npm run preview --workspace=flavora-client -- --port 4173",
+      port: 4173,
       reuseExistingServer: true,
     },
   ],

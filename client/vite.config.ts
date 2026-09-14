@@ -20,6 +20,11 @@ export default defineConfig({
           { src: "favicon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
         ],
       },
+      devOptions: {
+        // Serve the service worker in dev so offline behavior is testable (E2E §7).
+        enabled: true,
+        type: "module",
+      },
       workbox: {
         // Offline: app shell + previously viewed recipe payloads.
         runtimeCaching: [
@@ -38,6 +43,11 @@ export default defineConfig({
     }),
   ],
   server: {
+    proxy: {
+      "/api": "http://localhost:4000",
+    },
+  },
+  preview: {
     proxy: {
       "/api": "http://localhost:4000",
     },

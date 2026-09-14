@@ -28,9 +28,9 @@ export interface RecommendationIntent {
 
 export interface ParsedAssistantRequest {
   intent: RecommendationIntent;
-  /** How intent was produced. */
-  source: "groq" | "heuristic" | "provided";
-  /** Short user-facing note when AI was unavailable. */
+  /** How intent was produced: local LLM, remote Groq, deterministic heuristics, or provided intent. */
+  source: "local" | "groq" | "heuristic" | "provided";
+  /** Short user-facing note when AI was unavailable or fell back. */
   notice?: string;
 }
 

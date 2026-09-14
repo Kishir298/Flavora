@@ -1,4 +1,4 @@
-import { createAIProvider } from "./provider.js";
+import { createAIProvider, type ProviderSelection } from "./provider.js";
 import { extractJsonObject, normalizeIntent } from "./intentSchema.js";
 import { parseIntentHeuristic } from "./heuristicParser.js";
 import { parseCravingSignals } from "../engine/craving.js";
@@ -32,13 +32,38 @@ Rules:
 4. If the request is vague ("surprise me"), set craving and leave ingredients empty.
 5. Omit fields you cannot infer.`;
 
+const HEURISTIC_NOTICE_GROQ = "No GROQ_API_KEY configured — using local intent parsing. Core recommendations still run locally.";
+const HEURISTIC_NOTICE_LOCAL_DOWN = "Local AI model not reachable — used deterministic local intent parsing instead. Core recommendations still run locally.";
+
+/** Enrich heuristic intent with structured craving signals from the local vocabulary parser. */
+function heuristicWithSignals(text: string): RecommendationIntent {
+  const heuristic = parseIntentHeuristic(text);
+  const signals = parseCravingSignals(text);
+  const hasSignals = Object.values(signals).some((v) => v.length > 0);
+  return hasSignals ? { ...heuristic, cravingSignals: signals } : heuristic;
+}
+
 /**
  * Parse natural language into a validated RecommendationIntent.
- * Uses Groq when available; falls back to deterministic heuristics.
+ *
+ * Provider behaviour by selection mode (AI_PROVIDER):
+ * - "local": ONLY the local LLM. If unreachable → deterministic heuristic parse
+ *   with an explicit notice; never silently switches to a remote provider.
+ * - "groq": Groq; on failure → deterministic heuristic with a notice.
+ * - "heuristic": always deterministic parsing (no LLM).
+ * - "auto": local LLM (if running) → Groq (if configured) → heuristic.
+ *
+ * All provider output is schema-validated; malformed output falls back to
+ * heuristics. The engine's hard allergy/avoid filter always runs after this
+ * regardless of source.
  */
 export async function parseUserIntent(
   message: string,
-  opts?: { provider?: AIProvider; provided?: RecommendationIntent }
+  opts?: {
+    provider?: AIProvider;
+    selection?: ProviderSelection;
+    provided?: RecommendationIntent;
+  }
 ): Promise<ParsedAssistantRequest> {
   if (opts?.provided && Object.keys(opts.provided).length > 0) {
     return { intent: normalizeIntent(opts.provided), source: "provided" };
@@ -49,31 +74,81 @@ export async function parseUserIntent(
     return { intent: normalizeIntent({ mode: "normal" }), source: "heuristic", notice: "Empty request — using defaults." };
   }
 
-  const provider = opts?.provider ?? createAIProvider();
+  /** Pick the right system prompt: local providers may use a compact CPU-friendly one. */
+  const systemPromptFor = (p: AIProvider): string => {
+    const local = p as AIProvider & { intentSystemPrompt?: () => string };
+    return typeof local.intentSystemPrompt === "function" ? local.intentSystemPrompt() : INTENT_SYSTEM_PROMPT;
+  };
+
+  // Injected provider (tests / custom wiring).
+  if (opts?.provider) {
+    if (opts.provider.isAvailable()) {
+      try {
+        const rawText = await opts.provider.complete(systemPromptFor(opts.provider), text);
+        const parsed = normalizeIntent(extractJsonObject(rawText));
+        return { intent: parsed, source: opts.provider.name === "local" ? "local" : "groq" };
+      } catch {
+        return { intent: heuristicWithSignals(text), source: "heuristic", notice: "AI assistant unavailable — used local intent parsing instead." };
+      }
+    }
+    return { intent: heuristicWithSignals(text), source: "heuristic", notice: "AI assistant unavailable — used local intent parsing instead." };
+  }
+
+  const selection: ProviderSelection = opts?.selection ?? "auto";
+  const { provider, resolvedMode } = createAIProvider({ selection });
+
+  // Heuristic mode: no LLM ever.
+  if (resolvedMode === "heuristic") {
+    return {
+      intent: heuristicWithSignals(text),
+      source: "heuristic",
+      notice: "Deterministic local intent parsing (AI provider disabled). Core recommendations still run locally.",
+    };
+  }
+
+  // Explicit "local" mode: probe certainty; do NOT fall back to Groq.
+  if (resolvedMode === "local") {
+    const localProvider = provider as AIProvider & { probeAvailability?: () => Promise<boolean> };
+    const reachable = typeof localProvider.probeAvailability === "function"
+      ? await localProvider.probeAvailability()
+      : localProvider.isAvailable();
+    if (!reachable) {
+      return {
+        intent: heuristicWithSignals(text),
+        source: "heuristic",
+        notice: HEURISTIC_NOTICE_LOCAL_DOWN,
+      };
+    }
+    try {
+      const rawText = await localProvider.complete(systemPromptFor(localProvider), text);
+      const parsed = normalizeIntent(extractJsonObject(rawText));
+      return { intent: parsed, source: "local" };
+    } catch {
+      // Model present but call failed (timeout/malformed) — deterministic fallback, still local-only.
+      return { intent: heuristicWithSignals(text), source: "heuristic", notice: HEURISTIC_NOTICE_LOCAL_DOWN };
+    }
+  }
+
+  // Groq / auto: try provider; malformed or failed output falls back deterministically.
   if (provider.isAvailable()) {
     try {
-      const rawText = await provider.complete(INTENT_SYSTEM_PROMPT, text);
+      const rawText = await provider.complete(systemPromptFor(provider), text);
       const parsed = normalizeIntent(extractJsonObject(rawText));
       return { intent: parsed, source: "groq" };
     } catch {
-      const intent = parseIntentHeuristic(text);
       return {
-        intent,
+        intent: heuristicWithSignals(text),
         source: "heuristic",
         notice: "AI assistant unavailable — used local intent parsing instead.",
       };
     }
   }
 
-  const heuristic = parseIntentHeuristic(text);
-  // Structured craving signals from the local vocabulary parser (mission §7).
-  const signals = parseCravingSignals(text);
-  const hasSignals = Object.values(signals).some((v) => v.length > 0);
-  const intent = hasSignals ? { ...heuristic, cravingSignals: signals } : heuristic;
+  // auto resolved to groq (no local runtime, no key) or provider not available.
   return {
-    intent,
+    intent: heuristicWithSignals(text),
     source: "heuristic",
-    notice: "No GROQ_API_KEY configured — using local intent parsing. Core recommendations still run locally.",
+    notice: resolvedMode === "groq" ? HEURISTIC_NOTICE_GROQ : HEURISTIC_NOTICE_LOCAL_DOWN,
   };
 }
 

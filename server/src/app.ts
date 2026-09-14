@@ -13,6 +13,7 @@ import { inventoryRouter } from "./routes/inventory.js";
 import { groceriesRouter } from "./routes/groceries.js";
 import { mealPlansRouter } from "./routes/mealPlans.js";
 import { config } from "./config.js";
+import { createAIProvider } from "./ai/provider.js";
 
 import { prisma } from "./db.js";
 
@@ -23,13 +24,29 @@ export function createApp() {
   app.use(requestIdMiddleware);
   app.use(requestLogger);
 
-  app.get("/api/health", (_req, res) =>
+  app.get("/api/health", async (_req, res) => {
+    const { provider, resolvedMode } = createAIProvider();
+    const probed = provider as { probeAvailability?: () => Promise<boolean> };
+    const localAvailable =
+      resolvedMode === "local" && typeof probed.probeAvailability === "function"
+        ? await probed.probeAvailability()
+        : false;
     res.json({
       ok: true,
       service: "flavora",
-      ai: { groqConfigured: Boolean(config.groqApiKey) },
-    })
-  );
+      ai: {
+        groqConfigured: Boolean(config.groqApiKey),
+        providerSelection: config.aiProvider,
+        resolvedProvider: resolvedMode,
+        localLlm: {
+          enabled: config.localLlmEnabled,
+          host: config.localLlmHost,
+          model: config.localLlmModel,
+          available: localAvailable,
+        },
+      },
+    });
+  });
   app.use("/api/profile", profileRouter);
   app.use("/api/recommendations", recommendationsRouter);
   app.use("/api/assistant", assistantRouter);

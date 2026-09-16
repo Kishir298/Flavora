@@ -1,13 +1,17 @@
 import { test, expect, type Page } from "@playwright/test";
 
 /**
- * Automated accessibility audit (dependency-free so it runs offline in CI).
+ * Automated accessibility audit.
  *
- * Covers §36: landmarks, form labels, button names, duplicate IDs,
- * image alts, document language, and invalid ARIA references.
- * If network access allows, prefer adding @axe-core/playwright and running
- * AxeBuilder alongside these checks — these assertions are the baseline that
- * must pass either way.
+ * Baseline (always runs, dependency-free so it works offline in CI):
+ * §36 landmarks, form labels, button names, duplicate IDs, image alts,
+ * document language, invalid ARIA references.
+ *
+ * Enhancement: when `@axe-core/playwright` is installed (it is a client
+ * devDependency; `npm install` fetches it when the registry is reachable),
+ * every audited route additionally runs axe with zero critical/serious
+ * violations allowed. The import is dynamic + guarded so offline
+ * environments without the package still run the baseline.
  */
 
 const ROUTES = [
@@ -84,6 +88,24 @@ async function auditPage(page: Page) {
     return bad;
   });
   expect(brokenRefs).toEqual([]);
+
+  // axe-core automated check (guarded: skipped when the package is absent,
+  // e.g. offline CI that could not `npm install` it — baseline above still runs).
+  try {
+    const { default: AxeBuilder } = await import("@axe-core/playwright");
+    const results = await new AxeBuilder({ page }).analyze();
+    const blocking = results.violations.filter((v) => v.impact === "critical" || v.impact === "serious");
+    expect(
+      blocking.map((v) => `${v.id}: ${v.description}`),
+      `axe critical/serious violations`,
+    ).toEqual([]);
+  } catch (e) {
+    if (e instanceof Error && /cannot find module|failed to resolve/i.test(e.message)) {
+      test.info().annotations.push({ type: "axe", description: "skipped: @axe-core/playwright not installed" });
+    } else {
+      throw e;
+    }
+  }
 }
 
 test("document has a language", async ({ page }) => {

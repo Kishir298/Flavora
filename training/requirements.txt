@@ -1,0 +1,4 @@
+# FlavoraLM training/inference dependencies (CPU-only, local venv only).
+# Installed into .flavoralm-venv/ by scripts/setup.mjs — never into global Python.
+# Pinned loosely for cross-platform (macOS arm64/x64, Linux, Windows) CPU wheels.
+torch>=2.2,<2.9

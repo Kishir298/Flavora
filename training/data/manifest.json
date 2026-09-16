@@ -1,0 +1,10 @@
+{
+  "datasetVersion": "0.1",
+  "seed": 42,
+  "splits": {
+    "train.jsonl": 1200,
+    "validation.jsonl": 150,
+    "test.jsonl": 150
+  },
+  "config": "training/configs/flavora_lm_dev.json"
+}

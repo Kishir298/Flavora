@@ -1,0 +1,150 @@
+{"input": "I feel like no beef, something with lentils.", "target": {"intent": "recommend", "ingredients": ["lentils"], "avoidFoods": ["beef"]}}
+{"input": "My neighbor said. make me medium spice corn dish within 45 minutes for my family.", "target": {"intent": "recommend", "ingredients": ["corn"], "timeLimit": 45, "spicePreference": "medium"}}
+{"input": "I need something sweet with carrot.", "target": {"intent": "recommend", "ingredients": ["carrot"], "craving": "sweet", "cravingSignals": {"flavors": ["sweet"]}}}
+{"input": "I feel like something tangy.", "target": {"intent": "recommend", "craving": "tangy", "cravingSignals": {"flavors": ["tangy"]}}}
+{"input": "I feel like fiery milk dish quick 10 minute meal.", "target": {"intent": "recommend", "ingredients": ["milk"], "timeLimit": 10, "spicePreference": "hot"}}
+{"input": "How about something with shrimp, mushrooms and coconut milk in 15 minutes.", "target": {"intent": "recommend", "ingredients": ["shrimp", "mushrooms", "coconut milk"], "timeLimit": 15}}
+{"input": "How about something creamy with noodles.", "target": {"intent": "recommend", "ingredients": ["noodles"], "craving": "creamy", "cravingSignals": {"textures": ["creamy"]}}}
+{"input": "Suggest something with corn and eggs under 30 minutes.", "target": {"intent": "recommend", "ingredients": ["corn", "eggs"], "timeLimit": 30, "mode": "food_waste"}}
+{"input": "Make me something with carrot and pork indian style.", "target": {"intent": "recommend", "ingredients": ["carrot", "pork"], "cuisine": "indian", "mode": "food_waste"}}
+{"input": "Can you find something indulgent treat with bell pepper.", "target": {"intent": "recommend", "ingredients": ["bell pepper"], "craving": "indulgent treat", "cravingSignals": {"moods": ["indulgent"]}}}
+{"input": "By the way i watched a movie. cook something with lentils and cream within 45 minutes middle eastern style.", "target": {"intent": "recommend", "ingredients": ["lentils", "cream"], "timeLimit": 45, "cuisine": "middle eastern", "mode": "food_waste"}}
+{"input": "I need something sweet with lentils.", "target": {"intent": "recommend", "ingredients": ["lentils"], "craving": "sweet", "cravingSignals": {"flavors": ["sweet"]}}}
+{"input": "Suggest no eggplant, something with eggs for dinner tonight.", "target": {"intent": "recommend", "ingredients": ["eggs"], "avoidFoods": ["eggplant"]}}
+{"input": "Give me something with cream, butter and onion in 15 minutes african style.", "target": {"intent": "recommend", "ingredients": ["cream", "butter", "onion"], "timeLimit": 15, "cuisine": "african", "mode": "food_waste"}}
+{"input": "It is tuesday. give me no heat onion dish within 45 minutes.", "target": {"intent": "recommend", "ingredients": ["onion"], "timeLimit": 45, "spicePreference": "mild"}}
+{"input": "Suggest something hearty and filling with tofu for my family.", "target": {"intent": "recommend", "ingredients": ["tofu"], "craving": "hearty", "cravingSignals": {"satiety": ["filling", "hearty"]}}}
+{"input": "Give me hot and spicy milk dish in 30 minutes.", "target": {"intent": "recommend", "ingredients": ["milk"], "timeLimit": 30, "spicePreference": "hot"}}
+{"input": "Whip up something with beans american style.", "target": {"intent": "recommend", "ingredients": ["beans"], "cuisine": "american", "mode": "food_waste"}}
+{"input": "I need something sweet.", "target": {"intent": "recommend", "craving": "sweet", "cravingSignals": {"flavors": ["sweet"]}}}
+{"input": "Craving something warm and comforting with yogurt.", "target": {"intent": "recommend", "ingredients": ["yogurt"], "craving": "warm", "cravingSignals": {"moods": ["comforting"], "temperature": ["warm"]}}}
+{"input": "Craving mildly spiced noodles dish quick 10 minute meal.", "target": {"intent": "recommend", "ingredients": ["noodles"], "timeLimit": 10, "spicePreference": "medium"}}
+{"input": "What about something crispy and crunchy.", "target": {"intent": "recommend", "craving": "crispy", "cravingSignals": {"textures": ["crispy", "crunchy"]}}}
+{"input": "Make me something with pork ok.", "target": {"intent": "recommend", "ingredients": ["pork"]}}
+{"input": "Looking for something with pasta, potato and zucchini in an hour french style please.", "target": {"intent": "recommend", "ingredients": ["pasta", "potato", "zucchini"], "timeLimit": 60, "cuisine": "french", "mode": "food_waste"}}
+{"input": "Make me something warm and comforting.", "target": {"intent": "recommend", "craving": "warm", "cravingSignals": {"moods": ["comforting"], "temperature": ["warm"]}}}
+{"input": "Suggest something warm and comforting thanks.", "target": {"intent": "recommend", "craving": "warm", "cravingSignals": {"moods": ["comforting"], "temperature": ["warm"]}}}
+{"input": "I need something with zucchini and cream.", "target": {"intent": "recommend", "ingredients": ["zucchini", "cream"]}}
+{"input": "I feel like no heat pasta dish in 20 minutes.", "target": {"intent": "recommend", "ingredients": ["pasta"], "timeLimit": 20, "spicePreference": "mild"}}
+{"input": "What about cheap budget meal with eggs.", "target": {"intent": "recommend", "ingredients": ["eggs", "bread"], "mode": "budget"}}
+{"input": "I want cheap budget meal with cream for my family.", "target": {"intent": "recommend", "ingredients": ["cream", "butter"], "mode": "budget"}}
+{"input": "I'd like no mushrooms, something with cream.", "target": {"intent": "recommend", "ingredients": ["cream"], "avoidFoods": ["mushrooms"]}}
+{"input": "I feel like cheap budget meal with cheese.", "target": {"intent": "recommend", "ingredients": ["cheese", "tomato"], "mode": "budget"}}
+{"input": "Suggest use up lemon, corn and pasta before they expire.", "target": {"intent": "recommend", "ingredients": ["lemon", "corn", "pasta"], "mode": "food_waste"}}
+{"input": "Looking for something with lentils, rice, milk and carrot quick 10 minute meal.", "target": {"intent": "recommend", "ingredients": ["lentils", "rice", "milk", "carrot"], "timeLimit": 10, "mode": "food_waste"}}
+{"input": "I need something with salmon.", "target": {"intent": "recommend", "ingredients": ["salmon"], "mode": "food_waste"}}
+{"input": "I feel like something smoky with pork.", "target": {"intent": "recommend", "ingredients": ["pork"], "craving": "smoky", "cravingSignals": {"flavors": ["smoky"]}}}
+{"input": "What about something savory umami.", "target": {"intent": "recommend", "craving": "savory umami", "cravingSignals": {"flavors": ["savory", "umami"]}}}
+{"input": "I feel like something with garlic if possible.", "target": {"intent": "recommend", "ingredients": ["garlic"], "mode": "food_waste"}}
+{"input": "I want something with rice, bell pepper, mushrooms and beans in 90 minutes.", "target": {"intent": "recommend", "ingredients": ["rice", "bell pepper", "mushrooms", "beans"], "timeLimit": 90}}
+{"input": "Can you find use up bread, potato and eggs leftovers thanks.", "target": {"intent": "recommend", "ingredients": ["bread", "potato", "eggs"], "mode": "food_waste"}}
+{"input": "How about something with butter and milk within 45 minutes after work.", "target": {"intent": "recommend", "ingredients": ["butter", "milk"], "timeLimit": 45}}
+{"input": "What about no okra, something with beef.", "target": {"intent": "recommend", "ingredients": ["beef"], "avoidFoods": ["okra"]}}
+{"input": "Give me a little spicy salmon dish quick 10 minute meal.", "target": {"intent": "recommend", "ingredients": ["salmon"], "timeLimit": 10, "spicePreference": "medium"}}
+{"input": "Suggest something with coconut milk, tofu and eggs in 90 minutes please.", "target": {"intent": "recommend", "ingredients": ["coconut milk", "tofu", "eggs"], "timeLimit": 90, "mode": "food_waste"}}
+{"input": "no peanuts for me i have milk", "target": {"intent": "recommend", "ingredients": ["milk", "rice"], "allergies": ["peanuts"]}}
+{"input": "Give me something with garlic, noodles, rice and bread within 45 minutes.", "target": {"intent": "recommend", "ingredients": ["garlic", "noodles", "rice", "bread"], "timeLimit": 45, "mode": "food_waste"}}
+{"input": "I feel like something savory umami thanks.", "target": {"intent": "recommend", "craving": "savory umami", "cravingSignals": {"flavors": ["savory", "umami"]}}}
+{"input": "I'd like something with coconut milk, cheese, peanut butter and tofu.", "target": {"intent": "recommend", "ingredients": ["coconut milk", "cheese", "peanut butter", "tofu"]}}
+{"input": "Looking for use up chicken and pasta before they expire.", "target": {"intent": "recommend", "ingredients": ["chicken", "pasta"], "mode": "food_waste"}}
+{"input": "Make me something cozy homely dinner with milk.", "target": {"intent": "recommend", "ingredients": ["milk"], "craving": "cozy homely dinner", "cravingSignals": {"moods": ["cozy", "homely"]}}}
+{"input": "I need no olives, something with rice.", "target": {"intent": "recommend", "ingredients": ["rice"], "avoidFoods": ["olives"]}}
+{"input": "Whip up something with pasta, noodles, butter and corn in 20 minutes mexican style.", "target": {"intent": "recommend", "ingredients": ["pasta", "noodles", "butter", "corn"], "timeLimit": 20, "cuisine": "mexican", "mode": "food_waste"}}
+{"input": "Craving something with pork, bell pepper, cheese and quinoa in 20 minutes for two people.", "target": {"intent": "recommend", "ingredients": ["pork", "bell pepper", "cheese", "quinoa"], "timeLimit": 20}}
+{"input": "Whip up something savory umami.", "target": {"intent": "recommend", "craving": "savory umami", "cravingSignals": {"flavors": ["savory", "umami"]}}}
+{"input": "How about something with carrot under 30 minutes french style.", "target": {"intent": "recommend", "ingredients": ["carrot"], "timeLimit": 30, "cuisine": "french"}}
+{"input": "Cook something with quinoa, peanut butter and salmon in 30 minutes mexican style.", "target": {"intent": "recommend", "ingredients": ["quinoa", "peanut butter", "salmon"], "timeLimit": 30, "cuisine": "mexican", "mode": "food_waste"}}
+{"input": "What about something with bell pepper, chicken and yogurt in 2 hours.", "target": {"intent": "recommend", "ingredients": ["bell pepper", "chicken", "yogurt"], "timeLimit": 120, "mode": "food_waste"}}
+{"input": "What about something crispy and crunchy.", "target": {"intent": "recommend", "craving": "crispy", "cravingSignals": {"textures": ["crispy", "crunchy"]}}}
+{"input": "My neighbor said. i need mildly spiced mushrooms dish in 2 hours this weekend.", "target": {"intent": "recommend", "ingredients": ["mushrooms"], "timeLimit": 120, "spicePreference": "medium"}}
+{"input": "Make me something light and fresh with bell pepper.", "target": {"intent": "recommend", "ingredients": ["bell pepper"], "craving": "light", "cravingSignals": {"flavors": ["fresh"], "satiety": ["light"]}}}
+{"input": "Cook something with beans and zucchini in 15 minutes.", "target": {"intent": "recommend", "ingredients": ["beans", "zucchini"], "timeLimit": 15}}
+{"input": "Suggest no beef, something with pasta.", "target": {"intent": "recommend", "ingredients": ["pasta"], "avoidFoods": ["beef"]}}
+{"input": "What about something light and fresh.", "target": {"intent": "recommend", "craving": "light", "cravingSignals": {"flavors": ["fresh"], "satiety": ["light"]}}}
+{"input": "Craving something with peanut butter within 45 minutes chinese style.", "target": {"intent": "recommend", "ingredients": ["peanut butter"], "timeLimit": 45, "cuisine": "chinese", "mode": "food_waste"}}
+{"input": "How about no pork, something with pasta for my family.", "target": {"intent": "recommend", "ingredients": ["pasta"], "avoidFoods": ["pork"]}}
+{"input": "How about something with carrot in 15 minutes japanese style.", "target": {"intent": "recommend", "ingredients": ["carrot"], "timeLimit": 15, "cuisine": "japanese", "mode": "food_waste"}}
+{"input": "I need hot and spicy onion dish within 45 minutes thanks.", "target": {"intent": "recommend", "ingredients": ["onion"], "timeLimit": 45, "spicePreference": "hot"}}
+{"input": "I'd like something with zucchini and shrimp in 90 minutes.", "target": {"intent": "recommend", "ingredients": ["zucchini", "shrimp"], "timeLimit": 90}}
+{"input": "no soy for me i have coconut milk", "target": {"intent": "recommend", "ingredients": ["coconut milk", "chicken"], "allergies": ["soy"]}}
+{"input": "i can not eat shellfish want tofu quick", "target": {"intent": "recommend", "ingredients": ["tofu", "pork"], "allergies": ["shellfish"]}}
+{"input": "Looking for use up pork, lemon and corn leftovers.", "target": {"intent": "recommend", "ingredients": ["pork", "lemon", "corn"], "mode": "food_waste"}}
+{"input": "I'd like use up corn, quinoa, zucchini and mushrooms from the fridge.", "target": {"intent": "recommend", "ingredients": ["corn", "quinoa", "zucchini", "mushrooms"], "mode": "food_waste"}}
+{"input": "Make me something with pork, tofu, chickpeas and eggs middle eastern style.", "target": {"intent": "recommend", "ingredients": ["pork", "tofu", "chickpeas", "eggs"], "cuisine": "middle eastern", "mode": "food_waste"}}
+{"input": "Cook something with bell pepper and beef in 90 minutes for dinner tonight.", "target": {"intent": "recommend", "ingredients": ["bell pepper", "beef"], "timeLimit": 90}}
+{"input": "Whip up something tangy.", "target": {"intent": "recommend", "craving": "tangy", "cravingSignals": {"flavors": ["tangy"]}}}
+{"input": "I feel like something with noodles, bell pepper and shrimp in an hour.", "target": {"intent": "recommend", "ingredients": ["noodles", "bell pepper", "shrimp"], "timeLimit": 60, "mode": "food_waste"}}
+{"input": "I feel like something cozy homely dinner with milk.", "target": {"intent": "recommend", "ingredients": ["milk"], "craving": "cozy homely dinner", "cravingSignals": {"moods": ["cozy", "homely"]}}}
+{"input": "Can you find something light and fresh with chickpeas.", "target": {"intent": "recommend", "ingredients": ["chickpeas"], "craving": "light", "cravingSignals": {"flavors": ["fresh"], "satiety": ["light"]}}}
+{"input": "I feel like hot and spicy cream dish in 90 minutes.", "target": {"intent": "recommend", "ingredients": ["cream"], "timeLimit": 90, "spicePreference": "hot"}}
+{"input": "I need no olives, something with corn.", "target": {"intent": "recommend", "ingredients": ["corn"], "avoidFoods": ["olives"]}}
+{"input": "I need something with quinoa, pasta and bread ok.", "target": {"intent": "recommend", "ingredients": ["quinoa", "pasta", "bread"], "mode": "food_waste"}}
+{"input": "Craving something with lemon, noodles and peanut butter chinese style this weekend.", "target": {"intent": "recommend", "ingredients": ["lemon", "noodles", "peanut butter"], "cuisine": "chinese"}}
+{"input": "allergic to eggs here what can i eat with garlic and i do not want pork", "target": {"intent": "recommend", "ingredients": ["garlic", "peanut butter"], "allergies": ["eggs"], "avoidFoods": ["pork"]}}
+{"input": "allergic to soy here what can i eat with salmon", "target": {"intent": "recommend", "ingredients": ["salmon", "rice"], "allergies": ["soy"]}}
+{"input": "I feel like something with noodles, peanut butter and lentils quick 10 minute meal french style for my family.", "target": {"intent": "recommend", "ingredients": ["noodles", "peanut butter", "lentils"], "timeLimit": 10, "cuisine": "french"}}
+{"input": "Cook something with milk quick 10 minute meal.", "target": {"intent": "recommend", "ingredients": ["milk"], "timeLimit": 10}}
+{"input": "How about something with pasta, corn, beef and zucchini in 20 minutes if possible.", "target": {"intent": "recommend", "ingredients": ["pasta", "corn", "beef", "zucchini"], "timeLimit": 20}}
+{"input": "How about no eggplant, something with garlic.", "target": {"intent": "recommend", "ingredients": ["garlic"], "avoidFoods": ["eggplant"]}}
+{"input": "I need cheap budget meal with cream.", "target": {"intent": "recommend", "ingredients": ["cream", "lemon"], "mode": "budget"}}
+{"input": "I'd like no okra, something with pork ok.", "target": {"intent": "recommend", "ingredients": ["pork"], "avoidFoods": ["okra"]}}
+{"input": "i can not eat soy want cream quick", "target": {"intent": "recommend", "ingredients": ["cream", "rice"], "allergies": ["soy"]}}
+{"input": "How about something with rice, chicken, spinach and beef under 30 minutes.", "target": {"intent": "recommend", "ingredients": ["rice", "chicken", "spinach", "beef"], "timeLimit": 30}}
+{"input": "allergic to tree nuts here what can i eat with beans", "target": {"intent": "recommend", "ingredients": ["beans", "bell pepper"], "allergies": ["tree nuts"]}}
+{"input": "What about something with eggs and rice in 15 minutes.", "target": {"intent": "recommend", "ingredients": ["eggs", "rice"], "timeLimit": 15}}
+{"input": "Give me cheap budget meal with chickpeas.", "target": {"intent": "recommend", "ingredients": ["chickpeas", "shrimp"], "mode": "budget"}}
+{"input": "I want use up rice, carrot, peanut butter and potato leftovers.", "target": {"intent": "recommend", "ingredients": ["rice", "carrot", "peanut butter", "potato"], "mode": "food_waste"}}
+{"input": "I need no cilantro, something with tomato.", "target": {"intent": "recommend", "ingredients": ["tomato"], "avoidFoods": ["cilantro"]}}
+{"input": "I'd like no olives, something with potato.", "target": {"intent": "recommend", "ingredients": ["potato"], "avoidFoods": ["olives"]}}
+{"input": "i am allergic to eggs give me something with mushrooms and lentils", "target": {"intent": "recommend", "ingredients": ["mushrooms", "lentils"], "allergies": ["eggs"]}}
+{"input": "Suggest no beef, something with beef thanks.", "target": {"intent": "recommend", "ingredients": ["beef"], "avoidFoods": ["beef"]}}
+{"input": "I need something light and fresh this weekend.", "target": {"intent": "recommend", "craving": "light", "cravingSignals": {"flavors": ["fresh"], "satiety": ["light"]}}}
+{"input": "Cook something cold and refreshing with shrimp for my family.", "target": {"intent": "recommend", "ingredients": ["shrimp"], "craving": "cold", "cravingSignals": {"moods": ["refreshing"], "temperature": ["cold"]}}}
+{"input": "I need no okra, something with bread for my family.", "target": {"intent": "recommend", "ingredients": ["bread"], "avoidFoods": ["okra"]}}
+{"input": "How about fiery cheese dish in 30 minutes if possible.", "target": {"intent": "recommend", "ingredients": ["cheese"], "timeLimit": 30, "spicePreference": "hot"}}
+{"input": "I want no eggplant, something with pasta.", "target": {"intent": "recommend", "ingredients": ["pasta"], "avoidFoods": ["eggplant"]}}
+{"input": "How about no beef, something with noodles.", "target": {"intent": "recommend", "ingredients": ["noodles"], "avoidFoods": ["beef"]}}
+{"input": "I want something with tofu and noodles chinese style.", "target": {"intent": "recommend", "ingredients": ["tofu", "noodles"], "cuisine": "chinese"}}
+{"input": "The weather is nice. cook use up rice, pork, quinoa and pasta before they expire this weekend.", "target": {"intent": "recommend", "ingredients": ["rice", "pork", "quinoa", "pasta"], "mode": "food_waste"}}
+{"input": "Give me no okra, something with mushrooms after work.", "target": {"intent": "recommend", "ingredients": ["mushrooms"], "avoidFoods": ["okra"]}}
+{"input": "Suggest something with potato.", "target": {"intent": "recommend", "ingredients": ["potato"], "mode": "food_waste"}}
+{"input": "i can not eat soy want shrimp quick", "target": {"intent": "recommend", "ingredients": ["shrimp", "quinoa"], "allergies": ["soy"]}}
+{"input": "Give me something with noodles, eggs and quinoa within 45 minutes middle eastern style.", "target": {"intent": "recommend", "ingredients": ["noodles", "eggs", "quinoa"], "timeLimit": 45, "cuisine": "middle eastern"}}
+{"input": "Make me no okra, something with butter.", "target": {"intent": "recommend", "ingredients": ["butter"], "avoidFoods": ["okra"]}}
+{"input": "How about something with shrimp and pork.", "target": {"intent": "recommend", "ingredients": ["shrimp", "pork"]}}
+{"input": "Suggest no pork, something with beef.", "target": {"intent": "recommend", "ingredients": ["beef"], "avoidFoods": ["pork"]}}
+{"input": "Craving no eggplant, something with pasta.", "target": {"intent": "recommend", "ingredients": ["pasta"], "avoidFoods": ["eggplant"]}}
+{"input": "The weather is nice. can you find something with tofu and chicken in 15 minutes after work.", "target": {"intent": "recommend", "ingredients": ["tofu", "chicken"], "timeLimit": 15}}
+{"input": "How about something sweet.", "target": {"intent": "recommend", "craving": "sweet", "cravingSignals": {"flavors": ["sweet"]}}}
+{"input": "I'd like something light and fresh.", "target": {"intent": "recommend", "craving": "light", "cravingSignals": {"flavors": ["fresh"], "satiety": ["light"]}}}
+{"input": "Make me something hearty and filling with tofu.", "target": {"intent": "recommend", "ingredients": ["tofu"], "craving": "hearty", "cravingSignals": {"satiety": ["filling", "hearty"]}}}
+{"input": "Looking for no cilantro, something with eggs.", "target": {"intent": "recommend", "ingredients": ["eggs"], "avoidFoods": ["cilantro"]}}
+{"input": "I'd like something with cream, rice and carrot quick 10 minute meal.", "target": {"intent": "recommend", "ingredients": ["cream", "rice", "carrot"], "timeLimit": 10}}
+{"input": "What about something with garlic, corn, tofu and butter for lunch.", "target": {"intent": "recommend", "ingredients": ["garlic", "corn", "tofu", "butter"], "mode": "food_waste"}}
+{"input": "How about no olives, something with bell pepper.", "target": {"intent": "recommend", "ingredients": ["bell pepper"], "avoidFoods": ["olives"]}}
+{"input": "Give me mildly spiced spinach dish in 2 hours.", "target": {"intent": "recommend", "ingredients": ["spinach"], "timeLimit": 120, "spicePreference": "medium"}}
+{"input": "Make me something with bell pepper and cream american style.", "target": {"intent": "recommend", "ingredients": ["bell pepper", "cream"], "cuisine": "american"}}
+{"input": "I want something hearty and filling with shrimp if possible.", "target": {"intent": "recommend", "ingredients": ["shrimp"], "craving": "hearty", "cravingSignals": {"satiety": ["filling", "hearty"]}}}
+{"input": "Whip up something with tomato quick 10 minute meal.", "target": {"intent": "recommend", "ingredients": ["tomato"], "timeLimit": 10}}
+{"input": "Suggest something crispy and crunchy.", "target": {"intent": "recommend", "craving": "crispy", "cravingSignals": {"textures": ["crispy", "crunchy"]}}}
+{"input": "Make me something creamy this weekend.", "target": {"intent": "recommend", "craving": "creamy", "cravingSignals": {"textures": ["creamy"]}}}
+{"input": "Can you find no okra, something with bell pepper.", "target": {"intent": "recommend", "ingredients": ["bell pepper"], "avoidFoods": ["okra"]}}
+{"input": "What about no mushrooms, something with potato.", "target": {"intent": "recommend", "ingredients": ["potato"], "avoidFoods": ["mushrooms"]}}
+{"input": "i am allergic to shellfish give me something with peanut butter and shrimp", "target": {"intent": "recommend", "ingredients": ["peanut butter", "shrimp"], "allergies": ["shellfish"]}}
+{"input": "i am allergic to dairy give me something with pork and lemon and i do not want mushrooms", "target": {"intent": "recommend", "ingredients": ["pork", "lemon"], "allergies": ["dairy"], "avoidFoods": ["mushrooms"]}}
+{"input": "Craving with heat cream dish in 30 minutes.", "target": {"intent": "recommend", "ingredients": ["cream"], "timeLimit": 30, "spicePreference": "hot"}}
+{"input": "I'd like no pork, something with eggs.", "target": {"intent": "recommend", "ingredients": ["eggs"], "avoidFoods": ["pork"]}}
+{"input": "i can not eat gluten want zucchini quick and i do not want pork", "target": {"intent": "recommend", "ingredients": ["zucchini", "cream"], "allergies": ["gluten"], "avoidFoods": ["pork"]}}
+{"input": "I'd like something with lemon, yogurt and corn under 30 minutes for two people.", "target": {"intent": "recommend", "ingredients": ["lemon", "yogurt", "corn"], "timeLimit": 30}}
+{"input": "i can not eat soy want eggs quick", "target": {"intent": "recommend", "ingredients": ["eggs", "zucchini"], "allergies": ["soy"]}}
+{"input": "How about no heat pasta dish in 20 minutes.", "target": {"intent": "recommend", "ingredients": ["pasta"], "timeLimit": 20, "spicePreference": "mild"}}
+{"input": "Looking for something with potato african style.", "target": {"intent": "recommend", "ingredients": ["potato"], "cuisine": "african"}}
+{"input": "Looking for no mushrooms, something with beans.", "target": {"intent": "recommend", "ingredients": ["beans"], "avoidFoods": ["mushrooms"]}}
+{"input": "i am allergic to eggs give me something with butter and cream and i do not want mushrooms", "target": {"intent": "recommend", "ingredients": ["butter", "cream"], "allergies": ["eggs"], "avoidFoods": ["mushrooms"]}}
+{"input": "Cook something with eggs, salmon and milk.", "target": {"intent": "recommend", "ingredients": ["eggs", "salmon", "milk"]}}
+{"input": "I feel like something creamy with tomato.", "target": {"intent": "recommend", "ingredients": ["tomato"], "craving": "creamy", "cravingSignals": {"textures": ["creamy"]}}}
+{"input": "Whip up something with lentils and beef.", "target": {"intent": "recommend", "ingredients": ["lentils", "beef"]}}
+{"input": "I feel like something with beef and shrimp in 20 minutes.", "target": {"intent": "recommend", "ingredients": ["beef", "shrimp"], "timeLimit": 20}}
+{"input": "I feel like something with beans, pork, peanut butter and noodles for lunch.", "target": {"intent": "recommend", "ingredients": ["beans", "pork", "peanut butter", "noodles"]}}
+{"input": "Whip up no olives, something with salmon.", "target": {"intent": "recommend", "ingredients": ["salmon"], "avoidFoods": ["olives"]}}
+{"input": "no peanuts for me i have garlic and i do not want pork", "target": {"intent": "recommend", "ingredients": ["garlic", "butter"], "allergies": ["peanuts"], "avoidFoods": ["pork"]}}

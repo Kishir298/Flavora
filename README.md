@@ -5,12 +5,39 @@ Personal data and recipe data stay on your machine. Core recommendations never r
 
 ## Quickstart
 
+Requirements:
+
+- Node.js 20+
+- Python 3.11+
+
+Run:
+
+```bash
+npm run start
+```
+
+Then open:
+
+```text
+http://localhost:5173
+```
+
+`npm run start` does everything: installs npm dependencies, creates the local
+Python environment (`.flavoralm-venv/`), initializes SQLite via Prisma, seeds
+recipe data, verifies the FlavoraLM model artifacts, starts the FlavoraLM
+inference service (`127.0.0.1:5000`), starts Express (`localhost:4000`) and
+Vite (`localhost:5173`), prints the service URLs, and opens the browser where
+supported. Re-running it is safe: it never overwrites `.env` and never deletes
+the database.
+
+Manual alternative (same steps, piece by piece):
+
 ```bash
 cp .env.example .env
 npm install
 npm run db:push
 npm run db:seed
-npm run dev          # client :5173 + server :4000
+npm run dev          # client :5173 + server :4000 (+ FlavoraLM if already running)
 ```
 
 Open http://localhost:5173 → Onboarding → Assistant → Detail → Saved → Settings / Explorer.
@@ -24,61 +51,91 @@ GROQ_API_KEY=your_key_here
 
 Without `GROQ_API_KEY`, natural-language requests still work via a local heuristic intent parser. Ranking and allergy filtering always run on the local engine.
 
-## Local AI / LLM (optional, genuinely local)
+## Local AI — FlavoraLM (our own model, genuinely local)
 
-Flavora can use a **real local LLM** (via [Ollama](https://ollama.com)) to interpret natural-language requests. Inference runs entirely on your machine — no request data leaves it. This is a real model runtime, not the heuristic parser (see below).
+Flavora interprets natural-language requests with **FlavoraLM**, a small
+language model we designed, trained, and versioned ourselves for Flavora's
+food-assistant tasks. Inference runs entirely on your machine — no request
+data leaves it. This is a real neural model runtime, not the heuristic parser
+(see below).
 
-**Prerequisites**
+- **Architecture:** decoder-only Transformer (PyTorch), defined in
+  `training/flavora_lm/model.py`, randomly initialized, trained with causal
+  next-token prediction on a Flavora-specific synthetic corpus.
+- **Tokenizer:** custom BPE tokenizer trained on the Flavora corpus
+  (`training/flavora_lm/tokenizer.py`) — no pretrained vocabulary.
+- **Artifacts:** `models/flavora-lm/v0.1/` (`config.json`, `tokenizer.json`,
+  `model.pt`, `training_state.pt`, `metrics.json`, `training_meta.json`).
+- **Service:** `training/flavora_lm/service.py` serves
+  `GET /health`, `POST /generate`, `POST /intent` on `127.0.0.1:5000`.
+  The browser never talks to it directly — Express (`localhost:4000`) is the
+  application gateway.
 
-- [Ollama](https://ollama.com/download) installed
-- ~2 GB disk for the model; 8 GB+ RAM recommended
-
-**Setup (tested commands)**
-
-```bash
-ollama serve                  # start the runtime (default port 11434)
-ollama pull qwen2.5:3b        # one-time model download (~1.9 GB)
-curl http://127.0.0.1:11434/api/tags   # health check — should return JSON
-```
-
-Then start Flavora normally (`npm run dev`). With the default `AI_PROVIDER=auto`, the local model is used automatically whenever the runtime is reachable.
-
-**Verify Flavora is actually using the local model**
+**Verify Flavora is actually using our model**
 
 ```bash
 curl http://localhost:4000/api/health
-# → ai.localLlm.available: true, ai.resolvedProvider: "local"
+# → ai.resolvedProvider: "local", ai.localModel.name: "FlavoraLM…"
 
-# Full end-to-end check against the real runtime (prints source: local):
-cd server && AI_PROVIDER=local npx tsx scripts/verifyLocalLlm.ts
+# Full end-to-end check with real inference (prints provider: local):
+npm run verify:local-ai
 ```
 
-In the UI, the assistant notice line names its source (`local` / `groq` / `heuristic`).
+In the UI, the assistant status line names its source (`AI: FlavoraLM v0.1` /
+`AI: Heuristic` / `AI: Groq`).
 
 **Environment variables** (all in `.env`, never client-side)
 
 ```bash
-LOCAL_LLM_ENABLED=true                          # master switch (default true)
-LOCAL_LLM_HOST=http://127.0.0.1:11434           # must be a local address
-LOCAL_LLM_MODEL=qwen2.5:3b                      # any Ollama model tag
-LOCAL_LLM_TIMEOUT_MS=300000                     # 5 min default
-AI_PROVIDER=auto                                # auto | local | groq | heuristic
+FLAVORA_LM_ENABLED=true                 # master switch (default true)
+FLAVORA_LM_HOST=http://127.0.0.1:5000   # must be a local address
+FLAVORA_LM_TIMEOUT_MS=30000
+AI_PROVIDER=auto                        # auto | local | groq | heuristic
 ```
 
 **Provider selection**
 
 | `AI_PROVIDER` | Behavior |
 |---|---|
-| `auto` (default) | local LLM if running → Groq if key set → heuristic |
-| `local` | local LLM only. If it is not running you get an explicit notice and the request is **not** silently sent to Groq |
+| `auto` (default) | FlavoraLM if running → Groq if key set → heuristic |
+| `local` | FlavoraLM only. If it is not running you get an explicit notice and the request is **not** silently sent to Groq |
 | `groq` | Groq only; falls back to the heuristic parser if the call fails |
 | `heuristic` | deterministic local parsing, no LLM at all |
 
 **What happens when the model is unavailable:** with `auto`, Flavora falls back to Groq (if configured) or the heuristic parser and says so in the response notice. With `local`, you get an explicit unavailability notice — no silent provider switch.
 
-**Performance note (honest):** on a typical laptop CPU, cold model load takes ~40 s and the first request may take 1–3 minutes; warm requests are far faster. The verify script sends a warm-up request first. On GPU machines this is seconds. If your hardware is slower, raise `LOCAL_LLM_TIMEOUT_MS` or use a smaller model.
+**Performance note (honest):** FlavoraLM is a small CPU-friendly model; inference
+is seconds on a laptop, not minutes. Intent extraction uses greedy
+(near-deterministic) decoding so the same request yields the same structured
+intent.
 
-**How this differs from the heuristic parser:** the heuristic parser is *not* an LLM — it is plain deterministic code (vocabulary tables + negation handling) that always runs and never sends data anywhere. The local LLM is a genuine language model that understands messier prose but needs the Ollama runtime. Groq is a remote service and sends your message text to it.
+### Training FlavoraLM yourself
+
+No downloads — training runs locally from the synthetic corpus generator:
+
+```bash
+npm run train:llm:dev   # fast dev model (CI-sized, minutes)
+npm run train:llm       # full small model (longer)
+npm run evaluate:llm    # held-out evaluation → models/flavora-lm/v0.1/eval.json
+```
+
+Pipeline: `training/build_dataset.py` (generate + validate splits) →
+`training/train.py` (train tokenizer on corpus → encode → random init →
+train with masked-completion loss → checkpoint each epoch → save artifacts +
+`training_meta.json`) → `training/evaluate.py` (intent/field accuracy,
+invalid-JSON rate, negation handling, repeatability on the held-out test set).
+
+Training is separated from startup: normal `npm run start` never retrains.
+
+**Troubleshooting model startup**
+
+| Symptom | Fix |
+|---|---|
+| `verify:local-ai` → service FAIL | Run `npm run start` (it launches the service), or `npm run lm:serve` manually |
+| Port 5000 busy on macOS (AirPlay Receiver) | Disable AirPlay Receiver in System Settings, or set `FLAVORA_LM_PORT=5001` |
+| Service up but model not loaded | Check `models/flavora-lm/v0.1/model.pt`; retrain with `npm run train:llm:dev` |
+| `.flavoralm-venv` broken/missing | Delete it and run `npm run setup` (recreates + installs torch CPU) |
+| Python < 3.11 | Install Python 3.11+ and re-run |
 
 **What works with no AI provider at all:** everything except free-text intent extraction — recipes, recommendations, filtering, inventory, groceries, meal plans, substitutions, and the deterministic engine. Structured UI requests never touch AI.
 
@@ -104,7 +161,13 @@ The retrain trigger prefers `server/src/engine/.venv/bin/python` when that venv 
 
 | cmd | what |
 |---|---|
+| `npm run start` | one-command setup + launch (deps, DB, seed, FlavoraLM, API, website) |
+| `npm run setup` | setup only (no services started) |
 | `npm run dev` | client + server concurrently |
+| `npm run train:llm` / `train:llm:dev` | train FlavoraLM (small / fast dev config) |
+| `npm run evaluate:llm` | held-out FlavoraLM evaluation |
+| `npm run verify:local-ai` | 8-step real-inference FlavoraLM verification |
+| `npm run lm:serve` | run the FlavoraLM inference service manually |
 | `npm run test` | server unit+integration + client component tests |
 | `npm run test:e2e` | Playwright critical paths |
 | `npx playwright test --config=playwright.offline.config.ts` (in `client/`) | offline sync E2E (needs a client build; runs `vite preview`) |
@@ -113,10 +176,41 @@ The retrain trigger prefers `server/src/engine/.venv/bin/python` when that venv 
 ## Architecture
 
 ```text
+┌─────────────────────────────┐
+│          Browser            │
+│       localhost:5173        │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│       Flavora Express       │
+│       localhost:4000        │
+└───────┬─────────────┬───────┘
+        │             │
+        │             ▼
+        │    ┌─────────────────┐
+        │    │   FlavoraLM     │
+        │    │  127.0.0.1:5000 │
+        │    └────────┬────────┘
+        │             │
+        │             ▼
+        │       Our model
+        │       Our weights
+        │       Our tokenizer
+        │
+        ▼
+┌─────────────────────────────┐
+│    Deterministic Engine     │
+│ Allergy / Avoid Filtering   │
+│ Recommendation Ranking      │
+└─────────────────────────────┘
+```
+
+```text
 User request (form or natural language)
         ↓
 AI provider abstraction
-  local LLM (Ollama)  |  Groq (optional, remote)  |  heuristic parser
+  FlavoraLM (our model)  |  Groq (optional, remote)  |  heuristic parser
   — output is schema-validated, never decides allergen safety
         ↓
 Deterministic recommendation engine
@@ -135,7 +229,7 @@ Optional short assistant reply (explains engine results only)
 - **Recipe data** — `prisma/schema.prisma`, `data/*.json`, `server/src/recipesDb.ts` (local SQLite; no network)
 - **Engine** — `server/src/engine/*` (filter → features → scorer → recommend; `retrain.py` for learning)
 - **API** — thin Express routes; business logic stays in the engine / AI modules
-- **AI** — `server/src/ai/*` provider abstraction (`LocalLlmProvider` / `GroqProvider` / heuristic; `AI_PROVIDER` selects). Keys stay server-side; the local host must be a local address.
+- **AI** — `server/src/ai/*` provider abstraction (`LocalLlmProvider` → FlavoraLM service / `GroqProvider` / heuristic; `AI_PROVIDER` selects). Keys stay server-side; the local host must be a local address. `local` means our FlavoraLM — never Ollama, never a third-party model.
 - **Client** — React screens talk only through `client/src/lib/api.ts`
 
 ### Recommendation API
@@ -187,7 +281,7 @@ This goes offline (Chromium emulation), adds an inventory item, reloads the page
 
 ### Limitations (honest)
 
-- Local LLM intent extraction is slow on CPU-only machines (see performance note) and needs Ollama running; the assistant validates its output and falls back to the heuristic parser on malformed/failed responses.
+- FlavoraLM is a small model: intent extraction is fast on CPU, but nuanced prose can still fall back to the heuristic parser; the assistant validates its output and falls back on malformed/failed responses. Retrain with `npm run train:llm` to improve it.
 - Structured cravings cover common vocab with negation handling; nuanced prose still falls back to token overlap.
 - Unit conversion is allowlist-only (g/kg, ml/l/tsp/tbsp/cup, pieces); ambiguous units never convert.
 - Budget uses authored cost tiers, never live prices.

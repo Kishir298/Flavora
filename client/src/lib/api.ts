@@ -126,8 +126,18 @@ export const api = {
       ai?: {
         groqConfigured: boolean;
         providerSelection?: string;
+        configuredProvider?: string;
         resolvedProvider?: string;
         localLlm?: { enabled: boolean; host: string; model: string; available: boolean };
+        localModel?: {
+          name: string;
+          version: string | null;
+          serviceReachable: boolean;
+          loaded: boolean;
+          device: string | null;
+          tokenizerVersion: string | null;
+          parameterCount: number | null;
+        };
       };
     }>("/api/health"),
   getProfile: () => req<Profile>("/api/profile"),

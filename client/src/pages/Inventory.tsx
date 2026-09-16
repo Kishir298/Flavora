@@ -127,7 +127,7 @@ export function Inventory() {
   const expiring = items.filter((i) => i.status === "expiring_soon" || i.status === "expired");
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6">
+    <div className="mx-auto max-w-3xl px-4 py-6">
       <h1 className="text-2xl font-bold">Inventory</h1>
       {!online && <p role="status" className="mt-2 rounded bg-amber-100 px-3 py-2 text-sm">You&apos;re offline. Changes are saved locally and will sync when connection returns.{pending > 0 && ` (${pending} pending)`}</p>}
       {msg && <p role="status" className="mt-2 text-sm text-green-700">{msg}</p>}
@@ -208,6 +208,6 @@ export function Inventory() {
           <p className="text-sm opacity-70">Dates are your own estimates, not food-safety verdicts.</p>
         </section>
       )}
-    </main>
+    </div>
   );
 }

@@ -115,7 +115,7 @@ export function RecipeDetail() {
     (recipe.substitutions && Object.keys(recipe.substitutions).length > 0);
 
   return (
-    <main className="p-6 max-w-2xl mx-auto">
+    <div className="p-6 max-w-2xl mx-auto">
       <p className="mb-3">
         <Link to="/" className="text-sm text-green-700 dark:text-green-400 underline">
           ← Back to assistant
@@ -274,6 +274,6 @@ export function RecipeDetail() {
           </details>
         )}
       </div>
-    </main>
+    </div>
   );
 }

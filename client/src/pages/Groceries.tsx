@@ -102,7 +102,7 @@ export function Groceries() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6">
+    <div className="mx-auto max-w-3xl px-4 py-6">
       <h1 className="text-2xl font-bold">Grocery list</h1>
       {!online && <p role="status" className="mt-2 rounded bg-amber-100 px-3 py-2 text-sm">You&apos;re offline. Changes are saved locally and will sync when connection returns.{pending > 0 && ` (${pending} pending)`}</p>}
       {msg && <p role="status" className="mt-2 text-sm text-green-700">{msg}</p>}
@@ -181,6 +181,6 @@ export function Groceries() {
           </ul>
         </section>
       )}
-    </main>
+    </div>
   );
 }

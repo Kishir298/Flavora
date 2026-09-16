@@ -115,7 +115,7 @@ export function MealPlan() {
   };
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-6">
+    <div className="mx-auto max-w-4xl px-4 py-6">
       <h1 className="text-2xl font-bold">Meal plan</h1>
       {!online && <p role="status" className="mt-2 rounded bg-amber-100 px-3 py-2 text-sm">You&apos;re offline. Changes are saved locally and will sync when connection returns.{pending > 0 && ` (${pending} pending)`}</p>}
       {error && <p role="alert" className="mt-2 text-sm text-red-700">{error}</p>}
@@ -200,6 +200,6 @@ export function MealPlan() {
           {nutrition.week.unknown ? " (some values unknown — not invented)" : ""}
         </p>
       )}
-    </main>
+    </div>
   );
 }

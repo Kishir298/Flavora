@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type Profile } from "../lib/api";
+import { AiStatus } from "../components/AiStatus";
 import { ProfileForm } from "../components/ProfileForm";
 
 export function Settings({ onTheme }: { onTheme: (t: string) => void }) {
@@ -28,12 +29,15 @@ export function Settings({ onTheme }: { onTheme: (t: string) => void }) {
   if (!profile) return <p className="p-6">Loading…</p>;
 
   return (
-    <main className="p-6 max-w-xl mx-auto">
+<div className="p-6 max-w-xl mx-auto">
       <h1 className="text-2xl font-bold">Settings</h1>
       <p className="mt-1 text-sm opacity-70">
         Preferences feed filtering and ranking. Learning starts from default weights and personalises after enough
         cooks/saves/skips (local only).
       </p>
+      <div className="mt-2">
+        <AiStatus />
+      </div>
       <div className="mt-4">
         <ProfileForm
           initial={profile}
@@ -113,6 +117,6 @@ export function Settings({ onTheme }: { onTheme: (t: string) => void }) {
           </p>
         )}
       </div>
-    </main>
+    </div>
   );
 }

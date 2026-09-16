@@ -28,7 +28,21 @@ export function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <div className="min-h-screen bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
-          <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:bg-white focus:p-2">Skip to content</a>
+          <a
+            href="#main"
+            onClick={(e) => {
+              // Move focus (not just scroll) so screen-reader and keyboard
+              // users land in the main content.
+              const main = document.getElementById("main");
+              if (main) {
+                e.preventDefault();
+                main.focus({ preventScroll: false });
+              }
+            }}
+            className="sr-only focus:not-sr-only focus:absolute focus:bg-white focus:p-2"
+          >
+            Skip to content
+          </a>
           <nav className="border-b border-neutral-200 dark:border-neutral-800 px-4 py-2 flex gap-4 text-sm" aria-label="main">
             <Link to="/" className="font-bold text-green-700 dark:text-green-400">Flavora</Link>
             <Link to="/">Assistant</Link>
@@ -41,7 +55,7 @@ export function App() {
             <Link to="/onboarding" className="ml-auto opacity-70">Profile</Link>
           </nav>
           <SyncBanner />
-          <main id="main">
+          <main id="main" tabIndex={-1}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/onboarding" element={<Onboarding />} />

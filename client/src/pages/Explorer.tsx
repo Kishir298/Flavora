@@ -62,7 +62,7 @@ export function Explorer() {
   }
 
   return (
-    <main className="p-6 max-w-2xl mx-auto">
+<div className="p-6 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold">Cuisine Explorer</h1>
       <p className="mt-1 text-sm opacity-70">
         Ten world cuisines — ranked by your profile, always filtered to your allergies.
@@ -103,6 +103,6 @@ export function Explorer() {
           </div>
         )}
       </div>
-    </main>
+    </div>
   );
 }

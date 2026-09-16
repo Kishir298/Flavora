@@ -32,7 +32,7 @@ export function Saved() {
   }
 
   return (
-    <main className="p-6 max-w-2xl mx-auto">
+<div className="p-6 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold">Saved</h1>
       {error && (
         <p role="alert" className="mt-2 text-sm text-red-600">
@@ -64,6 +64,6 @@ export function Saved() {
           </div>
         )}
       </div>
-    </main>
+    </div>
   );
 }

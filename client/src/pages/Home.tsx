@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api, type Recommendation, type RecipeResult, type RecommendMode } from "../lib/api";
+import { AiStatus, type AiSource } from "../components/AiStatus";
 import { RecipeCard } from "../components/RecipeCard";
 
 function toCard(r: Recommendation): RecipeResult {
@@ -40,6 +41,7 @@ export function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [asked, setAsked] = useState(false);
+  const [aiSource, setAiSource] = useState<AiSource>(null);
 
   function rememberHave(have: string[]) {
     try {
@@ -85,6 +87,7 @@ export function Home() {
       setResults(res.recommendations);
       setReply(res.reply);
       setNotice(res.notice ?? "");
+      setAiSource(res.source);
       if (res.intent.availableIngredients?.length) {
         rememberHave(res.intent.availableIngredients);
         setIngredients(res.intent.availableIngredients.join(", "));
@@ -101,7 +104,7 @@ export function Home() {
   }
 
   return (
-    <main className="p-6 max-w-2xl mx-auto">
+<div className="p-6 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold">What should you cook?</h1>
       <p className="mt-1 text-sm opacity-70">
         Tell Flavora what you have — it handpicks practical meals from your local recipe library.
@@ -124,6 +127,7 @@ export function Home() {
         <p className="text-xs opacity-60">
           Optional AI parses intent on the server; ranking stays local and allergy-safe. Works without an API key via local parsing.
         </p>
+        <AiStatus source={aiSource} />
       </form>
 
       <form onSubmit={askStructured} className="mt-6 space-y-3" aria-label="assistant-form">
@@ -185,6 +189,6 @@ export function Home() {
           </div>
         )}
       </section>
-    </main>
+    </div>
   );
 }

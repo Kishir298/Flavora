@@ -17,13 +17,22 @@ export const config = {
   groqApiKey: process.env.GROQ_API_KEY?.trim() || "",
   groqModel: process.env.GROQ_MODEL?.trim() || "llama-3.3-70b-versatile",
   /**
-   * Local LLM (Ollama-compatible). All requests stay on this machine —
-   * the host must be a local address; remote hosts are refused.
+   * FlavoraLM — our own local language model (training/flavora_lm).
+   * All requests stay on this machine — the host must be a local address;
+   * remote hosts are refused. `local` provider mode means FlavoraLM.
+   *
+   * FLAVORA_LM_* is canonical; legacy LOCAL_LLM_* vars still work as fallback.
    */
-  localLlmEnabled: parseBool(process.env.LOCAL_LLM_ENABLED, true),
-  localLlmHost: process.env.LOCAL_LLM_HOST?.trim() || "http://127.0.0.1:11434",
-  localLlmModel: process.env.LOCAL_LLM_MODEL?.trim() || "qwen2.5:3b",
-  localLlmTimeoutMs: Number(process.env.LOCAL_LLM_TIMEOUT_MS ?? 300_000),
+  localLlmEnabled: parseBool(process.env.FLAVORA_LM_ENABLED ?? process.env.LOCAL_LLM_ENABLED, true),
+  localLlmHost:
+    process.env.FLAVORA_LM_HOST?.trim() ||
+    process.env.LOCAL_LLM_HOST?.trim() ||
+    `http://127.0.0.1:${process.env.FLAVORA_LM_PORT?.trim() || "5000"}`,
+  localLlmModel:
+    process.env.FLAVORA_LM_MODEL?.trim() || process.env.LOCAL_LLM_MODEL?.trim() || "FlavoraLM",
+  localLlmTimeoutMs: Number(
+    process.env.FLAVORA_LM_TIMEOUT_MS ?? process.env.LOCAL_LLM_TIMEOUT_MS ?? 30_000
+  ),
   /**
    * Provider selection: "local" | "groq" | "heuristic" | "auto".
    * auto = local (if reachable) → groq (if key set) → heuristic.

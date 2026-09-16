@@ -14,6 +14,7 @@ import { groceriesRouter } from "./routes/groceries.js";
 import { mealPlansRouter } from "./routes/mealPlans.js";
 import { config } from "./config.js";
 import { createAIProvider } from "./ai/provider.js";
+import type { LocalLlmStatus } from "./ai/localLlmProvider.js";
 
 import { prisma } from "./db.js";
 
@@ -25,24 +26,46 @@ export function createApp() {
   app.use(requestLogger);
 
   app.get("/api/health", async (_req, res) => {
+    let dbOk = true;
+    let dbError: string | undefined;
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+    } catch (e) {
+      dbOk = false;
+      dbError = e instanceof Error ? e.message : String(e);
+    }
     const { provider, resolvedMode } = createAIProvider();
-    const probed = provider as { probeAvailability?: () => Promise<boolean> };
-    const localAvailable =
-      resolvedMode === "local" && typeof probed.probeAvailability === "function"
-        ? await probed.probeAvailability()
-        : false;
+    const probed = provider as { probeStatus?: () => Promise<LocalLlmStatus> };
+    const localStatus =
+      resolvedMode === "local" && typeof probed.probeStatus === "function"
+        ? await probed.probeStatus()
+        : null;
     res.json({
       ok: true,
       service: "flavora",
+      version: 1,
+      db: { ok: dbOk, error: dbError },
       ai: {
         groqConfigured: Boolean(config.groqApiKey),
         providerSelection: config.aiProvider,
+        configuredProvider: config.aiProvider,
         resolvedProvider: resolvedMode,
         localLlm: {
           enabled: config.localLlmEnabled,
           host: config.localLlmHost,
           model: config.localLlmModel,
-          available: localAvailable,
+          runtimeReachable: localStatus?.runtimeReachable ?? false,
+          modelInstalled: localStatus?.modelInstalled ?? false,
+          available: localStatus?.usable ?? false,
+        },
+        localModel: {
+          name: localStatus?.model ?? config.localLlmModel,
+          version: localStatus?.version ?? null,
+          serviceReachable: localStatus?.runtimeReachable ?? false,
+          loaded: localStatus?.usable ?? false,
+          device: localStatus?.device ?? null,
+          tokenizerVersion: localStatus?.tokenizerVersion ?? null,
+          parameterCount: localStatus?.parameterCount ?? null,
         },
       },
     });

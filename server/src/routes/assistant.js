@@ -77,6 +77,22 @@ assistantRouter.post("/", async (req, res, next) => {
     const row = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
     let profile = loadProfile(row);
 
+    // Additive safety constraints from natural language ("allergic to peanuts",
+    // "no mushrooms"): union intent-stated exclusions with the stored profile.
+    // The AI can only ADD exclusions — it can never remove profile allergies
+    // or approve unsafe recipes. The deterministic hard filter runs after this.
+    const unionStrings = (...lists) => [...new Set(lists.flat().map((s) => String(s ?? "").toLowerCase().trim()).filter(Boolean))];
+    if (intent.allergies?.length || intent.avoidFoods?.length) {
+      const allergies = unionStrings(profile.allergies, intent.allergies ?? []);
+      const avoidFoods = unionStrings(profile.avoidFoods, intent.avoidFoods ?? []);
+      profile = {
+        ...profile,
+        allergies,
+        avoidFoods,
+        avoid_foods: avoidFoods,
+      };
+    }
+
     // Soft preference overlays from intent (never allergies).
     if (intent.preferences?.spice) {
       profile = { ...profile, spicePreference: intent.preferences.spice, spice_preference: intent.preferences.spice, spice: intent.preferences.spice };

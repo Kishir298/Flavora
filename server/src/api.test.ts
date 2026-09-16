@@ -230,7 +230,7 @@ describe("assistant NL → engine (no live Groq required)", () => {
       .post("/api/assistant")
       .send({ message: "I have pasta and tomato. I only have 30 minutes. Something Italian and easy." });
     expect(res.status).toBe(200);
-    expect(res.body.source).toMatch(/heuristic|groq|provided/);
+    expect(res.body.source).toMatch(/heuristic|groq|provided|local/);
     expect(res.body.reply).toBeTruthy();
     expect(Array.isArray(res.body.recommendations)).toBe(true);
     expect(res.body.intent.timeLimit).toBe(30);
@@ -270,5 +270,39 @@ describe("assistant NL → engine (no live Groq required)", () => {
     expect(res.status).toBe(200);
     const flat = JSON.stringify(res.body.substitutionDetails ?? res.body.substitutions ?? {}).toLowerCase();
     expect(flat).not.toMatch(/peanut butter/);
+  });
+});
+
+describe("GET /api/health", () => {
+  it("returns service + db status and a truthful detailed AI payload", async () => {
+    const res = await request(app).get("/api/health");
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.service).toBe("flavora");
+    // DB status must be measured, not assumed — and true here (test DB is pushed+seeded).
+    expect(res.body.db).toEqual({ ok: true, error: undefined });
+    const ai = res.body.ai;
+    expect(ai.providerSelection).toBeTruthy();
+    expect(["local", "groq", "heuristic", "auto"]).toContain(ai.resolvedProvider);
+    const llm = ai.localLlm;
+    expect(llm.enabled).toBe(true);
+    expect(llm.model).toBeTruthy();
+    // No FlavoraLM service in CI/test env: service not reachable, so these MUST be false (never fabricated).
+    expect(llm.runtimeReachable).toBe(false);
+    expect(llm.modelInstalled).toBe(false);
+    expect(llm.available).toBe(false);
+    // §21 localModel block mirrors the same measured values.
+    const lm = ai.localModel;
+    expect(lm.serviceReachable).toBe(false);
+    expect(lm.loaded).toBe(false);
+    expect(lm.name).toBeTruthy();
+  });
+
+  it("never leaks secrets in the health payload", async () => {
+    const res = await request(app).get("/api/health");
+    const flat = JSON.stringify(res.body).toLowerCase();
+    expect(flat).not.toContain("apikey");
+    expect(flat).not.toContain("api_key");
+    expect(flat).not.toContain("groq_api_key");
   });
 });

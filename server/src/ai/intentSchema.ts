@@ -118,6 +118,14 @@ export function normalizeIntent(raw: unknown): RecommendationIntent {
   if (prefsRaw.lowCarb === true) preferences.lowCarb = true;
   if (Object.keys(preferences).length) intent.preferences = preferences;
 
+  // Additive safety constraints from natural language ("allergic to peanuts",
+  // "no mushrooms"). These only ever ADD exclusions downstream — the route
+  // unions them with the stored profile before the hard filter runs.
+  const allergies = asStringArray(src.allergies ?? src.allergens);
+  if (allergies) intent.allergies = allergies.slice(0, 12);
+  const avoidFoods = asStringArray(src.avoidFoods ?? src.avoid_foods ?? src.avoid);
+  if (avoidFoods) intent.avoidFoods = avoidFoods.slice(0, 12);
+
   return intent;
 }
 

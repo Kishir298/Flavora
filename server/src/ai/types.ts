@@ -18,6 +18,14 @@ export interface RecommendationIntent {
   mode?: RecommendMode;
   craving?: string | null;
   cravingSignals?: CravingSignals;
+  /**
+   * Safety constraints stated in natural language ("allergic to peanuts",
+   * "no mushrooms"). Additive only: the route unions these with the stored
+   * profile before the deterministic hard filter runs. The AI can add
+   * exclusions but never remove them.
+   */
+  allergies?: string[];
+  avoidFoods?: string[];
   preferences?: {
     spice?: "mild" | "medium" | "hot";
     skill?: "beginner" | "intermediate" | "advanced";

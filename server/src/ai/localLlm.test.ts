@@ -9,37 +9,49 @@ import type { AIProvider } from "./types.js";
 
 describe("ai/localLlmProvider — local-only enforcement", () => {
   it("accepts loopback/localhost hosts", () => {
-    expect(isLocalHost("http://127.0.0.1:11434")).toBe(true);
-    expect(isLocalHost("http://localhost:11434")).toBe(true);
-    expect(isLocalHost("http://[::1]:11434")).toBe(true);
-    expect(isLocalHost("http://box.local:11434")).toBe(true);
+    expect(isLocalHost("http://127.0.0.1:5000")).toBe(true);
+    expect(isLocalHost("http://localhost:5000")).toBe(true);
+    expect(isLocalHost("http://[::1]:5000")).toBe(true);
+    expect(isLocalHost("http://box.local:5000")).toBe(true);
   });
 
   it("refuses remote hosts — local mode can never contact a remote service", () => {
     expect(isLocalHost("https://api.example.com")).toBe(false);
-    expect(isLocalHost("http://192.168.1.10:11434")).toBe(false);
+    expect(isLocalHost("http://192.168.1.10:5000")).toBe(false);
     expect(isLocalHost("not a url")).toBe(false);
     expect(() => new LocalLlmProvider({ host: "https://api.example.com" })).toThrow(LocalLlmError);
   });
 
-  it("reports unreachable runtime via probeAvailability (no server in CI)", async () => {
-    const p = new LocalLlmProvider({ host: "http://127.0.0.1:11434", timeoutMs: 1000 });
-    // In CI no Ollama runs — probe must return false, never throw.
+  it("reports unreachable service via probeAvailability (no service in CI)", async () => {
+    const p = new LocalLlmProvider({ host: "http://127.0.0.1:5000", timeoutMs: 1000 });
+    // In CI no FlavoraLM service runs — probe must return false, never throw.
     const ok = await p.probeAvailability();
     expect(ok).toBe(false);
     expect(p.isAvailable()).toBe(false);
   });
 
-  it("complete() on unreachable runtime throws a clear local error", async () => {
-    const p = new LocalLlmProvider({ host: "http://127.0.0.1:11434", timeoutMs: 1000 });
+  it("probeStatus reports unreachable fields honestly (never fabricated)", async () => {
+    const p = new LocalLlmProvider({ host: "http://127.0.0.1:5000", timeoutMs: 1000 });
+    const status = await p.probeStatus();
+    expect(status).toEqual({ runtimeReachable: false, modelInstalled: false, usable: false });
+  });
+
+  it("complete() on unreachable service throws a clear local error", async () => {
+    const p = new LocalLlmProvider({ host: "http://127.0.0.1:5000", timeoutMs: 1000 });
     await expect(p.complete("sys", "hi")).rejects.toThrow(LocalLlmError);
     await expect(p.complete("sys", "hi")).rejects.toThrow(/unreachable|HTTP/);
+  });
+
+  it("never contacts remote hosts even when asked (local mode is loopback-only)", async () => {
+    // Constructor refusal is the enforcement point — no instance can target remote.
+    expect(() => new LocalLlmProvider({ host: "http://10.0.0.5:5000" })).toThrow(LocalLlmError);
+    expect(() => new LocalLlmProvider({ host: "https://inference.example.com" })).toThrow(LocalLlmError);
   });
 });
 
 describe("ai/provider selection modes", () => {
-  it("auto without local runtime and without key resolves to heuristic", () => {
-    const { provider, resolvedMode } = createAIProvider({ selection: "auto", localHost: "http://127.0.0.1:11434" });
+  it("auto without local service and without key resolves to heuristic", () => {
+    const { provider, resolvedMode } = createAIProvider({ selection: "auto", localHost: "http://127.0.0.1:5000" });
     // Provider is constructible but not reachable; without a Groq key resolved mode stays local-preferring.
     expect(resolvedMode === "local" || resolvedMode === "heuristic").toBe(true);
     expect(provider.isAvailable()).toBe(false);
@@ -64,7 +76,7 @@ describe("ai/provider selection modes", () => {
     expect(provider.isAvailable()).toBe(false);
   });
 
-  it("local mode with refused/absent runtime stays local-only (unavailable provider, no groq)", () => {
+  it("local mode with refused/absent service stays local-only (unavailable provider, no groq)", () => {
     const { provider, resolvedMode } = createAIProvider({ selection: "local", apiKey: "groq-key-exists" });
     expect(resolvedMode).toBe("local");
     expect(provider.name).toBe("local");

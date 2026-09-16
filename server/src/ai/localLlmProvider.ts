@@ -1,22 +1,22 @@
 import type { AIProvider } from "./types.js";
 
 /**
- * Local LLM provider (Ollama-compatible chat API).
+ * Local AI provider — FlavoraLM, our own small language model.
+ *
+ * Talks only to the local FlavoraLM inference service
+ * (training/flavora_lm/service.py, default http://127.0.0.1:5000):
+ *   GET  /health    → model identity (measured, never fabricated)
+ *   POST /generate  → actual token generation
+ *   POST /intent    → natural language → validated structured intent
+ *
  * Genuinely local: the configured host must be a loopback/localhost address,
  * so selecting this provider can never contact a remote service.
- * All requests stay on the user's machine.
+ * No Ollama, no pretrained third-party model, no hosted inference API.
  */
 
-const DEFAULT_HOST = "http://127.0.0.1:11434";
-const DEFAULT_MODEL = "qwen2.5:3b";
-/** Generous default: CPU-only machines may need ~40s cold model load + very slow prompt eval. */
-const DEFAULT_TIMEOUT_MS = 300_000;
-/**
- * Compact intent prompt for local models: long prompts dominate CPU prompt-eval
- * time (seconds per token on low-end hardware), so the default system prompt is
- * a minimal variant. Set LOCAL_LLM_FULL_PROMPT=true to use the full one.
- */
-export const LOCAL_INTENT_SYSTEM_PROMPT = `Cooking request to JSON. Optional keys: availableIngredients (string[]), timeLimit (5-180), cuisine (italian|indian|chinese|japanese|mexican|french|american|mediterranean|middle eastern|african|null), mode (normal|food_waste|budget), cravingSignals (ONLY textures [crispy|creamy], flavors [spicy|savory|sweet|fresh], moods [comforting|refreshing], temperature [warm|cold], satiety [filling|light], mealStyle [quick|breakfast|dessert]). Never invent ingredients. Output ONLY the JSON object.`;
+const DEFAULT_HOST = "http://127.0.0.1:5000";
+const DEFAULT_MODEL = "FlavoraLM";
+const DEFAULT_TIMEOUT_MS = 30_000;
 
 /** Only loopback/localhost hosts qualify as "local". IPv4/IPv6 loopback + localhost names. */
 export function isLocalHost(host: string): boolean {
@@ -45,38 +45,46 @@ export class LocalLlmError extends Error {
   }
 }
 
-/** Full-featured prompt (optional; long — costs significant CPU prompt-eval time). */
-const FULL_LOCAL_INTENT_PROMPT = `You are Flavora's intent parser for a local-first cooking app.
-Extract structured recommendation parameters from the user's message.
-Return ONLY a JSON object with these optional fields:
-- availableIngredients: string[] (ingredients the user has on hand)
-- timeLimit: number (minutes, 5-180)
-- cuisine: one of italian|indian|chinese|japanese|mexican|french|american|mediterranean|middle eastern|african, or null
-- mode: "normal" | "food_waste" | "budget" (food_waste when using what they have; budget when cheap)
-- craving: short free-text mood (or null)
-- cravingSignals: optional object drawn ONLY from this controlled vocabulary:
-  { textures: [crispy|crunchy|creamy|tender|fluffy|chewy], flavors: [spicy|savory|sweet|tangy|smoky|fresh|cheesy|umami|herby], moods: [comforting|cozy|refreshing|indulgent|homely], temperature: [warm|hot dish|cold|chilled], satiety: [filling|hearty|light|substantial], mealStyle: [quick|one-pot|snack|breakfast|dessert|handheld] }
-- preferences: { spice?: mild|medium|hot, skill?: beginner|intermediate|advanced, highProtein?: boolean, lowCarb?: boolean }
-Rules: do NOT invent recipes or ingredients; never override allergies; omit fields you cannot infer.`;
+/** Result of probing the FlavoraLM service — each field measured, never assumed. */
+export interface LocalLlmStatus {
+  runtimeReachable: boolean;
+  modelInstalled: boolean;
+  usable: boolean;
+  /** Model identity reported by the service (undefined when unreachable). */
+  model?: string;
+  version?: string;
+  device?: string;
+  tokenizerVersion?: string;
+  parameterCount?: number;
+}
+
+export interface FlavoraHealth {
+  status: string;
+  model: string | null;
+  version: string | null;
+  parameterCount: number | null;
+  contextLength: number | null;
+  tokenizerVersion: string | null;
+  loaded: boolean;
+  device: string;
+}
 
 export class LocalLlmProvider implements AIProvider {
   readonly name = "local";
   private readonly host: string;
   private readonly model: string;
   private readonly timeoutMs: number;
-  private readonly fullPrompt: boolean;
   private availabilityCache: { ok: boolean; checkedAt: number } | null = null;
   private static readonly AVAILABILITY_TTL_MS = 30_000;
 
-  constructor(opts?: { host?: string; model?: string; timeoutMs?: number; fullPrompt?: boolean }) {
+  constructor(opts?: { host?: string; model?: string; timeoutMs?: number }) {
     const host = opts?.host ?? DEFAULT_HOST;
     if (!isLocalHost(host)) {
-      throw new LocalLlmError(`Refusing non-local LLM host "${host}" — the local provider only talks to loopback/localhost.`);
+      throw new LocalLlmError(`Refusing non-local AI host "${host}" — the local provider only talks to loopback/localhost.`);
     }
     this.host = host.replace(/\/$/, "");
     this.model = opts?.model ?? DEFAULT_MODEL;
     this.timeoutMs = opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    this.fullPrompt = opts?.fullPrompt ?? false;
   }
 
   get hostUrl(): string {
@@ -87,79 +95,129 @@ export class LocalLlmProvider implements AIProvider {
     return this.model;
   }
 
-  /** System prompt for intent extraction (compact by default for CPU inference). */
+  /** System prompt (kept for the AIProvider contract; FlavoraLM's /intent needs only the user text). */
   intentSystemPrompt(): string {
-    return this.fullPrompt ? FULL_LOCAL_INTENT_PROMPT : LOCAL_INTENT_SYSTEM_PROMPT;
+    return "FlavoraLM structured intent extraction";
   }
 
-  /** Cheap check: is a local runtime listening and does it list our model? Cached briefly. */
+  /** Cheap check: serves the cached probe result; callers needing certainty use probeAvailability(). */
   isAvailable(): boolean {
-    // Synchronous contract (AIProvider). Kick off async probe + serve cached value.
-    // First call may report stale/false; callers that need certainty use probeAvailability().
     const cached = this.availabilityCache;
     if (cached && Date.now() - cached.checkedAt < LocalLlmProvider.AVAILABILITY_TTL_MS) return cached.ok;
     void this.probeAvailability().catch(() => {});
     return cached?.ok ?? false;
   }
 
-  /** Async availability probe: /api/tags must succeed and list the configured model. */
+  /** Async availability probe: /health must report our model loaded. */
   async probeAvailability(): Promise<boolean> {
+    const status = await this.probeStatus();
+    return status.usable;
+  }
+
+  /**
+   * Detailed probe used by the health endpoint. Distinguishes:
+   * - runtimeReachable: the FlavoraLM service answered /health
+   * - modelInstalled: the service reports our model loaded (name starts with FlavoraLM)
+   * - usable: reachable AND loaded
+   * Never fabricated: each value comes from the actual service response.
+   */
+  async probeStatus(): Promise<LocalLlmStatus> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3_000);
     try {
-      const res = await fetch(`${this.host}/api/tags`, { signal: controller.signal });
-      if (!res.ok) throw new LocalLlmError(`local LLM /api/tags HTTP ${res.status}`);
-      const data = (await res.json()) as { models?: { name?: string; model?: string }[] };
-      const models = data.models ?? [];
-      const wanted = this.model.toLowerCase();
-      const ok = models.some((m) => String(m.name ?? m.model ?? "").toLowerCase() === wanted);
-      this.availabilityCache = { ok, checkedAt: Date.now() };
-      return ok;
-    } catch (e) {
+      const res = await fetch(`${this.host}/health`, { signal: controller.signal });
+      if (!res.ok) throw new LocalLlmError(`FlavoraLM /health HTTP ${res.status}`);
+      const data = (await res.json()) as FlavoraHealth;
+      const modelName = String(data.model ?? "");
+      // Our model, any version: FlavoraLM or FlavoraLM-dev.
+      const modelInstalled = data.loaded === true && /^flavoraLM/i.test(modelName);
+      const status: LocalLlmStatus = {
+        runtimeReachable: true,
+        modelInstalled,
+        usable: modelInstalled,
+        model: data.model ?? undefined,
+        version: data.version ?? undefined,
+        device: data.device,
+        tokenizerVersion: data.tokenizerVersion ?? undefined,
+        parameterCount: data.parameterCount ?? undefined,
+      };
+      this.availabilityCache = { ok: status.usable, checkedAt: Date.now() };
+      return status;
+    } catch {
       this.availabilityCache = { ok: false, checkedAt: Date.now() };
-      return false;
+      return { runtimeReachable: false, modelInstalled: false, usable: false };
     } finally {
       clearTimeout(timer);
     }
   }
 
+  /**
+   * Structured-intent completion via FlavoraLM.
+   * Primary path: POST /intent (model generates + validates server-side).
+   * Returns the intent as a JSON string so the standard
+   * extractJsonObject → normalizeIntent pipeline applies unchanged.
+   */
   async complete(systemPrompt: string, userMessage: string): Promise<string> {
+    void systemPrompt;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
-      const res = await fetch(`${this.host}/api/chat`, {
+      const res = await fetch(`${this.host}/intent`, {
+        method: "POST",
+        signal: controller.signal,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: userMessage }),
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        throw new LocalLlmError(`FlavoraLM /intent HTTP ${res.status}: ${body.slice(0, 200)}`);
+      }
+      const data = (await res.json()) as { intent?: unknown; valid?: boolean };
+      if (!data.valid || data.intent == null || typeof data.intent !== "object") {
+        throw new LocalLlmError("FlavoraLM returned no usable intent (empty/invalid output)");
+      }
+      return JSON.stringify(data.intent);
+    } catch (e) {
+      if (e instanceof LocalLlmError) throw e;
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("aborted") || msg.includes("abort")) {
+        throw new LocalLlmError(`FlavoraLM timed out after ${this.timeoutMs}ms`);
+      }
+      throw new LocalLlmError(`FlavoraLM unreachable at ${this.host} (${msg})`);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /** Raw text generation via FlavoraLM (used by verification + explanations). */
+  async generate(prompt: string, opts?: { maxNewTokens?: number; temperature?: number }): Promise<string> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      const res = await fetch(`${this.host}/generate`, {
         method: "POST",
         signal: controller.signal,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: this.model,
-          stream: false,
-          format: "json",
-          // Small structured-intent JSON: cap generation so slow CPUs stay inside the timeout.
-          options: { temperature: 0.2, num_predict: 160 },
-          keep_alive: "10m",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userMessage },
-          ],
+          prompt,
+          maxNewTokens: opts?.maxNewTokens ?? 48,
+          temperature: opts?.temperature ?? 0.2,
         }),
       });
       if (!res.ok) {
         const body = await res.text().catch(() => "");
-        throw new LocalLlmError(`local LLM HTTP ${res.status}: ${body.slice(0, 200)}`);
+        throw new LocalLlmError(`FlavoraLM /generate HTTP ${res.status}: ${body.slice(0, 200)}`);
       }
-      const data = (await res.json()) as { message?: { content?: string } };
-      const content = data.message?.content;
-      if (!content) throw new LocalLlmError("empty local LLM content");
-      return content;
+      const data = (await res.json()) as { text?: string };
+      if (!data.text) throw new LocalLlmError("empty FlavoraLM generation");
+      return data.text;
     } catch (e) {
       if (e instanceof LocalLlmError) throw e;
       const msg = e instanceof Error ? e.message : String(e);
-      // Distinguish timeout/abort from connection failure for clearer notices.
       if (msg.includes("aborted") || msg.includes("abort")) {
-        throw new LocalLlmError(`local LLM timed out after ${this.timeoutMs}ms`);
+        throw new LocalLlmError(`FlavoraLM timed out after ${this.timeoutMs}ms`);
       }
-      throw new LocalLlmError(`local LLM unreachable at ${this.host} (${msg})`);
+      throw new LocalLlmError(`FlavoraLM unreachable at ${this.host} (${msg})`);
     } finally {
       clearTimeout(timer);
     }

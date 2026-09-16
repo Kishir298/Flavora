@@ -67,7 +67,8 @@ data leaves it. This is a real neural model runtime, not the heuristic parser
 - **Artifacts:** `models/flavora-lm/v0.1/` (`config.json`, `tokenizer.json`,
   `model.pt`, `training_state.pt`, `metrics.json`, `training_meta.json`).
 - **Service:** `training/flavora_lm/service.py` serves
-  `GET /health`, `POST /generate`, `POST /intent` on `127.0.0.1:5000`.
+  `GET /health`, `GET /metadata`, `GET /metrics`, `POST /generate`, `POST /intent`
+  on `127.0.0.1:5000`.
   The browser never talks to it directly — Express (`localhost:4000`) is the
   application gateway.
 
@@ -79,6 +80,9 @@ curl http://localhost:4000/api/health
 
 # Full end-to-end check with real inference (prints provider: local):
 npm run verify:local-ai
+
+# Prove weights are freshly initialized (no pretrained content):
+npm run verify:llm:init
 ```
 
 In the UI, the assistant status line names its source (`AI: FlavoraLM v0.1` /
@@ -114,6 +118,7 @@ intent.
 No downloads — training runs locally from the synthetic corpus generator:
 
 ```bash
+npm run train:tokenizer   # standalone BPE training → tokenizer.json + tokenizer_meta.json
 npm run train:llm:dev   # fast dev model (CI-sized, minutes)
 npm run train:llm       # full small model (longer)
 npm run evaluate:llm    # held-out evaluation → models/flavora-lm/v0.1/eval.json
@@ -165,13 +170,33 @@ The retrain trigger prefers `server/src/engine/.venv/bin/python` when that venv 
 | `npm run setup` | setup only (no services started) |
 | `npm run dev` | client + server concurrently |
 | `npm run train:llm` / `train:llm:dev` | train FlavoraLM (small / fast dev config) |
+| `npm run train:tokenizer` | train the BPE tokenizer standalone |
 | `npm run evaluate:llm` | held-out FlavoraLM evaluation |
 | `npm run verify:local-ai` | 8-step real-inference FlavoraLM verification |
+| `npm run verify:llm:init` | prove weights are freshly initialized |
 | `npm run lm:serve` | run the FlavoraLM inference service manually |
 | `npm run test` | server unit+integration + client component tests |
 | `npm run test:e2e` | Playwright critical paths |
 | `npx playwright test --config=playwright.offline.config.ts` (in `client/`) | offline sync E2E (needs a client build; runs `vite preview`) |
 | `npm run db:push` / `db:seed` | init + seed SQLite from `/data` |
+
+## Docs
+
+- `docs/FLAVORALM_AUDIT.md` — repository audit (what was found, what was kept/replaced/extended)
+- `docs/FLAVORALM_ARCHITECTURE.md` — system/model/tokenizer/dataset/training/checkpoint/inference/API/safety/privacy/startup
+- `docs/FLAVORALM_TRAINING.md` — corpus → tokenizer → init → training → checkpoint → eval → repro
+- `docs/FLAVORALM_EVALUATION.md` — measured metrics, safety tests, honest weaknesses
+- `training/README.md` — training commands and pipeline reference
+
+## Accessibility
+
+Single `<main>` landmark, focus-moving skip link, labelled controls, visible
+focus rings, `prefers-reduced-motion` support, `role=status/alert` live regions
+(including the `AiStatus` provider line). Automated coverage:
+`client/e2e/a11y.spec.ts` (dependency-free baseline on every route **plus**
+guarded `@axe-core/playwright` critical/serious check when installed) and
+`client/e2e/keyboard.spec.ts` (keyboard-only skip → main → operate).
+Not yet audited with assistive technology — see `docs/FLAVORALM_AUDIT.md`.
 
 ## Architecture
 

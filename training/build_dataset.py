@@ -9,6 +9,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -67,6 +68,7 @@ def main() -> int:
     }
 
     problems = 0
+    sha256: dict[str, str] = {}
     for name, examples in splits.items():
         bad = [(t, i, p) for t, i in examples for p in [validate_example(t, i)] if p]
         if bad:
@@ -74,12 +76,15 @@ def main() -> int:
                 print(f"  INVALID: {ps} in {t!r}", file=sys.stderr)
             problems += len(bad)
         write_jsonl(out / name, examples)
-        print(f"  wrote {out / name} ({len(examples)} examples)")
+        h = hashlib.sha256((out / name).read_bytes()).hexdigest()
+        sha256[name] = h
+        print(f"  wrote {out / name} ({len(examples)} examples, sha256 {h[:12]}…)")
 
     manifest = {
         "datasetVersion": DATASET_VERSION,
         "seed": seed,
         "splits": {k: len(v) for k, v in splits.items()},
+        "sha256": sha256,
         "config": args.config,
     }
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")

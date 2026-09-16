@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 """Evaluate a trained FlavoraLM checkpoint on the held-out test set.
 
-Measures (spec section 23):
-  validation loss / perplexity, structured intent accuracy, field-level
-  accuracy (allergies, avoidFoods, cuisine, time, craving signals),
-  invalid JSON rate, schema validity rate, negation handling,
-  deterministic repeatability.
+Measures: structured intent accuracy, field-level accuracy (allergies,
+avoidFoods, cuisine, time, craving signals), invalid JSON rate, schema
+validity rate, negation handling, deterministic repeatability.
+
+Validation loss / perplexity are NOT recomputed here — they are recorded
+during training in `models/flavora-lm/v0.1/metrics.json` (+ `training_meta.json`).
+This script evaluates generation quality (intent extraction) on held-out data.
 
 Never evaluates on training examples — always training/data/test.jsonl
 (or --test-file override). Exit code is non-zero when thresholds fail.

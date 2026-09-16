@@ -167,6 +167,26 @@ def main() -> int:
     scheduler = torch.optim.lr_scheduler.LambdaLR(opt, lr_at)
     rng = torch.Generator().manual_seed(seed + 1)
 
+    # Dataset hashes for reproducibility (manifest written by build_dataset.py).
+    import hashlib
+
+    def _sha(p: Path) -> str | None:
+        try:
+            return hashlib.sha256(p.read_bytes()).hexdigest()
+        except OSError:
+            return None
+
+    dataset_sha = {
+        "train.jsonl": _sha(data_dir / "train.jsonl"),
+        "validation.jsonl": _sha(data_dir / "validation.jsonl"),
+    }
+    manifest_path = data_dir / "manifest.json"
+    if manifest_path.exists():
+        try:
+            dataset_sha["manifest"] = _sha(manifest_path)
+        except OSError:
+            pass
+
     meta = TrainingMeta(
         model=mcfg.model_name,
         version=mcfg.version,
@@ -182,6 +202,8 @@ def main() -> int:
         python_version=sys.version.split()[0],
         pytorch_version=torch.__version__,
         platform=sys.platform,
+        dataset_sha256={k: v for k, v in dataset_sha.items() if v},
+        created_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     )
 
     out_dir = Path(args.out_dir) if args.out_dir else MODELS_DIR / f"v{mcfg.version}"
@@ -232,7 +254,6 @@ def main() -> int:
     tok.save(out_dir / "tokenizer.json")
     trained_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     model.save_pretrained(out_dir, tokenizer_version=TOKENIZER_VERSION, extra={"trainedAt": trained_at})
-    meta.to_dict  # noqa: B018 (keep attribute; metadata saved below)
     (out_dir / "training_meta.json").write_text(json.dumps(meta.to_dict(), indent=2), encoding="utf-8")
     print(f"  artifacts → {out_dir}")
     print(f"  final val loss {best_val:.3f}")

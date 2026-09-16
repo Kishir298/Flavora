@@ -8,9 +8,11 @@ No pretrained weights, no pretrained tokenizer, no external data.
 ## Commands (repo root)
 
 ```bash
+npm run train:tokenizer # standalone BPE training → tokenizer.json + tokenizer_meta.json
 npm run train:llm:dev   # fast dev model → models/flavora-lm/v0.1/ (minutes, CI-sized)
 npm run train:llm       # full small model (longer; same artifact dir after config version bump)
 npm run evaluate:llm    # held-out evaluation → models/flavora-lm/v0.1/eval.json
+npm run verify:llm:init # prove weights are freshly initialized (no pretrained content)
 npm run lm:serve        # run the inference service manually (127.0.0.1:5000)
 ```
 
@@ -52,6 +54,8 @@ Stdlib HTTP service (no web-framework dependency), binds `127.0.0.1`:
 
 - `GET /health` → `{status, model, version, parameterCount, contextLength,
   tokenizerVersion, loaded, device}` (all measured).
+- `GET /metadata` → `training_meta.json` sidecar (reproducibility record).
+- `GET /metrics` → `metrics.json` sidecar (latest training loss/perplexity).
 - `POST /generate` → autoregressive sampling (`temperature`, `topK/topP`,
   `maxNewTokens`, repetition handling).
 - `POST /intent` → greedy (near-deterministic) generation → JSON parse →

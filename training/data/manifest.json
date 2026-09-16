@@ -6,5 +6,10 @@
     "validation.jsonl": 150,
     "test.jsonl": 150
   },
-  "config": "training/configs/flavora_lm_dev.json"
+  "config": "training/configs/flavora_lm_dev.json",
+  "sha256": {
+    "train.jsonl": "7aba70b796b156fd022c1a3097ca2f078efb987e0c9f3aa52398d54406f6b9c9",
+    "validation.jsonl": "b33d6dee6a29779a4a3643ca738001e374396a11d951c089ab6b96f38af56946",
+    "test.jsonl": "fe905f648be3deddfa1992449456a627f210cbd7d2c3c95f4ee46c92bfe061b7"
+  }
 }

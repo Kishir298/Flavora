@@ -14,6 +14,8 @@
     "test": "npm run test --workspace=server && npm run test --workspace=client",
     "test:e2e": "npm run test:e2e --workspace=client",
     "verify:local-ai": "npm run verify:local-ai --workspace=server",
+    "verify:llm:init": "node scripts/py.mjs -m training.verify_init --config training/configs/flavora_lm_dev.json",
+    "train:tokenizer": "node scripts/py.mjs -m training.train_tokenizer --config training/configs/flavora_lm_dev.json",
     "train:llm": "node scripts/py.mjs -m training.train --config training/configs/flavora_lm_small.json",
     "train:llm:dev": "node scripts/py.mjs -m training.train --config training/configs/flavora_lm_dev.json",
     "evaluate:llm": "node scripts/py.mjs -m training.evaluate --artifacts models/flavora-lm/v0.1",

@@ -39,6 +39,8 @@ class TrainingMeta:
     final_train_loss: Optional[float] = None
     final_val_loss: Optional[float] = None
     final_val_perplexity: Optional[float] = None
+    dataset_sha256: Optional[Dict[str, str]] = None
+    created_at: Optional[str] = None
     extra: Dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:

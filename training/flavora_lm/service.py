@@ -2,6 +2,8 @@
 
 Endpoints:
     GET  /health    → model identity, loaded state, device (measured, not fabricated)
+    GET  /metadata  → training_meta.json sidecar (reproducibility record)
+    GET  /metrics   → metrics.json sidecar (latest training loss/perplexity)
     POST /generate  → actual token generation with generation controls
     POST /intent    → natural language → validated structured intent
 
@@ -56,6 +58,16 @@ def health_payload() -> dict:
     }
 
 
+def _artifact_payload(which: str) -> dict:
+    """Serve training metadata / metrics sidecars (read from disk, never fabricated)."""
+    name = "training_meta.json" if which == "metadata" else "metrics.json"
+    try:
+        raw = (Path(str(STATE["artifacts"])) / name).read_text(encoding="utf-8")
+        return {"status": "ok", "file": name, "data": json.loads(raw)}
+    except OSError as e:
+        return {"status": "error", "file": name, "error": str(e)}
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "FlavoraLM/0.1"
 
@@ -73,6 +85,12 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         if self.path == "/health":
             self._json(200 if STATE["loaded"] else 503, health_payload())
+            return
+        if self.path in ("/metadata", "/metrics"):
+            if not STATE["loaded"]:
+                self._json(503, {"error": "model not loaded", "detail": STATE["error"]})
+                return
+            self._json(200, _artifact_payload(self.path.strip("/")))
             return
         self._json(404, {"error": "not found"})
 

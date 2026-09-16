@@ -1,0 +1,19 @@
+{
+  "model": "FlavoraLM-dev",
+  "version": "0.1",
+  "seed": 42,
+  "dataset_version": "0.1",
+  "tokenizer_version": "0.2",
+  "epochs": 80,
+  "steps": 3040,
+  "learning_rate": 0.003,
+  "batch_size": 32,
+  "optimizer": "adamw+cosine-warmup",
+  "hardware": "cpu (x86_64)",
+  "python_version": "3.11.15",
+  "pytorch_version": "2.2.2",
+  "platform": "darwin",
+  "final_train_loss": 2.68523823587518,
+  "final_val_loss": 2.543920407877866,
+  "final_val_perplexity": 12.729478020979721
+}

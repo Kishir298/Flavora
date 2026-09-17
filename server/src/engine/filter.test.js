@@ -55,4 +55,19 @@ describe("engine/filter.js — Layer 1 hard filter", () => {
       passesHardFilter({ ingredients: ["peanut butter"] }, { allergies: [], avoid_foods: [] })
     ).toBe(true);
   });
+
+  it('allergy "sesame" excludes tahini/sesame oil', () => {
+    expect(
+      passesHardFilter(
+        { ingredients: ["chickpeas", "tahini", "lemon"] },
+        { allergies: ["sesame"], avoid_foods: [] }
+      )
+    ).toBe(false);
+    expect(ingredientViolatesTerm("1 tsp sesame oil", "sesame")).toBe(true);
+  });
+
+  it('short terms use word boundaries ("oil" must not match "boil")', () => {
+    expect(ingredientViolatesTerm("boiled potatoes", "oil")).toBe(false);
+    expect(ingredientViolatesTerm("olive oil", "oil")).toBe(true);
+  });
 });

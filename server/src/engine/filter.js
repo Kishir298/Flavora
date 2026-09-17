@@ -20,16 +20,23 @@
 /** Synonym expansion for common allergy terms. Keys + values lowercase. */
 export const SYNONYMS = {
   dairy: ["milk", "cheese", "butter", "cream", "parmesan", "mozzarella", "cheddar", "feta", "ricotta", "yogurt", "yoghurt", "whey", "ghee", "casein", "paneer"],
-  "tree nuts": ["almond", "cashew", "walnut", "pecan", "pistachio", "hazelnut", "brazil nut", "pine nut"],
-  "tree nut": ["almond", "cashew", "walnut", "pecan", "pistachio", "hazelnut"],
+  milk: ["dairy", "whey", "casein", "ghee"],
+  "tree nuts": ["almond", "cashew", "walnut", "pecan", "pistachio", "hazelnut", "brazil nut", "pine nut", "chestnut", "macadamia"],
+  "tree nut": ["almond", "cashew", "walnut", "pecan", "pistachio", "hazelnut", "chestnut", "macadamia"],
+  nut: ["almond", "cashew", "walnut", "pecan", "pistachio", "hazelnut", "peanut"],
   peanuts: ["peanut", "peanut butter", "peanut oil", "groundnut"],
   peanut: ["peanut butter", "peanut oil", "groundnut"],
-  shellfish: ["shrimp", "prawn", "crab", "lobster", "clam", "mussel", "oyster", "scallop", "shrimp paste"],
-  gluten: ["wheat", "flour", "bread", "pasta", "barley", "rye"],
-  wheat: ["flour", "bread", "pasta"],
+  shellfish: ["shrimp", "prawn", "crab", "lobster", "clam", "mussel", "oyster", "scallop", "shrimp paste", "fish sauce"],
+  gluten: ["wheat", "flour", "bread", "pasta", "barley", "rye", "oats", "semolina", "couscous"],
+  wheat: ["flour", "bread", "pasta", "semolina", "couscous"],
   egg: ["eggs", "mayonnaise", "mayo"],
   eggs: ["egg", "mayonnaise", "mayo"],
-  soy: ["soy sauce", "tofu", "miso", "edamame"],
+  soy: ["soy sauce", "tofu", "miso", "edamame", "tempeh"],
+  sesame: ["sesame oil", "tahini", "sesame seeds"],
+  mustard: ["mustard seeds", "mustard oil"],
+  celery: ["celeriac", "celery salt"],
+  fish: ["fish sauce", "anchovy", "tuna", "salmon"],
+  coconut: ["coconut milk", "coconut oil"],
 };
 
 function normalize(s) {
@@ -51,7 +58,30 @@ export function expandTerm(term) {
 
 function matchesWithPlural(haystack, needle) {
   if (!needle) return false;
-  if (haystack.includes(needle)) return true;
+  // Word-boundary matching: "oil" must not match "boil", "milk" must not
+  // match "milkweed" misspellings etc. Short terms (<4 chars) require a word
+  // boundary; longer terms keep substring + plural tolerance for recall.
+  if (needle.length < 4) {
+    try {
+      const re = new RegExp(`\\b${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}s?\\b`);
+      if (re.test(haystack)) return true;
+    } catch {
+      /* fall through to substring */
+    }
+  }
+  if (haystack.includes(needle)) {
+    // Guard the classic false positive: single-word short needles inside
+    // longer words (oil/boil). For needles >= 4 chars substring is fine.
+    if (needle.length < 4) {
+      try {
+        const re = new RegExp(`\\b${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`);
+        return re.test(haystack);
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  }
   if (needle.endsWith("s") && haystack.includes(needle.slice(0, -1))) return true;
   const singularHay = haystack.endsWith("s") ? haystack.slice(0, -1) : haystack;
   if (singularHay.includes(needle)) return true;

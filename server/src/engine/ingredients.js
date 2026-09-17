@@ -71,7 +71,10 @@ export function toCanonical(qty, unit) {
 /** Merge compatible quantities; keeps prep notes separate (never destroys info). */
 export function mergeIngredientAmounts(items) {
   // items: [{ name, quantity?, unit?, note? }] -> Map key(name+note+unitFamily) -> merged
+  // Deterministic: incompatible raw units get a monotonically increasing
+  // suffix (never Math.random — grocery generation must be repeatable).
   const out = new Map();
+  let collisionSeq = 0;
   for (const it of items) {
     const { name } = parseIngredient(it.name ?? "");
     const key = ingredientKey(name);
@@ -91,8 +94,9 @@ export function mergeIngredientAmounts(items) {
       if (!e.hasQty) { e.quantity = Number(it.quantity); e.unit = it.unit ?? null; e.hasQty = true; }
       else if (normalizeUnit(e.unit) === normalizeUnit(it.unit)) e.quantity += Number(it.quantity);
       else {
-        // incompatible raw units — keep separate entry
-        out.set(`${mapKey}||${Math.random()}`, { name: key, displayName: norm(name), quantity: Number(it.quantity), unit: it.unit, note, hasQty: true });
+        // incompatible raw units — keep separate entry (deterministic suffix)
+        collisionSeq += 1;
+        out.set(`${mapKey}||collision-${collisionSeq}`, { name: key, displayName: norm(name), quantity: Number(it.quantity), unit: it.unit, note, hasQty: true });
       }
     }
   }

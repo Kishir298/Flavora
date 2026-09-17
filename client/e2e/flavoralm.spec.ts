@@ -52,7 +52,7 @@ test("natural-language request → structured intent → safe recommendations", 
 });
 
 test("UI names the actual AI source", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/assistant");
   await page.getByLabel(/What do you have/i).fill("chicken, rice");
   await page.getByRole("button", { name: /Suggest/i }).click();
   await expect(page.getByLabel(/Open /).first()).toBeVisible({ timeout: 10_000 });

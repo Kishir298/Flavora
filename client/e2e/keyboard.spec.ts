@@ -5,7 +5,7 @@ import { test, expect } from "@playwright/test";
  * Uses real key presses — never component internals.
  */
 test("keyboard: skip link → main → navigate → operate", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/assistant");
 
   // 1-2. First Tab stop is the skip link.
   await page.keyboard.press("Tab");

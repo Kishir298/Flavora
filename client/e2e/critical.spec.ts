@@ -10,6 +10,7 @@ test("profile → recommend → open → save", async ({ page }) => {
   await page.getByLabel(/Foods to avoid/i).fill("pork");
   await page.getByRole("button", { name: /Save profile/i }).click();
   await expect(page).toHaveURL("/");
+  await page.goto("/assistant");
 
   await page.getByLabel(/What do you have/i).fill("pasta, tomato");
   await page.getByRole("button", { name: /Suggest/i }).click();
@@ -26,7 +27,7 @@ test("profile → recommend → open → save", async ({ page }) => {
 });
 
 test("food waste mode → recipe", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/assistant");
   await page.getByLabel(/What do you have/i).fill("chickpeas, tomato, rice, onion");
   await page.getByText("Use what I have").click();
   await page.getByRole("button", { name: /Suggest/i }).click();
@@ -65,7 +66,7 @@ test("grocery list → check → persists", async ({ page }) => {
 });
 
 test("meal plan → add → groceries", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/assistant");
   await page.getByLabel(/What do you have/i).fill("pasta, tomato");
   await page.getByRole("button", { name: /Suggest/i }).click();
   const first = page.getByLabel(/Open /).first();
@@ -81,7 +82,7 @@ test("meal plan → add → groceries", async ({ page }) => {
 });
 
 test("natural-language craving → recommendations", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/assistant");
   await page.getByPlaceholder(/chicken, rice/i).fill("I want something warm and comforting, creamy but not too spicy");
   await page.getByRole("button", { name: /Ask Flavora/i }).click();
   await expect(page.getByLabel(/Open /).first()).toBeVisible({ timeout: 10_000 });

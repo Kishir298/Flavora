@@ -51,7 +51,7 @@ test("offline: add inventory while offline → reload → reconnect → synced",
  */
 test("substitution: apply then revert on a recipe detail page", async ({ page }) => {
   // Find a recipe that has substitutions
-  await page.goto("/");
+  await page.goto("/assistant");
   await page.getByLabel(/What do you have/i).fill("pasta, tomato");
   await page.getByRole("button", { name: /Suggest/i }).click();
   const first = page.getByLabel(/Open /).first();

@@ -52,6 +52,17 @@ API: http://localhost:4000
 FlavoraLM: http://127.0.0.1:5000
 ```
 
+### Food intelligence (Dashboard, Meals, Insights)
+
+Flavora is a local-first food-tracking app: `/` Dashboard (today overview,
+habits, recent meals, goal progress, insights), `/meals` food log (full CRUD),
+`/insights` statistics + habit insights, `/assistant` conversational help.
+Meal/goal/water data persists in `data/user-data.json` (atomic writes, local
+only — see `docs/FOODLOG_ARCHITECTURE.md`); recipes/inventory/groceries/meal
+plans stay in SQLite. Statistics and insights are deterministic — FlavoraLM
+explains stored facts, never computes them. New users see honest empty states,
+never fake numbers.
+
 ### Training vs running
 
 Training (`train:tokenizer`, `train:llm`) **creates** the model artifacts in
@@ -245,6 +256,7 @@ The retrain trigger prefers `server/src/engine/.venv/bin/python` when that venv 
 ## Docs
 
 - `docs/FLAVORALM_AUDIT.md` — repository audit (what was found, what was kept/replaced/extended)
+- `docs/FOODLOG_ARCHITECTURE.md` — food intelligence: JSON store schema, meals/goals/stats/insights APIs, dashboard, offline, AI-vs-deterministic responsibilities
 - `docs/FLAVORALM_ARCHITECTURE.md` — system/model/tokenizer/dataset/training/checkpoint/inference/API/safety/privacy/startup
 - `docs/FLAVORALM_TRAINING.md` — corpus → tokenizer → init → training → checkpoint → eval → repro
 - `docs/FLAVORALM_EVALUATION.md` — measured metrics, safety tests, honest weaknesses

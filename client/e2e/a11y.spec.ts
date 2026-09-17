@@ -16,6 +16,9 @@ import { test, expect, type Page } from "@playwright/test";
 
 const ROUTES = [
   "/",
+  "/meals",
+  "/insights",
+  "/assistant",
   "/explorer",
   "/inventory",
   "/groceries",
@@ -135,7 +138,7 @@ test("a11y audit: recipe detail", async ({ page }) => {
 });
 
 test("assistant status regions are announced", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/assistant");
   // Loading + error + notice regions exist with accessible roles.
   await page.getByLabel(/What do you have/i).fill("pasta, tomato");
   await page.getByRole("button", { name: /Suggest/i }).click();

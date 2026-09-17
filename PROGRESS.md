@@ -1,5 +1,38 @@
 # Flavora — Progress
 
+## Audit repair + chat-first rebuild (2026-09-17, this session)
+
+| Objective | Status | Implementation | Tests | Evidence |
+|---|---|---|---|---|
+| Error taxonomy honesty | Fixed | `probeStatus()` now returns `detail: ok/unloaded/unreachable` + `httpStatus` (503/loaded:false = starting, not unreachable); `assistantService` prefers `probeStatus` over `probeAvailability`; `LocalLlmError` cause preserved in `detail`; `assistant.js` host-log precedence bug fixed; timeout clamped 1s–120s in `config` + provider | `realInference.test.ts` 2/2 (live), taxonomy unit (timeout/invalid/unloaded) | live `/intent` valid:false → `local-invalid` (not collapsed); valid:true → `source:local` |
+| Schema drift | Fixed | `mealType:dessert→snack`, servings 1–20 both sides, `timelimit/time_limit` aliases, `expiringIngredients` in types+normalize, flat conversational slots mirrored on intent, `foodRequestToIntent(req, fallbackMode)` preserves `budget`, conversation done-path passes `parsed.notice`, client `AssistantIntent` extended | conversation 13, intent 12, api 23 | `budget` survives conversation; `notice` shown on done |
+| Startup honesty | Hardened | `setup.mjs` inference gate: `valid:true` = verified, `valid:false` = honest warn (up but extracted nothing), no-answer = warn; `.env` synced to local-only (Groq key removed) | `node --check` | `valid:false` no longer prints verified |
+| Python env | Verified | `torch 2.2.2 + numpy 1.26.4` imports clean, bridge no-warning | py 28/28 (`env+tokenizer+model+dataset`), `intent_and_service` 10/11 (1 known flaky `test_extract_ingredients_intent`, pre-existing) | run 2026-09-17 |
+| Chat-first routes | Done | `/` = chat (`Ask Flavora` first nav), `/dashboard` = Dashboard, `/assistant` → `/` redirect, 404 + RecipeDetail back-link + Dashboard empty-state updated | client 37/37 (nav 13, home 4) | redirect test green |
+| Home UX | Done | localStorage persist (sessionId + 50 msgs), New chat, Retry on error, done-with-no-results empty state, offline `enqueueMealLog` queue, bottom-anchored scroll, `lastHave` write for RecipeDetail `have` highlight | home 4/4 | offline queue path same as Meals |
+| Fetch efficiency | Fixed | `useOnlineStatus` module singleton (one poll + sync lock, was N concurrent), Groceries single `includeRemoved=1` fetch, MealPlan `Promise.all`, Insights clears stale weekly text off-weekly | client 37/37 | — |
+| Safety/engine | Hardened | Synonyms += sesame/mustard/celery/fish/coconut/oats/nut etc.; `<4`-char terms word-boundary (`oil`≠`boil`); `mergeIngredientAmounts` deterministic collision suffix (was `Math.random`); 80-recipe authored-calories audit test | filter 8, shared 17, nutrition 6 | all green |
+| Real inference proof | Done | New `realInference.test.ts` (unmocked Express→FlavoraLM); `verify:local-ai` 8/8 live (`source=local`, avoid+pork, 2 recs, unsafe excluded) | 2/2 + 8/8 | 2026-09-17 live run |
+| Full suites | Partial | Server `tsc` clean, client `tsc` clean, client 37/37; server subsets green (engine 48, ai 79–80, nutrition/store/stats green); heavy live-inference files flaky under parallel CPU load (timeouts, pass serially) — known limitation, not a code defect | see above | inference 9.6s/req under load vs 1–3s idle |
+
+Known limitations: live-model latency rises under parallel test load (serial runs green); full 1000-example `evaluate.py` not run; E2E browser run needs dev servers (CI-gated); `test_extract_ingredients_intent` flaky on pristine checkout too.
+
+## Conversational reconstruction + local-only AI (2026-09-17, this session)
+
+| Objective | Status | Implementation | Tests | Evidence |
+|---|---|---|---|---|
+| Local-only AI (Groq removed) | Done | Deleted `groqProvider.ts`; `AI_PROVIDER=local\|heuristic`; `fallbackReason` taxonomy (`local-unreachable/timeout/invalid/unloaded`) in responses + logs + `AiStatus` | server 152, client 35, e2e updated | `grep api.groq.com` = 0 refs in code |
+| Cold-start heuristic bug | Fixed | `assistantService` awaits `probeAvailability()` (was sync `isAvailable()` cache=false on first hit); `config.aiProvider` now the default selection | `api.test` conversation journey | first-request `local` when FlavoraLM up |
+| Intent schema drift | Fixed | `normalizeIntent` accepts `spicePreference/skillLevel/mealType/servings` top-level + nested `foodRequest` passthrough; Python `intent.py` gains `calorieTarget/dietaryPreference` grammar + normalize + number-bonus routing | intent 12, conversation 7, py `TestIntentValidation` 4 | §7 examples extract exactly |
+| Python env (NumPy) | Fixed | `training/requirements.txt` += `numpy>=1.26,<2`; `setup.mjs` validates torch+numpy; new `test_env.py` (import + bridge warning) | py 2/2, 26/26 suites | `import torch,numpy` clean, no warning |
+| Conversational UX | Done | Chat-first `Home.tsx` (bubbles, quick actions, log-as-eaten); `conversationService.ts` state machine (one question, multi-field, corrections last-wins, skip-safe, additive safety); `POST /api/assistant/conversation` (FlavoraLM→merge→engine) | conversation 7, api journey 2, client chat 3 | E2E `conversational journey` in `flavoralm.spec.ts` |
+| Nutrition honesty + enrichment | Done | `nutritionSource` tags on recipes/recommendations; `lookup.ts` (authored→cache→USDA→OFF→unknown); `GET /api/nutrition/lookup`; detail UI source labels | nutrition 5 | all 80 seeded recipes `authored` |
+| Startup | Hardened | `setup.mjs` verifies `POST /intent` inference (not just `/health`) for both fresh + already-running paths | `node --check` | honest warn when health-up-but-inference-down |
+| Nav/repairs | Done | `*` 404 route; RecipeDetail back-link → `/assistant`; water + goals offline queue (`water.add`, `goals.save`); PWA 192/512/maskable + apple-touch-icon | client 35 | build precache 9 entries |
+| Docs | Reconciled | README (local-only, conversation, nutrition, API), `.env.example`, this matrix | — | no `GROQ_API_KEY` in code paths |
+
+Known limitations: `test_extract_ingredients_intent` flaky on pristine checkout too (verified via stash); full 1000-example `evaluate.py` not run; E2E browser run needs dev servers (CI-gated).
+
 ## Product acceptance matrix (2026-09-17, verified live)
 
 | Objective               | Status | Implementation | Tests | Evidence |

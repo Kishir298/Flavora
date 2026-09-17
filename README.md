@@ -54,9 +54,11 @@ FlavoraLM: http://127.0.0.1:5000
 
 ### Food intelligence (Dashboard, Meals, Insights)
 
-Flavora is a local-first food-tracking app: `/` Dashboard (today overview,
-habits, recent meals, goal progress, insights), `/meals` food log (full CRUD),
-`/insights` statistics + habit insights, `/assistant` conversational help.
+Flavora is a local-first food-tracking app: `/` is the conversational home
+(tell Flavora what you're craving → answer follow-ups → pick a recipe → log
+it), `/dashboard` shows today overview, habits, recent meals, goal progress
+and insights, `/meals` is the food log (full CRUD), `/insights` statistics +
+habit insights. (`/assistant` redirects to `/` for back-compat.)
 Meal/goal/water data persists in `data/user-data.json` (atomic writes, local
 only — see `docs/FOODLOG_ARCHITECTURE.md`); recipes/inventory/groceries/meal
 plans stay in SQLite. Statistics and insights are deterministic — FlavoraLM
@@ -89,16 +91,12 @@ npm run db:seed
 npm run dev          # client :5173 + server :4000 (+ FlavoraLM if already running)
 ```
 
-Open http://localhost:5173 → Onboarding → Assistant → Detail → Saved → Settings / Explorer.
+Open http://localhost:5173 → tell Flavora what you're craving → answer follow-ups → pick a recipe → log it → Dashboard.
 
-Optional conversational AI (server-side only):
-
-```bash
-# in .env — never use a VITE_ prefix for this key
-GROQ_API_KEY=your_key_here
-```
-
-Without `GROQ_API_KEY`, natural-language requests still work via a local heuristic intent parser. Ranking and allergy filtering always run on the local engine.
+Flavora is local-only: natural-language requests are parsed by the built-in
+FlavoraLM model (or the deterministic local parser as honest fallback).
+There is no remote AI provider and no API key. Ranking and allergy filtering
+always run on the local engine.
 
 ## Local AI — FlavoraLM (our own model, genuinely local)
 
@@ -135,7 +133,10 @@ npm run verify:llm:init
 ```
 
 In the UI, the assistant status line names its source (`AI: FlavoraLM v0.1` /
-`AI: Heuristic` / `AI: Groq`).
+`AI: Heuristic (FlavoraLM unavailable|timed out|answer invalid|starting)`).
+Probe (`GET /health`) distinguishes *starting* (reachable, 503/loaded:false →
+`local-unloaded`) from *unreachable*, and the technical cause travels in server
+logs plus a `detail` field — the UI shows the friendly reason chip only.
 
 **Environment variables** (all in `.env`, never client-side)
 
@@ -143,19 +144,17 @@ In the UI, the assistant status line names its source (`AI: FlavoraLM v0.1` /
 FLAVORA_LM_ENABLED=true                 # master switch (default true)
 FLAVORA_LM_HOST=http://127.0.0.1:5000   # must be a local address
 FLAVORA_LM_TIMEOUT_MS=30000
-AI_PROVIDER=auto                        # auto | local | groq | heuristic
+AI_PROVIDER=local                       # local | heuristic (default local)
 ```
 
 **Provider selection**
 
 | `AI_PROVIDER` | Behavior |
 |---|---|
-| `auto` (default) | FlavoraLM if running → Groq if key set → heuristic |
-| `local` | FlavoraLM only. If it is not running you get an explicit notice and the request is **not** silently sent to Groq |
-| `groq` | Groq only; falls back to the heuristic parser if the call fails |
+| `local` (default) | FlavoraLM only. If it is unreachable/timed-out/invalid you get an explicit notice + `fallbackReason` (`local-unreachable` \| `local-timeout` \| `local-invalid` \| `local-unloaded`) and deterministic parsing — never sent anywhere remote (no remote provider exists) |
 | `heuristic` | deterministic local parsing, no LLM at all |
 
-**What happens when the model is unavailable:** with `auto`, Flavora falls back to Groq (if configured) or the heuristic parser and says so in the response notice. With `local`, you get an explicit unavailability notice — no silent provider switch.
+**What happens when the model is unavailable:** you get an explicit notice naming the reason (`not reachable` / `timed out` / `unusable answer` / `starting`) plus a machine-readable `fallbackReason`; the UI status line reflects it (`AI: Heuristic (…)`).
 
 **Performance note (honest):** FlavoraLM is a small CPU-friendly model; inference
 is seconds on a laptop, not minutes. Intent extraction uses greedy
@@ -217,13 +216,22 @@ Training is separated from startup: normal `npm run start` never retrains.
 
 **What works with no AI provider at all:** everything except free-text intent extraction — recipes, recommendations, filtering, inventory, groceries, meal plans, substitutions, and the deterministic engine. Structured UI requests never touch AI.
 
-## Groq (optional, remote)
+## Conversational food requests (primary UX)
 
-Set `GROQ_API_KEY` in `.env` (server-side only). Your natural-language message is sent to Groq's API for intent extraction and explanation. Groq is never used for allergy/avoid decisions — its output is schema-validated then passed to the deterministic engine.
+The home screen is a chat, not a form: say what you want ("I want something
+with chicken"), answer one short follow-up at a time (calories → diet →
+ingredients → meal), then get deterministic allergy-safe recommendations you
+can log as eaten. Multi-field answers ("Around 600 calories, non-veg, chicken
+rice onions, for dinner") are extracted at once; "Actually, make it
+vegetarian" corrects; "don't care / whatever / skip" falls back to profile
+prefs and safe defaults. Sessions are in-memory — only the resulting
+`FoodRequest` persists. Contract: `server/src/ai/types.ts` (`FoodRequest`),
+machine: `server/src/ai/conversationService.ts`, endpoint:
+`POST /api/assistant/conversation`.
 
 ## Heuristic parser (always available, not an LLM)
 
-A deterministic parser in `server/src/ai/heuristicParser.ts` + `server/src/engine/craving.js`: vocabulary tables for cuisine, time, ingredients, mood/temperature/texture/spice; negation handling ("not too spicy"). Zero network, zero model. Used as fallback by every provider mode.
+A deterministic parser in `server/src/ai/heuristicParser.ts` + `server/src/engine/craving.js`: vocabulary tables for cuisine, time, ingredients, mood/temperature/texture/spice; negation handling ("not too spicy"). Zero network, zero model. Used as the honest fallback (labeled `AI: Heuristic (…)` with a `fallbackReason`).
 
 Optional learning layer (local venv recommended on macOS/Homebrew Python):
 
@@ -328,19 +336,28 @@ Optional short assistant reply (explains engine results only)
 - **Recipe data** — `prisma/schema.prisma`, `data/*.json`, `server/src/recipesDb.ts` (local SQLite; no network)
 - **Engine** — `server/src/engine/*` (filter → features → scorer → recommend; `retrain.py` for learning)
 - **API** — thin Express routes; business logic stays in the engine / AI modules
-- **AI** — `server/src/ai/*` provider abstraction (`LocalLlmProvider` → FlavoraLM service / `GroqProvider` / heuristic; `AI_PROVIDER` selects). Keys stay server-side; the local host must be a local address. `local` means our FlavoraLM — never Ollama, never a third-party model.
+- **AI** — `server/src/ai/*` local-only (`LocalLlmProvider` → FlavoraLM service, or deterministic heuristic fallback; `AI_PROVIDER=local|heuristic`). No keys, no remote calls; the local host must be a local address. `local` means our FlavoraLM — never Ollama, never a third-party model.
+- **Conversation** — `server/src/ai/conversationService.ts` (in-memory sessions → `FoodRequest` → deterministic engine); `POST /api/assistant/conversation`
+- **Nutrition** — authored recipe values first (`nutritionSource: "authored"`); optional server-side enrichment via USDA FoodData Central (CC0, `USDA_FDC_API_KEY`) / Open Food Facts (ODbL), cached locally in `data/nutrition-cache.json`; missing data is `"unknown"` (UI shows "unavailable", never invented)
 - **Client** — React screens talk only through `client/src/lib/api.ts`
 
 ### Recommendation API
 
 `POST /api/recommendations`  
 `{ availableIngredients, timeLimit, mode: normal|food_waste|budget, cuisine?, craving?, cravingSignals?, expiringIngredients?, useInventory? }`  
-→ `{ recommendations: [{ recipeId, title, score, matchReasons, … }] }`
+→ `{ recommendations: [{ recipeId, title, score, matchReasons, nutritionSource, … }] }`
 Inventory names/expiry are auto-derived when `useInventory:true` or nothing typed.
 
 `POST /api/assistant`  
-`{ message }` → `{ intent, source, notice?, reply, recommendations }`  
+`{ message }` → `{ intent, source, fallbackReason, notice?, reply, recommendations }`  
 Intent is validated; recipes always come from the local engine after the hard filter.
+
+`POST /api/assistant/conversation`  
+`{ sessionId?, message }` → `{ sessionId, question|null, done, foodRequest, intent, source, fallbackReason, reply, recommendations }`  
+Multi-turn requirement gathering; recommendations only when `done`. Sessions are in-memory.
+
+`GET /api/nutrition/lookup?ingredient=chicken`  
+→ `{ ingredient, values, source }` (authored → cache → USDA → Open Food Facts → `unknown`; offline-safe)
 
 `POST /api/interactions` — `shown|viewed|saved|unsaved|cooked|rated_positive|rated_negative|skipped`
 
@@ -350,7 +367,8 @@ Intent is validated; recipes always come from the local engine after the hard fi
 - `GET/POST/PUT/PATCH/DELETE /api/inventory` (+ `/expiring`, `/consume`) — qty/unit/category/expiry/notes; expiry statuses `fresh|expiring_soon(≤2d)|expired|unknown` with `daysRemaining`. UI supports edit-in-place and sort by expiry/status/name. Food Waste Mode boosts expiring-stock recipes. Language is “you marked as expiring soon”, never a safety verdict.
 - `GET/POST/PUT/DELETE /api/groceries` (+ `/generate`, `/clear-completed`, `?restore=1`, `?includeRemoved=1`) — merge compatible quantities, keep prep notes, subtract inventory unit-aware, soft-delete + restore. UI supports edit-in-place, quantity/unit, restore of recently removed.
 - `GET/POST/PUT/DELETE /api/meal-plans` (+ `/clear-day`, `/nutrition/summary`) — day/meal slots with servings + applied subs snapshot; unsafe recipes rejected; move meals between day/meal slots; duplicate day to the next day; week/day nutrition aggregates with `unknown` flags, never invented.
-- Client pages: `/inventory`, `/groceries`, `/meal-plan` (+ sync banner). All mutations queue offline via IndexedDB and replay in order (max 5 attempts, dedupe by id) — including substitutions applied offline.
+- Client pages: `/inventory`, `/groceries`, `/meal-plan` (+ sync banner). All mutations queue offline via IndexedDB and replay in order (max 5 attempts, dedupe by id) — including substitutions, meal logs, water, and goals saves applied offline.
+- PWA icons: `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` (+ `apple-touch-icon`).
 
 ### Safety
 
@@ -382,9 +400,11 @@ This goes offline (Chromium emulation), adds an inventory item, reloads the page
 
 - FlavoraLM is a small model: intent extraction is fast on CPU, but nuanced prose can still fall back to the heuristic parser; the assistant validates its output and falls back on malformed/failed responses. Retrain with `npm run train:llm` to improve it.
 - Structured cravings cover common vocab with negation handling; nuanced prose still falls back to token overlap.
+- Recipe nutrition is authored (all 80 seeded recipes); online enrichment (USDA/Open Food Facts) only fills gaps for new lookups and is cached — offline or unmatched values stay explicitly `unknown`.
 - Unit conversion is allowlist-only (g/kg, ml/l/tsp/tbsp/cup, pieces); ambiguous units never convert.
 - Budget uses authored cost tiers, never live prices.
 - Expiry dates are user estimates, never food-safety verdicts.
+- `test_extract_ingredients_intent` (tiny-model quality test) is flaky independent of app changes; tokenizer/model/dataset suites pass 26/26 + env suite 2/2.
 
 ### Privacy
 

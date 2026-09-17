@@ -5,21 +5,21 @@
   "testFile": "/Users/chhavitayalpatil/Desktop/RISARMS/Flavora/training/data/test.jsonl",
   "examples": 10,
   "intentExactMatch": 0.0,
-  "schemaValidityRate": 0.0,
-  "invalidJsonRate": 1.0,
+  "schemaValidityRate": 0.9,
+  "invalidJsonRate": 0.1,
   "fieldAccuracy": {
     "allergies": null,
-    "avoidFoods": 0.0,
+    "avoidFoods": 1.0,
     "cuisine": 0.0,
     "timeLimit": 0.0,
     "cravingSignals": 0.0,
-    "ingredients": 0.0,
-    "spicePreference": 0.0,
+    "ingredients": 0.4444444444444444,
+    "spicePreference": 0.5,
     "mode": 0.0
   },
-  "negationAccuracy": 0.0,
+  "negationAccuracy": 1.0,
   "negationExamples": 1,
   "repeatability": 1.0,
-  "avgMsPerExample": 6649.083757400513,
-  "evaluatedAt": "2026-09-16T06:55:08Z"
+  "avgMsPerExample": 4529.890060424805,
+  "evaluatedAt": "2026-09-17T05:02:18Z"
 }

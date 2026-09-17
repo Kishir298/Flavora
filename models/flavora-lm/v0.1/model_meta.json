@@ -6,7 +6,7 @@
     "model_name": "FlavoraLM-dev",
     "version": "0.1",
     "architecture": "decoder_transformer",
-    "vocab_size": 768,
+    "vocab_size": 540,
     "context_length": 160,
     "embedding_dim": 128,
     "layers": 4,
@@ -14,8 +14,8 @@
     "feed_forward_dim": 512,
     "dropout": 0.1
   },
-  "parameterCount": 912128,
+  "parameterCount": 882944,
   "contextLength": 160,
   "tokenizerVersion": "0.2",
-  "trainedAt": "2026-09-16T07:34:27Z"
+  "trainedAt": "2026-09-17T04:59:17Z"
 }

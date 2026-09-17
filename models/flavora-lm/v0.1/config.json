@@ -10,10 +10,10 @@
   "feed_forward_dim": 512,
   "dropout": 0.1,
   "training": {
-    "epochs": 80,
-    "batch_size": 32,
-    "learning_rate": 0.003,
-    "warmup_steps": 50,
+    "epochs": 120,
+    "batch_size": 8,
+    "learning_rate": 0.005,
+    "warmup_steps": 100,
     "grad_clip": 1.0,
     "seed": 42
   },

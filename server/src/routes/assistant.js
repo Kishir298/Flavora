@@ -10,6 +10,9 @@ import { resolveWeights } from "../engine/weights.js";
 import { maybeTriggerRetrain } from "../engine/retrainTrigger.js";
 import { logEvent, getReqId } from "../logger.js";
 import { parseUserIntent, buildAssistantReply } from "../ai/assistantService.js";
+import { getStore } from "../store/userDataStore.js";
+import { computeStats } from "../stats/statistics.js";
+import { buildInsights } from "../stats/insights.js";
 import { normalizeIntent } from "../ai/intentSchema.js";
 import { OUTCOME_ACTIONS } from "./recommendations.js";
 
@@ -173,12 +176,38 @@ assistantRouter.post("/", async (req, res, next) => {
 
     const reply = buildAssistantReply(message, intent, recommendations, parsed.notice);
 
+    // Optional deterministic week-summary context ("How have I been eating?").
+    // Facts are computed by the stats engine and attached verbatim — an LLM
+    // may verbalize `facts` but must never recompute or override them.
+    let facts = null;
+    let fullReply = reply;
+    if (req.body?.context === "week-summary") {
+      const store = getStore();
+      const week = computeStats(store.listMeals(), store.getGoals(), store.read().waterLogs, "weekly");
+      const insights = buildInsights(store.listMeals(), store.getGoals(), store.read().waterLogs);
+      facts = {
+        totalMeals: week.totalMeals,
+        activeDays: week.activeDays,
+        byType: week.byType,
+        variety: week.variety,
+        nutrition: week.nutrition,
+        goalProgress: week.goalProgress,
+        status: week.status,
+        insights: insights.map((i) => i.text),
+      };
+      const summary = week.status === "insufficient"
+        ? (week.reason ?? "Not enough data yet.")
+        : `This week: ${week.totalMeals} meal(s) across ${week.activeDays} day(s). ${insights.map((i) => i.text).join(" ")}`;
+      fullReply = `${summary} ${reply}`;
+    }
+
     res.json({
       intent,
       source: parsed.source,
       notice: parsed.notice ?? null,
-      reply,
+      reply: fullReply,
       recommendations,
+      ...(facts ? { facts } : {}),
     });
   } catch (e) {
     next(e);

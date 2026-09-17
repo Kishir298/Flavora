@@ -16,6 +16,10 @@ node_modules/
 prisma/dev.db
 prisma/*.db
 
+# Local JSON user-data store (real user meals/goals; recreated on launch)
+data/user-data.json
+data/user-data.json.corrupt-*.bak
+
 # Build output
 dist/
 build/

@@ -10,6 +10,8 @@ import { devRouter } from "./routes/dev.js";
 import { debugRouter } from "./routes/debug.js";
 import { substitutionsRouter } from "./routes/substitutions.js";
 import { inventoryRouter } from "./routes/inventory.js";
+import { mealsRouter, goalsRouter, waterRouter } from "./routes/meals.js";
+import { statsRouter } from "./routes/stats.js";
 import { groceriesRouter } from "./routes/groceries.js";
 import { mealPlansRouter } from "./routes/mealPlans.js";
 import { config } from "./config.js";
@@ -107,6 +109,10 @@ export function createApp() {
   app.use("/api/debug", debugRouter);
   app.use("/api/substitutions", substitutionsRouter);
   app.use("/api/inventory", inventoryRouter);
+  app.use("/api/meals", mealsRouter);
+  app.use("/api/goals", goalsRouter);
+  app.use("/api/water", waterRouter);
+  app.use("/api", statsRouter);
   app.use("/api/groceries", groceriesRouter);
   app.use("/api/meal-plans", mealPlansRouter);
 

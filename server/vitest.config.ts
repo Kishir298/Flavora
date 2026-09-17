@@ -11,6 +11,9 @@ export default defineConfig({
     // ".js" suffixes (tsx + tsc handle this natively; vite needs the map).
     alias: [
       { find: /^..\/db\.js$/, replacement: src("db.ts") },
+      { find: /^..\/store\/(.*)\.js$/, replacement: src("store/$1.ts") },
+      { find: /^..\/stats\/(.*)\.js$/, replacement: src("stats/$1.ts") },
+      { find: /^..\/routes\/(.*)\.js$/, replacement: src("routes/$1.ts") },
       { find: /^..\/app\.js$/, replacement: src("app.ts") },
       { find: /^..\/logger\.js$/, replacement: src("logger.ts") },
       { find: /^..\/recipesDb\.js$/, replacement: src("recipesDb.ts") },

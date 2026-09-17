@@ -27,6 +27,10 @@ export interface StatsResult {
   goalProgress: { label: string; target: number | null; actual: number; met: boolean | null }[];
   buckets: DayBucket[];
   waterMl: number | null;
+  timing: { byHour: number[]; morning: number; afternoon: number; evening: number; night: number };
+  averages: { mealsPerDay: number | null; caloriesPerDay: number | null };
+  cuisineVariety: { cuisines: string[]; count: number };
+  waste: { expiring: number; expired: number } | null;
 }
 
 const DAY = 86400000;
@@ -43,12 +47,20 @@ function startOfDay(d: Date): Date {
 
 const MIN_MEALS: Record<string, number> = { daily: 1, weekly: 3, monthly: 8 };
 
+const KNOWN_CUISINES = ["italian", "mexican", "chinese", "indian", "japanese", "thai", "french", "spanish", "greek", "american", "mediterranean", "korean", "vietnamese", "turkish", "lebanese", "moroccan", "ethiopian", "brazilian", "cajun"];
+
+export interface WasteInput {
+  expiring: number;
+  expired: number;
+}
+
 export function computeStats(
   meals: MealRecord[],
   goals: GoalsRecord,
   water: WaterRecord[],
   range: "daily" | "weekly" | "monthly",
-  now = new Date()
+  now = new Date(),
+  waste: WasteInput | null = null
 ): StatsResult {
   const days = range === "daily" ? 1 : range === "weekly" ? 7 : 30;
   const from = startOfDay(now).getTime() - (days - 1) * DAY;
@@ -80,6 +92,10 @@ export function computeStats(
       byType: {}, variety: { uniqueFoods: 0, uniqueMeals: 0 }, repeats: [],
       nutrition: { calories: null, protein_g: null, carbs_g: null, fat_g: null, daysWithData: 0 },
       goalProgress: [], waterMl: null,
+      timing: { byHour: new Array(24).fill(0), morning: 0, afternoon: 0, evening: 0, night: 0 },
+      averages: { mealsPerDay: null, caloriesPerDay: null },
+      cuisineVariety: { cuisines: [], count: 0 },
+      waste,
     };
   }
 
@@ -136,6 +152,28 @@ export function computeStats(
     pushGoal("Hydration (ml)", goals.waterMlPerDay * days, waterMl ?? 0);
   }
 
+  // Meal timing (UTC hour of loggedAt — deterministic across timezones).
+  const byHour = new Array(24).fill(0) as number[];
+  for (const m of inRange) {
+    const t = new Date(m.loggedAt).getTime();
+    if (Number.isFinite(t)) byHour[new Date(t).getUTCHours()]++;
+  }
+  const span = (a: number, b: number) => byHour.slice(a, b).reduce((x, y) => x + y, 0);
+  const timing = { byHour, morning: span(5, 11), afternoon: span(11, 17), evening: span(17, 23), night: span(23, 24) + span(0, 5) };
+
+  const averages = {
+    mealsPerDay: activeDays ? Math.round((inRange.length / activeDays) * 10) / 10 : null,
+    caloriesPerDay: cal.days ? Math.round((cal.total as number) / cal.days) : null,
+  };
+
+  // Cuisine variety from tags/food tokens matching a known cuisine vocabulary.
+  const tokens = new Set<string>();
+  for (const m of inRange) {
+    for (const t of m.tags ?? []) tokens.add(t.toLowerCase());
+    for (const f of m.foods) for (const w of f.name.toLowerCase().split(/[^a-z]+/)) if (w) tokens.add(w);
+  }
+  const cuisines = KNOWN_CUISINES.filter((c) => tokens.has(c)).sort();
+
   return {
     status: "ok", range,
     totalMeals: inRange.length, activeDays,
@@ -145,5 +183,8 @@ export function computeStats(
     repeats,
     nutrition: { calories: cal.total, protein_g: pro.total, carbs_g: car.total, fat_g: fat.total, daysWithData: cal.days },
     goalProgress, buckets, waterMl,
+    timing, averages,
+    cuisineVariety: { cuisines, count: cuisines.length },
+    waste,
   };
 }

@@ -44,4 +44,42 @@ describe("assistant week-summary — deterministic facts, AI cannot invent", () 
     const blob = JSON.stringify(res.body.recommendations).toLowerCase();
     expect(blob).not.toContain("peanut");
   });
+
+  it("yesterday context lists actual stored meals", async () => {
+    const res = await request(app)
+      .post("/api/assistant")
+      .send({ message: "What did I eat yesterday?", context: "yesterday" });
+    expect(res.status).toBe(200);
+    // Seeded meals are dated today, so yesterday is honestly empty.
+    expect(res.body.facts.count).toBe(0);
+    expect(res.body.reply).toMatch(/No meals logged for/);
+  });
+
+  it("goals context reports stored goals, unknown context rejected", async () => {
+    const goals = await request(app).put("/api/goals").send({ mealsPerDay: 3 });
+    expect(goals.status).toBe(200);
+    const res = await request(app)
+      .post("/api/assistant")
+      .send({ message: "What are my goals?", context: "goals" });
+    expect(res.status).toBe(200);
+    expect(JSON.stringify(res.body.facts)).toContain("mealsPerDay");
+    const bad = await request(app)
+      .post("/api/assistant")
+      .send({ message: "hi", context: "nonsense" });
+    expect(bad.status).toBe(400);
+  });
+
+  it("repeats + waste contexts answer from stored data", async () => {
+    const rep = await request(app)
+      .post("/api/assistant")
+      .send({ message: "What do I repeat?", context: "repeats" });
+    expect(rep.status).toBe(200);
+    expect(rep.body.facts.status).toBe("ok");
+    const waste = await request(app)
+      .post("/api/assistant")
+      .send({ message: "What is expiring?", context: "waste" });
+    expect(waste.status).toBe(200);
+    expect(waste.body.facts).toHaveProperty("expiring");
+    expect(waste.body.facts).toHaveProperty("expired");
+  });
 });

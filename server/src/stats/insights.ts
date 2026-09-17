@@ -11,10 +11,13 @@ import type { GoalsRecord, WaterRecord } from "../store/userDataStore.js";
 export interface Insight {
   id: string;
   text: string;
-  kind: "consistency" | "variety" | "vegetables" | "goals" | "repeats" | "hydration" | "planning";
+  kind: "consistency" | "variety" | "vegetables" | "goals" | "repeats" | "hydration" | "planning" | "timing" | "waste";
 }
 
-export function buildInsights(meals: MealRecord[], goals: GoalsRecord, water: WaterRecord[], now = new Date()): Insight[] {
+export function buildInsights(
+  meals: MealRecord[], goals: GoalsRecord, water: WaterRecord[], now = new Date(),
+  waste: { expiring: number; expired: number } | null = null
+): Insight[] {
   const out: Insight[] = [];
   const week = computeStats(meals, goals, water, "weekly", now);
   if (week.status === "insufficient") {
@@ -84,6 +87,42 @@ export function buildInsights(meals: MealRecord[], goals: GoalsRecord, water: Wa
 
   if (week.waterMl != null && week.waterMl > 0) {
     out.push({ id: "hydration", kind: "hydration", text: `You logged ${week.waterMl} ml of water this week.` });
+  }
+
+  // Meal timing: which part of day holds the most logged meals.
+  const parts = [["morning", week.timing.morning], ["afternoon", week.timing.afternoon], ["evening", week.timing.evening], ["night", week.timing.night]] as const;
+  const peak = parts.reduce((a, b) => (b[1] > a[1] ? b : a));
+  if (peak[1] > 0) {
+    out.push({ id: "timing", kind: "timing", text: `Most of your logged meals fall in the ${peak[0]}.` });
+  }
+
+  // 30-day trend vs the prior 30 days.
+  const month = computeStats(meals, goals, water, "monthly", now);
+  if (month.status === "ok") {
+    const prevMonth = computeStats(meals, goals, water, "monthly", new Date(now.getTime() - 30 * 86400000));
+    if (prevMonth.status === "ok") {
+      const diff = month.totalMeals - prevMonth.totalMeals;
+      if (diff !== 0) {
+        out.push({
+          id: "month-over-month",
+          kind: "consistency",
+          text: diff > 0
+            ? `You logged ${diff} more meal(s) in the last 30 days than the 30 before.`
+            : `You logged ${-diff} fewer meal(s) in the last 30 days than the 30 before.`,
+        });
+      }
+    }
+  }
+
+  // Food waste from inventory expiry state (provided by the caller, never guessed).
+  if (waste && (waste.expiring > 0 || waste.expired > 0)) {
+    out.push({
+      id: "waste",
+      kind: "waste",
+      text: waste.expired > 0
+        ? `${waste.expired} inventoried item(s) are past their estimated date and ${waste.expiring} are coming up — consider planning meals around them.`
+        : `${waste.expiring} inventoried item(s) are coming up on their estimated date — consider planning meals around them.`,
+    });
   }
 
   return out;

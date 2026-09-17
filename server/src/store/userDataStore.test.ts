@@ -60,8 +60,7 @@ describe("userDataStore — local JSON persistence", () => {
   it("validates meal input", () => {
     const s = new UserDataStore(file);
     expect(() => s.addMeal({})).toThrow(ValidationError);
-    expect(() => s.addMeal(meal({ mealType: "brunch" }))).toThrow(ValidationError);
-    expect(() => s.addMeal(meal({ loggedAt: "not-a-date" }))).toThrow(ValidationError);
+    expect(() => s.addMeal(meal({ mealType: "brunch" }))).toThrow(ValidationError);    expect(() => s.addMeal(meal({ loggedAt: "not-a-date" }))).toThrow(ValidationError);
     expect(() => s.addMeal(meal({ foods: [{ name: "" }] }))).toThrow(ValidationError);
   });
 
@@ -81,6 +80,13 @@ describe("userDataStore — local JSON persistence", () => {
     expect(d.meals).toEqual([]);
     const bak = fs.readdirSync(dir).filter((f) => f.includes(".corrupt-"));
     expect(bak.length).toBe(1);
+  });
+
+  it("accepts the Other meal type and backfilled timestamps", () => {
+    const s = new UserDataStore(file);
+    const rec = s.addMeal(meal({ mealType: "other", loggedAt: "2026-01-05T10:00:00.000Z" }));
+    expect(rec.mealType).toBe("other");
+    expect(rec.loggedAt).toBe("2026-01-05T10:00:00.000Z");
   });
 
   it("water logging validates", () => {

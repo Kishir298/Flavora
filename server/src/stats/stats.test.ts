@@ -65,6 +65,49 @@ describe("statistics engine — deterministic from fixtures", () => {
     expect(s2.status).toBe("ok");
     expect(s2.totalMeals).toBe(2);
   });
+
+  it("timing buckets, averages and cuisine variety", () => {
+    const s = computeStats(WEEK_MEALS, {}, [], "weekly", NOW);
+    expect(s.timing.byHour).toHaveLength(24);
+    expect(s.timing.morning).toBe(3); // 08:00 x3
+    expect(s.timing.evening).toBe(1); // 19:00 x1
+    expect(s.timing.afternoon).toBe(1); // 13:00
+    expect(s.averages.mealsPerDay).toBe(1.3); // 5 meals / 4 active days
+    expect(s.averages.caloriesPerDay).toBe(390); // 1560 / 4 days with data
+  });
+
+  it("cuisine variety matches tags against known cuisines", () => {
+    const s = computeStats(
+      [meal({ id: "c1", name: "Pasta", loggedAt: "2026-09-16T19:00:00Z", foods: [{ name: "pasta" }], tags: ["italian"] }),
+       meal({ id: "c2", name: "Tacos", loggedAt: "2026-09-16T13:00:00Z", foods: [{ name: "beans" }], tags: ["mexican"] }),
+       meal({ id: "c3", name: "Soup", loggedAt: "2026-09-15T19:00:00Z", foods: [{ name: "lentils" }] })],
+      {}, [], "weekly", NOW);
+    expect(s.cuisineVariety).toEqual({ cuisines: ["italian", "mexican"], count: 2 });
+  });
+
+  it("waste input passes through, defaults to null", () => {
+    const s = computeStats(WEEK_MEALS, {}, [], "weekly", NOW, { expiring: 2, expired: 1 });
+    expect(s.waste).toEqual({ expiring: 2, expired: 1 });
+    const s2 = computeStats(WEEK_MEALS, {}, [], "weekly", NOW);
+    expect(s2.waste).toBeNull();
+  });
+
+  it("30-day trend insight compares windows deterministically", () => {
+    // 8+ meals in last 30d, 8+ in prior 30d → month-over-month insight.
+    const many: MealRecord[] = [];
+    for (let i = 0; i < 10; i++) many.push(meal({ id: `n${i}`, name: `Meal${i}`, loggedAt: `2026-09-${String(15 - (i % 5)).padStart(2, "0")}T12:00:00Z`, foods: [{ name: `food${i}` }] }));
+    for (let i = 0; i < 8; i++) many.push(meal({ id: `o${i}`, name: `Old${i}`, loggedAt: `2026-08-${String(15 - (i % 5)).padStart(2, "0")}T12:00:00Z`, foods: [{ name: `old${i}` }] }));
+    const list = buildInsights(many, {}, [], NOW);
+    expect(list.some((x) => x.id === "month-over-month")).toBe(true);
+    expect(list.some((x) => x.id === "timing")).toBe(true);
+  });
+
+  it("waste insight appears only with waste data", () => {
+    const withWaste = buildInsights(WEEK_MEALS, {}, [], NOW, { expiring: 1, expired: 0 });
+    expect(withWaste.some((x) => x.id === "waste")).toBe(true);
+    const without = buildInsights(WEEK_MEALS, {}, [], NOW, null);
+    expect(without.some((x) => x.id === "waste")).toBe(false);
+  });
 });
 
 describe("insights — neutral habit language", () => {

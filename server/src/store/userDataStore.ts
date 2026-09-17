@@ -13,7 +13,7 @@ import { randomUUID } from "node:crypto";
  */
 
 export const STORE_VERSION = 1;
-export const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"] as const;
+export const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack", "other"] as const;
 export type MealType = (typeof MEAL_TYPES)[number];
 
 export interface MealFood {
@@ -112,7 +112,7 @@ export function validateMealInput(b: unknown): Omit<MealRecord, "id"> {
   if (!name) throw new ValidationError("name is required");
   const mealType = String(body.mealType ?? "").toLowerCase();
   if (!(MEAL_TYPES as readonly string[]).includes(mealType)) {
-    throw new ValidationError("mealType must be breakfast|lunch|dinner|snack");
+    throw new ValidationError("mealType must be breakfast|lunch|dinner|snack|other");
   }
   const loggedAt = body.loggedAt ?? new Date().toISOString();
   if (!isIsoDate(loggedAt)) throw new ValidationError("loggedAt must be an ISO timestamp");

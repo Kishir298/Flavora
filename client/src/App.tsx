@@ -58,7 +58,7 @@ export function App() {
             <NavItem to="/meal-plan" label="Meal plan" />
             <NavItem to="/saved" label="Saved" />
             <NavItem to="/settings" label="Settings" />
-            <Link to="/onboarding" className="ml-auto opacity-70">Profile</Link>
+            <NavItem to="/onboarding" label="Profile" className="ml-auto" />
           </nav>
           <SyncBanner />
           <main id="main" tabIndex={-1}>
@@ -83,12 +83,12 @@ export function App() {
   );
 }
 
-function NavItem({ to, label, end }: { to: string; label: string; end?: boolean }) {
+function NavItem({ to, label, end, className }: { to: string; label: string; end?: boolean; className?: string }) {
   return (
     <NavLink
       to={to}
       end={end}
-      className={({ isActive }) => (isActive ? "font-semibold underline underline-offset-4" : "opacity-80")}
+      className={({ isActive }) => `${className ?? ""} ${isActive ? "font-semibold underline underline-offset-4" : "opacity-80"}`}
     >
       {label}
     </NavLink>

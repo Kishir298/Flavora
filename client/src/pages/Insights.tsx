@@ -56,7 +56,17 @@ export function Insights() {
               </p>
             )}
             <p className="text-sm mt-1">Variety: {stats.variety.uniqueMeals} meals · {stats.variety.uniqueFoods} foods.
-              {stats.repeats.length > 0 && <> Most repeated: {stats.repeats.map((r) => `${r.name} (${r.count}×)`).join(", ")}.</>}</p>
+              {stats.repeats.length > 0 && <> Most repeated: {stats.repeats.map((r) => `${r.name} (${r.count}×)`).join(", ")}.</>}
+              {stats.cuisineVariety.count > 0 && <> Cuisines: {stats.cuisineVariety.cuisines.join(", ")}.</>}
+            </p>
+            {stats.averages.mealsPerDay != null && (
+              <p className="text-sm mt-1">Average: {stats.averages.mealsPerDay} meals per active day
+                {stats.averages.caloriesPerDay != null && <> · {stats.averages.caloriesPerDay} kcal per day</>}.</p>
+            )}
+            <p className="text-sm mt-1">Timing: morning {stats.timing.morning} · afternoon {stats.timing.afternoon} · evening {stats.timing.evening} · night {stats.timing.night}.</p>
+            {stats.waste && (stats.waste.expiring > 0 || stats.waste.expired > 0) && (
+              <p className="text-sm mt-1">Inventory: {stats.waste.expired} expired · {stats.waste.expiring} expiring soon (estimated dates).</p>
+            )}
           </section>
           {stats.goalProgress.filter((g) => g.target != null).length > 0 && (
             <section className={card} aria-label="Goal consistency">

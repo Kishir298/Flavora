@@ -90,7 +90,7 @@ export interface GroceryItem {
 }
 
 export interface MealLog {
-  id: string; name: string; mealType: "breakfast" | "lunch" | "dinner" | "snack";
+  id: string; name: string; mealType: "breakfast" | "lunch" | "dinner" | "snack" | "other";
   loggedAt: string; foods: { name: string; quantity?: number | null; unit?: string | null }[];
   servings?: number | null;
   nutrition?: { calories?: number | null; protein_g?: number | null; carbs_g?: number | null; fat_g?: number | null } | null;
@@ -112,6 +112,10 @@ export interface StatsResult {
   nutrition: { calories: number | null; protein_g: number | null; carbs_g: number | null; fat_g: number | null; daysWithData: number };
   goalProgress: { label: string; target: number | null; actual: number; met: boolean | null }[];
   buckets: StatsBucket[]; waterMl: number | null;
+  timing: { byHour: number[]; morning: number; afternoon: number; evening: number; night: number };
+  averages: { mealsPerDay: number | null; caloriesPerDay: number | null };
+  cuisineVariety: { cuisines: string[]; count: number };
+  waste: { expiring: number; expired: number } | null;
 }
 
 export interface Insight { id: string; text: string; kind: string }
@@ -186,7 +190,7 @@ export const api = {
       body: JSON.stringify(body),
     }),
   /** Natural-language assistant → intent → same deterministic engine. */
-  assistant: (body: { message: string; intent?: Partial<AssistantIntent>; context?: "week-summary" }) =>
+  assistant: (body: { message: string; intent?: Partial<AssistantIntent>; context?: "week-summary" | "yesterday" | "repeats" | "goals" | "waste" }) =>
     req<AssistantResponse & { facts?: Record<string, unknown> }>("/api/assistant", { method: "POST", body: JSON.stringify(body) }),
   explain: (recipeId: string, mode?: RecommendMode) =>
     req<{ recipeId: string; features: Record<string, number>; weights: Record<string, number>; score: number }>(
@@ -245,6 +249,8 @@ export const api = {
   },
   getGoals: () => req<Goals>("/api/goals"),
   saveGoals: (b: Partial<Goals>) => req<Goals>("/api/goals", { method: "PUT", body: JSON.stringify(b) }),
+  water: () => req<{ id: string; loggedAt: string; ml: number }[]>("/api/water"),
+  addWater: (ml: number) => req<{ id: string; loggedAt: string; ml: number }>("/api/water", { method: "POST", body: JSON.stringify({ ml }) }),
   statistics: (range: "daily" | "weekly" | "monthly" = "weekly") => req<StatsResult>(`/api/statistics?range=${range}`),
   insights: () => req<Insight[]>("/api/insights"),
 };

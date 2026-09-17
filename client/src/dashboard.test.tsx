@@ -63,6 +63,7 @@ describe("meals page — log and list", () => {
         return { ok: true, json: async () => rec };
       }
       if (u.includes("/api/meals")) return { ok: true, json: async () => meals };
+      if (u.includes("/api/water")) return { ok: true, json: async () => [] };
       return { ok: true, json: async () => ({}) };
     }) as unknown as typeof fetch);
     render(<MemoryRouter><Meals /></MemoryRouter>);
@@ -71,5 +72,29 @@ describe("meals page — log and list", () => {
     fireEvent.change(screen.getByLabelText(/foods/i), { target: { value: "lentils" } });
     fireEvent.click(screen.getByRole("button", { name: /log meal/i }));
     await waitFor(() => expect(screen.queryByText(/No meals logged yet/)).not.toBeInTheDocument());
+    // Search filters the list.
+    fireEvent.change(screen.getByLabelText("search meals"), { target: { value: "nope-nothing" } });
+    await waitFor(() => expect(screen.getByText(/No meals match your search/)).toBeInTheDocument());
+    fireEvent.change(screen.getByLabelText("search meals"), { target: { value: "lent" } });
+    await waitFor(() => expect(screen.getByText("Soup")).toBeInTheDocument());
+  });
+
+  it("supports the Other meal type", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url: unknown, init?: RequestInit) => {
+      const u = String(url);
+      if (u.includes("/api/meals") && init?.method === "POST") {
+        const body = JSON.parse(String(init.body ?? "{}")) as { mealType?: string };
+        expect(body.mealType).toBe("other");
+        return { ok: true, json: async () => ({ ...body, id: "m2" }) };
+      }
+      if (u.includes("/api/meals")) return { ok: true, json: async () => [] };
+      if (u.includes("/api/water")) return { ok: true, json: async () => [] };
+      return { ok: true, json: async () => ({}) };
+    }) as unknown as typeof fetch);
+    render(<MemoryRouter><Meals /></MemoryRouter>);
+    fireEvent.change(screen.getByLabelText("meal name"), { target: { value: "Tea" } });
+    fireEvent.change(screen.getByLabelText("meal type"), { target: { value: "other" } });
+    fireEvent.click(screen.getByRole("button", { name: /log meal/i }));
+    await waitFor(() => expect(screen.getByLabelText("meal name")).toHaveValue(""));
   });
 });

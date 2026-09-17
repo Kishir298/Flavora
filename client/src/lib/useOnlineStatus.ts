@@ -57,8 +57,8 @@ export function useOnlineStatus() {
   return { online, pending, syncState, syncNow };
 }
 
-async function executeMutation(m: QueuedMutation): Promise<void> {
-  const p = m.payload as Record<string, unknown>;
+/** Exported for tests: replay a single queued mutation against the API. */
+export async function executeMutation(m: QueuedMutation): Promise<void> {  const p = m.payload as Record<string, unknown>;
   switch (m.operation) {
     case "interact":
       await api.interact(String(p.recipeId), String(p.action));

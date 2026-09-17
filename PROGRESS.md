@@ -1,8 +1,9 @@
 # Flavora — Progress
 
-Status after the FlavoraLM migration (custom local model, one-command setup)
-plus the audit-gap closure pass (standalone tokenizer/init commands, checkpoint
-hashes, service metadata endpoints, chain E2E, axe enhancement, `docs/` trio).
+Status after the FlavoraLM migration (custom local model, one-command setup),
+the audit-gap closure pass, and the final verification pass (fresh 120-epoch
+dev retrain, live one-command startup incl. AirPlay port auto-fallback,
+axe-AA-driven contrast fix). Full record: `docs/FLAVORALM_FINAL_AUDIT.md`.
 
 ## Verified state
 
@@ -10,7 +11,10 @@ hashes, service metadata endpoints, chain E2E, axe enhancement, `docs/` trio).
 - **Client:** 19/19 tests pass (components + offline queue), `tsc --noEmit` clean.
 - **Python:** tokenizer/model/dataset suites pass 26/26 via unittest; `training/evaluate.py` reports held-out metrics to `models/flavora-lm/v0.1/eval.json`. (1 pre-existing flaky tiny-model quality test in `test_intent_and_service.py` fails independent of these changes.)
 - **E2E:** critical paths + offline sync pass (dev config); `e2e/a11y.spec.ts` (baseline on every route + guarded axe critical/serious check), `e2e/keyboard.spec.ts` (skip link → main → operate), new `e2e/flavoralm.spec.ts` (health honesty → NL intent → safe recs → UI source label).
-- **Init proof:** `npm run verify:llm:init` PASS (912,128 params dev, embMean −0.00005 / embStd 0.01997, same-seed-identical, diff-seed-differs).
+- **Init proof:** `npm run verify:llm:init` PASS (882,944 params dev, embMean −0.00005 / embStd 0.01997, same-seed-identical, diff-seed-differs).
+- **Checkpoint (refreshed 2026-09-17):** full 120-epoch dev retrain → vocab 540 everywhere (stale 768-head artifact replaced), train 0.153 / val 0.155 / ppl 1.17, 19-field `training_meta.json` (hashes + timestamp native); capped eval: schemaValidity 0.9, invalidJson 0.1, negation 1.0, repeatability 1.0.
+- **One-command startup (proven live twice):** `npm run start` → artifacts ✓, FlavoraLM ✓, API :4000 ✓, Website :5173 ✓; AirPlay :5000 squat auto-falls-back (5001) with Express notified; honest ✗ + fallback notice if AI is down (app keeps running per design).
+- **E2E live:** `flavoralm.spec.ts` 3/3, `a11y.spec.ts` 11/11 with real axe (WCAG AA); contrast fix `green-600`→`green-700` on 5 button sites.
 
 ## Objective matrix
 

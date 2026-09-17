@@ -1,10 +1,17 @@
 # FlavoraLM Evaluation
 
+> Update 2026-09-17: the dev checkpoint was fully retrained (120 epochs,
+> vocab unified to 540, 882,944 params). Fresh numbers — train 0.153, val
+> 0.155, ppl 1.17; capped eval schemaValidity 0.9, invalidJson 0.1, negation
+> 1.0, repeatability 1.0 — are recorded in `docs/FLAVORALM_FINAL_AUDIT.md` and
+> `models/flavora-lm/v0.1/eval.json`. The per-run analysis below (from the
+> previous 80-epoch artifact) is retained as history.
+
 Measured results for the committed checkpoint. Nothing here is fabricated: weak
 numbers are reported as weak, with the cause and the remedy stated.
 
 ## Model under test
-- FlavoraLM-dev v0.1, decoder Transformer, **912,128 params**, context 160,
+- FlavoraLM-dev v0.1, decoder Transformer, **882,944 params**, context 160,
   realized vocab **540** (tokenizer v0.2 BPE, trained on our corpus).
 - Seed 42, fresh random init (`verify:llm:init` PASS: embMean −0.00005,
   embStd 0.01997, same-seed-identical, diff-seed-differs).

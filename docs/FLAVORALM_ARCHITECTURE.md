@@ -82,7 +82,7 @@ Each block: `x + masked-self-attention(LN(x))` then `x + FFN(LN(x)))`
 | attention_heads | 4 | 8 |
 | ffn_dim | 512 | 1024 |
 | dropout | 0.1 | 0.1 |
-| **parameters (measured)** | **912,128** | **5,853,184** |
+| **parameters (measured)** | **882,944** (540 vocab) | **5,853,184** (4096 vocab target) |
 
 Initialization: all Linear/Embedding weights `N(0, 0.02)`, biases zero
 (`_init_weights`). Provenance: `npm run verify:llm:init` rebuilds from seed 42

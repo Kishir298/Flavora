@@ -76,7 +76,7 @@ npm run verify:llm:init
 `training/verify_init.py` rebuilds from the config seed and asserts:
 same-seed-identical weights, different-seed-differs, embedding stats in
 `N(0, 0.02)` range, finite forward logits of shape `(B, T, vocab)`.
-Measured (dev, seed 42): `embMean -0.00005, embStd 0.01997`, 912,128 params —
+Measured (dev, seed 42): `embMean -0.00005, embStd 0.01997`, 882,944 params (540-vocab checkpoint, 2026-09-17) —
 textbook fresh random init, zero pretrained content.
 
 ## Training command
@@ -130,7 +130,7 @@ creation timestamp. Same seed + same corpus → same tokenizer + same init.
 | Symptom | Fix |
 |---|---|
 | `verify:local-ai` → service FAIL | `npm run start` (launches service) or `npm run lm:serve` |
-| Port 5000 busy on macOS (AirPlay) | Disable AirPlay Receiver, or `FLAVORA_LM_PORT=5001` |
+| Port 5000 busy on macOS (AirPlay) | `npm run start` auto-falls-back to a free port and notifies Express; manual override `FLAVORA_LM_PORT=5001` also works |
 | Model not loaded | Check `models/flavora-lm/v0.1/model.pt`; `npm run train:llm:dev` |
 | `.flavoralm-venv` broken | Delete it, `npm run setup` (recreates + installs torch CPU) |
 | Python < 3.11 | Install 3.11+, re-run |

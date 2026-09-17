@@ -10,17 +10,55 @@ Requirements:
 - Node.js 20+
 - Python 3.11+
 
-Run:
+### First-time setup
+
+```bash
+npm install
+npm run setup
+```
+
+`npm run setup` verifies Node/Python, installs npm + Python (`torch` CPU) dependencies,
+prepares SQLite via Prisma, seeds recipes, and verifies the FlavoraLM artifacts —
+without starting any services.
+
+### Train FlavoraLM
+
+```bash
+npm run train:tokenizer
+npm run train:llm
+```
+
+Training runs locally from the synthetic corpus (no downloads, no pretrained
+weights). Use `npm run train:llm:dev` for the fast CI-sized model instead.
+On an 8 GB / no-GPU laptop prefer the dev config — the full small model takes
+hours on integrated graphics-less CPUs.
+
+### Run Flavora
 
 ```bash
 npm run start
 ```
 
-Then open:
+After the model has been trained, normal usage requires only `npm run start`:
+it re-runs setup checks, starts FlavoraLM (`127.0.0.1:5000`), waits for
+`/health`, then starts Express (`localhost:4000`) and Vite (`localhost:5173`).
+One terminal, Ctrl+C stops everything cleanly.
+
+### URLs
 
 ```text
-http://localhost:5173
+Website: http://localhost:5173
+API: http://localhost:4000
+FlavoraLM: http://127.0.0.1:5000
 ```
+
+### Training vs running
+
+Training (`train:tokenizer`, `train:llm`) **creates** the model artifacts in
+`models/flavora-lm/v0.1/` and is done once (or when you want a better model).
+Running (`npm run start`) **uses** the existing artifacts and never retrains,
+never downloads, and never creates an external LLM. If artifacts are missing,
+startup prints exactly what to run (see above) instead of proceeding.
 
 `npm run start` does everything: installs npm dependencies, creates the local
 Python environment (`.flavoralm-venv/`), initializes SQLite via Prisma, seeds
@@ -137,7 +175,7 @@ Training is separated from startup: normal `npm run start` never retrains.
 | Symptom | Fix |
 |---|---|
 | `verify:local-ai` → service FAIL | Run `npm run start` (it launches the service), or `npm run lm:serve` manually |
-| Port 5000 busy on macOS (AirPlay Receiver) | Disable AirPlay Receiver in System Settings, or set `FLAVORA_LM_PORT=5001` |
+| Port 5000 busy on macOS (AirPlay Receiver) | `npm run start` auto-falls-back to the next free port (e.g. 5001) and notifies Express — no action needed. Or disable AirPlay Receiver / set `FLAVORA_LM_PORT=5001` |
 | Service up but model not loaded | Check `models/flavora-lm/v0.1/model.pt`; retrain with `npm run train:llm:dev` |
 | `.flavoralm-venv` broken/missing | Delete it and run `npm run setup` (recreates + installs torch CPU) |
 | Python < 3.11 | Install Python 3.11+ and re-run |

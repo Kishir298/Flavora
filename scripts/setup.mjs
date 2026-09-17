@@ -132,6 +132,26 @@ async function waitForHealth(url, timeoutMs, predicate) {
   return null;
 }
 
+/** HTTP POST JSON with timeout (for /intent inference verification). */
+async function httpPostJson(url, body, timeoutMs = 30_000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function depsInstalled() {
   // npm workspaces hoist packages to the root — check both nested and hoisted paths.
   const exists = (p) => fs.promises.access(p).then(() => true, () => false);
@@ -193,12 +213,12 @@ async function ensurePythonEnv() {
   console.log("\nPython environment");
   const venvPy = venvPython();
   if (fs.existsSync(venvPy)) {
-    const check = await execText(venvPy, ["-c", "import torch; print(torch.__version__)"], 30_000);
+    const check = await execText(venvPy, ["-c", "import torch, numpy; print(torch.__version__, numpy.__version__)"], 30_000);
     if (check.ok) {
-      ok(`Python environment (.flavoralm-venv, torch ${check.out.trim()})`);
+      ok(`Python environment (.flavoralm-venv, torch+numpy ${check.out.trim()})`);
       return true;
     }
-    info("Virtualenv exists but torch is missing — installing requirements…");
+    info("Virtualenv exists but torch/numpy is missing — installing requirements…");
   } else {
     const sys = await findSystemPython();
     if (!sys) {
@@ -381,6 +401,23 @@ async function launch() {
       ok(`FlavoraLM loaded (${health.model} v${health.version}, ${health.parameterCount} params, ${health.device})`);
       lmReady = true;
       lmSummary = `${health.model} v${health.version}, ${health.parameterCount} params, ${health.device}`;
+    }
+  }
+  // Inference readiness (not just /health): prove POST /intent runs the
+  // model before claiming FlavoraLM is serving requests.
+  // /health=true but valid:false means the runtime is up yet the model could
+  // not extract intent — honest warn, not a verified pass.
+  if (lmReady) {
+    process.stdout.write("  Verifying FlavoraLM inference (POST /intent) ");
+    const inference = await httpPostJson(`${lmUrl()}/intent`, { text: "I want chicken and rice" }, 60_000);
+    console.log("");
+    if (inference && inference.valid === true) {
+      ok(`FlavoraLM inference verified (valid:true, model extracted intent)`);
+    } else if (inference && inference.valid === false) {
+      warn("FlavoraLM /health is up but POST /intent returned valid:false — model answered but extracted nothing usable. UI will show honest fallback notices (local-invalid) until inference improves.");
+      warn("Tip: run `npm run verify:local-ai` for the full 8-step check, or `npm run train:llm:dev` to improve the checkpoint.");
+    } else {
+      warn("FlavoraLM /health is up but POST /intent did not answer — UI will show honest fallback notices until inference works.");
     }
   }
 

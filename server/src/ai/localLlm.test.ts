@@ -22,24 +22,38 @@ describe("ai/localLlmProvider — local-only enforcement", () => {
     expect(() => new LocalLlmProvider({ host: "https://api.example.com" })).toThrow(LocalLlmError);
   });
 
-  it("reports unreachable service via probeAvailability (no service in CI)", async () => {
-    const p = new LocalLlmProvider({ host: "http://127.0.0.1:5000", timeoutMs: 1000 });
-    // In CI no FlavoraLM service runs — probe must return false, never throw.
+  it("reports unreachable service via probeAvailability (closed port, deterministic)", async () => {
+    // Use a closed high port so the test is deterministic whether or not
+    // FlavoraLM runs on :5000 in this environment.
+    const p = new LocalLlmProvider({ host: "http://127.0.0.1:59999", timeoutMs: 1000 });
     const ok = await p.probeAvailability();
     expect(ok).toBe(false);
     expect(p.isAvailable()).toBe(false);
   });
 
   it("probeStatus reports unreachable fields honestly (never fabricated)", async () => {
-    const p = new LocalLlmProvider({ host: "http://127.0.0.1:5000", timeoutMs: 1000 });
+    const p = new LocalLlmProvider({ host: "http://127.0.0.1:59999", timeoutMs: 1000 });
     const status = await p.probeStatus();
-    expect(status).toEqual({ runtimeReachable: false, modelInstalled: false, usable: false });
+    expect(status).toEqual({ runtimeReachable: false, modelInstalled: false, usable: false, detail: "unreachable" });
+  });
+
+  it("probeStatus against live FlavoraLM (if running) reports measured identity", async () => {
+    const p = new LocalLlmProvider({ host: "http://127.0.0.1:5000", timeoutMs: 3000 });
+    const status = await p.probeStatus();
+    // Either the service is down (unreachable) or up with measured identity.
+    // Never assert a fixed outcome — assert shape honesty.
+    expect(["ok", "unloaded", "unreachable"]).toContain(status.detail);
+    if (status.usable) {
+      expect(status.runtimeReachable).toBe(true);
+      expect(status.modelInstalled).toBe(true);
+      expect(status.model).toMatch(/^flavoraLM/i);
+    }
   });
 
   it("complete() on unreachable service throws a clear local error", async () => {
-    const p = new LocalLlmProvider({ host: "http://127.0.0.1:5000", timeoutMs: 1000 });
+    const p = new LocalLlmProvider({ host: "http://127.0.0.1:59999", timeoutMs: 1000 });
     await expect(p.complete("sys", "hi")).rejects.toThrow(LocalLlmError);
-    await expect(p.complete("sys", "hi")).rejects.toThrow(/unreachable|HTTP/);
+    await expect(p.complete("sys", "hi")).rejects.toThrow(/unreachable|HTTP|timed out/i);
   });
 
   it("never contacts remote hosts even when asked (local mode is loopback-only)", async () => {
@@ -50,36 +64,22 @@ describe("ai/localLlmProvider — local-only enforcement", () => {
 });
 
 describe("ai/provider selection modes", () => {
-  it("auto without local service and without key resolves to heuristic", () => {
-    const { provider, resolvedMode } = createAIProvider({ selection: "auto", localHost: "http://127.0.0.1:5000" });
-    // Provider is constructible but not reachable; without a Groq key resolved mode stays local-preferring.
-    expect(resolvedMode === "local" || resolvedMode === "heuristic").toBe(true);
-    expect(provider.isAvailable()).toBe(false);
+  it("local resolves to local (no remote fallback exists)", () => {
+    const { provider, resolvedMode } = createAIProvider({ selection: "local", localHost: "http://127.0.0.1:5000" });
+    expect(resolvedMode).toBe("local");
+    expect(provider.name).toBe("local");
   });
 
   it("heuristic mode yields an unavailable provider (deterministic parsing only)", () => {
-    const { provider, resolvedMode } = createAIProvider({ selection: "heuristic", apiKey: "k" });
+    const { provider, resolvedMode } = createAIProvider({ selection: "heuristic" });
     expect(resolvedMode).toBe("heuristic");
     expect(provider.isAvailable()).toBe(false);
   });
 
-  it("groq mode uses the key when present", () => {
-    const { provider, resolvedMode } = createAIProvider({ selection: "groq", apiKey: "test-key" });
-    expect(resolvedMode).toBe("groq");
-    expect(provider.isAvailable()).toBe(true);
-    expect(provider.name).toBe("groq");
-  });
-
-  it("groq mode without a key is unavailable — no secret switching", () => {
-    const { provider, resolvedMode } = createAIProvider({ selection: "groq" });
-    expect(resolvedMode).toBe("groq");
-    expect(provider.isAvailable()).toBe(false);
-  });
-
-  it("local mode with refused/absent service stays local-only (unavailable provider, no groq)", () => {
-    const { provider, resolvedMode } = createAIProvider({ selection: "local", apiKey: "groq-key-exists" });
+  it("local-only: no remote provider is ever constructed (no api key concept)", () => {
+    const { provider, resolvedMode } = createAIProvider({ selection: "local" });
     expect(resolvedMode).toBe("local");
-    expect(provider.name).toBe("local");
+    expect(provider.name === "groq").toBe(false);
   });
 });
 
@@ -121,14 +121,27 @@ describe("ai/parseUserIntent — local mode fallback behaviour", () => {
     expect(parsed.intent.availableIngredients).toEqual(["eggs"]);
   });
 
-  it("groq provider output marked source=groq (distinct from local)", async () => {
+  it("local success keeps heuristic-caught exclusions (additive safety union)", async () => {
+    // FlavoraLM is narrow: valid JSON that misses "avoid pork".
+    const narrowLocal: AIProvider = {
+      name: "local",
+      isAvailable: () => true,
+      complete: async () => JSON.stringify({ availableIngredients: ["rice"], mode: "normal" }),
+    };
+    const parsed = await parseUserIntent("I avoid pork and want chicken and rice", { provider: narrowLocal });
+    expect(parsed.source).toBe("local");
+    expect(parsed.intent.avoidFoods).toContain("pork");
+  });
+
+  it("groq-named injected provider is rejected — local-only, no remote calls", async () => {
     const groq: AIProvider = {
       name: "groq",
       isAvailable: () => true,
       complete: async () => JSON.stringify({ mode: "budget" }),
     };
     const parsed = await parseUserIntent("cheap dinner", { provider: groq });
-    expect(parsed.source).toBe("groq");
+    expect(parsed.source).toBe("heuristic");
+    expect(parsed.fallbackReason).toBe("heuristic-mode");
   });
 });
 
@@ -141,9 +154,9 @@ describe("AI safety contract — malicious/incorrect AI output cannot bypass the
     { id: "unsafe:2", title: "Pork Chops", cuisine: "american", cookTimeMinutes: 25, difficulty: "easy", spiceLevel: "mild", costTier: "low", ingredients: ["pork chop", "salt"] },
   ];
 
-  it("AI claims an unsafe recipe is safe → engine still rejects it", async () => {
+  it("malicious local output cannot bypass the deterministic filter", async () => {
     const malicious: AIProvider = {
-      name: "groq",
+      name: "local",
       isAvailable: () => true,
       complete: async () =>
         JSON.stringify({

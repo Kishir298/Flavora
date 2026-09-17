@@ -1,6 +1,6 @@
 /**
  * POST /api/assistant — natural-language → structured intent → deterministic engine.
- * Groq (optional) only parses intent / phrasing; never bypasses allergy filtering.
+ * FlavoraLM (local-only) parses intent / phrasing; never bypasses allergy filtering.
  */
 import { Router } from "express";
 import { prisma, ensureProfileRow } from "../db.js";
@@ -10,6 +10,11 @@ import { resolveWeights } from "../engine/weights.js";
 import { maybeTriggerRetrain } from "../engine/retrainTrigger.js";
 import { logEvent, getReqId } from "../logger.js";
 import { parseUserIntent, buildAssistantReply } from "../ai/assistantService.js";
+import {
+  advanceConversation,
+  foodRequestToIntent,
+  getSession,
+} from "../ai/conversationService.js";
 import { getStore } from "../store/userDataStore.js";
 import { computeStats } from "../stats/statistics.js";
 import { buildInsights } from "../stats/insights.js";
@@ -77,9 +82,123 @@ function loadProfile(row) {
 }
 
 /**
- * Body: { message: string, intent?: partial RecommendationIntent }
- * Response: { intent, source, notice?, reply, recommendations: [...] }
+ * POST /api/assistant/conversation — multi-turn requirement gathering.
+ * Body: { sessionId?: string, message: string }
+ * Response: { sessionId, question: string|null, done: boolean,
+ *   foodRequest, intent, source, fallbackReason, notice?, reply?,
+ *   recommendations: [...] (only when done) }
+ * Sessions are in-memory; only the resulting FoodRequest + profile prefs persist.
  */
+assistantRouter.post("/conversation", async (req, res, next) => {
+  try {
+    const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+    if (!message) return res.status(400).json({ error: "message required" });
+
+    await ensureProfileRow();
+    const row = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
+    const profileFood = {
+      ...(row.spicePreference ? { spiceLevel: row.spicePreference } : {}),
+      ...(row.skillLevel ? { skillLevel: row.skillLevel } : {}),
+      ...(Number.isFinite(row.preferredCookTimeMinutes)
+        ? { maxCookingTime: row.preferredCookTimeMinutes }
+        : {}),
+    };
+
+    // Natural-language understanding via FlavoraLM when reachable (honest
+    // source/fallbackReason), deterministic parser otherwise. The merged
+    // conversation state — not any single turn — drives the engine.
+    const parsed = await parseUserIntent(message, undefined);
+    const existing = getSession(req.body?.sessionId);
+    const { session, question, done } = advanceConversation(
+      existing?.id,
+      message,
+      { profile: profileFood, parsedIntent: parsed.intent }
+    );
+
+    const intent = foodRequestToIntent(session.request, parsed.intent?.mode);
+
+    // Additive safety: union request exclusions with the stored profile.
+    let profile = loadProfile(row);
+    const unionStrings = (...lists) => [...new Set(lists.flat().map((s) => String(s ?? "").toLowerCase().trim()).filter(Boolean))];
+    if (intent.allergies?.length || intent.avoidFoods?.length || session.request.allergies?.length || session.request.avoidFoods?.length) {
+      const allergies = unionStrings(profile.allergies, intent.allergies ?? [], session.request.allergies ?? []);
+      const avoidFoods = unionStrings(profile.avoidFoods, intent.avoidFoods ?? [], session.request.avoidFoods ?? []);
+      profile = { ...profile, allergies, avoidFoods, avoid_foods: avoidFoods };
+    }
+
+    let recommendations = [];
+    let reply = question ?? "";
+    if (done) {
+      const userId = "local";
+      const candidates = await listRecipes({ limit: 200 });
+      const outcomeCount = await prisma.interaction.count({
+        where: { action: { in: OUTCOME_ACTIONS } },
+      });
+      const weightRows = await prisma.recommendationWeights.findMany({ where: { userId } });
+      const weights = resolveWeights({ outcomeCount, rows: weightRows });
+      const request = {
+        availableIngredients: intent.availableIngredients ?? [],
+        timeLimit: intent.timeLimit ?? profile.preferredCookTimeMinutes,
+        mode: intent.mode ?? "normal",
+        craving: intent.craving ?? undefined,
+        cravingSignals: intent.cravingSignals ?? undefined,
+        nutritionGoals: profile.nutritionGoals,
+      };
+      const results = recommendWithEngine(candidates, profile, request, weights, 5);
+      if (results.length > 0) {
+        await prisma.interaction.createMany({
+          data: results.map((r) => ({
+            recipeId: r.recipe.id,
+            action: "shown",
+            features: JSON.stringify(r.features),
+          })),
+        });
+        void maybeTriggerRetrain(prisma.interaction, userId);
+      }
+      recommendations = results.map((r) => ({
+        recipeId: r.recipe.id,
+        title: r.recipe.title,
+        score: Number(r.score.toFixed(3)),
+        matchReasons: r.matchReasons,
+        cuisine: r.recipe.cuisine ?? "",
+        cookTime: r.recipe.cookTimeMinutes ?? 30,
+        difficulty: r.recipe.difficulty ?? "easy",
+        spiceLevel: r.recipe.spiceLevel ?? "mild",
+        costTier: r.recipe.costTier ?? "low",
+        ingredients: (r.recipe.ingredients ?? []).map(ingredientDisplay),
+        nutrition: r.recipe.nutrition ?? {},
+        nutritionSource: r.recipe.nutrition?.calories != null ? "authored" : "unknown",
+      }));
+      reply = buildAssistantReply(message, intent, recommendations, parsed.notice ?? undefined);
+    }
+
+    logEvent("assistant-conversation", {
+      reqId: getReqId(req),
+      sessionId: session.id,
+      turns: session.turns,
+      done,
+      source: parsed.source,
+      fallbackReason: parsed.fallbackReason ?? "none",
+      detail: parsed.detail ?? undefined,
+      returned: recommendations.length,
+    });
+
+    res.json({
+      sessionId: session.id,
+      question,
+      done,
+      foodRequest: session.request,
+      intent,
+      source: parsed.source,
+      fallbackReason: parsed.fallbackReason ?? "none",
+      notice: parsed.notice ?? null,
+      reply,
+      recommendations,
+    });
+  } catch (e) {
+    next(e);
+  }
+});
 assistantRouter.post("/", async (req, res, next) => {
   try {
     const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
@@ -172,6 +291,9 @@ assistantRouter.post("/", async (req, res, next) => {
     logEvent("assistant", {
       reqId: getReqId(req),
       source: parsed.source,
+      fallbackReason: parsed.fallbackReason ?? "none",
+      detail: parsed.detail ?? undefined,
+      host: process.env.FLAVORA_LM_HOST ?? (process.env.FLAVORA_LM_PORT ? `http://127.0.0.1:${process.env.FLAVORA_LM_PORT}` : undefined),
       ms,
       returned: results.length,
       intent,
@@ -200,6 +322,7 @@ assistantRouter.post("/", async (req, res, next) => {
       costTier: r.recipe.costTier ?? "low",
       ingredients: (r.recipe.ingredients ?? []).map(ingredientDisplay),
       nutrition: r.recipe.nutrition ?? {},
+      nutritionSource: r.recipe.nutrition?.calories != null ? "authored" : "unknown",
     }));
 
     const reply = buildAssistantReply(message, intent, recommendations, parsed.notice);
@@ -259,6 +382,7 @@ assistantRouter.post("/", async (req, res, next) => {
       intent,
       source: parsed.source,
       notice: parsed.notice ?? null,
+      fallbackReason: parsed.fallbackReason ?? "none",
       reply: fullReply,
       recommendations,
       ...(facts ? { facts } : {}),

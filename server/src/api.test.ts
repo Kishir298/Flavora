@@ -216,7 +216,7 @@ describe("debug explain endpoint (§7.10)", () => {
   });
 });
 
-describe("assistant NL → engine (no live Groq required)", () => {
+describe("assistant NL → engine (local-only, no remote required)", () => {
   it("parses a natural-language request and returns allergy-safe recommendations", async () => {
     await request(app).put("/api/profile").send({
       allergies: ["peanut", "dairy"],
@@ -230,7 +230,8 @@ describe("assistant NL → engine (no live Groq required)", () => {
       .post("/api/assistant")
       .send({ message: "I have pasta and tomato. I only have 30 minutes. Something Italian and easy." });
     expect(res.status).toBe(200);
-    expect(res.body.source).toMatch(/heuristic|groq|provided|local/);
+    expect(res.body.source).toMatch(/heuristic|provided|local/);
+    expect(res.body.fallbackReason).toBeTruthy();
     expect(res.body.reply).toBeTruthy();
     expect(Array.isArray(res.body.recommendations)).toBe(true);
     expect(res.body.intent.timeLimit).toBe(30);
@@ -245,6 +246,38 @@ describe("assistant NL → engine (no live Groq required)", () => {
   it("rejects empty assistant body", async () => {
     const res = await request(app).post("/api/assistant").send({});
     expect(res.status).toBe(400);
+  });
+
+  it("conversation: chicken → follow-ups → dinner → recommendations + log journey", async () => {
+    let r = await request(app).post("/api/assistant/conversation").send({ message: "I want something with chicken" });
+    expect(r.status).toBe(200);
+    expect(r.body.sessionId).toBeTruthy();
+    expect(r.body.done).toBe(false);
+    expect(r.body.question).toMatch(/calories/i);
+    const sid = r.body.sessionId;
+
+    r = await request(app)
+      .post("/api/assistant/conversation")
+      .send({ sessionId: sid, message: "Around 600 calories, non-veg, and I've got chicken, rice and onions" });
+    expect(r.status).toBe(200);
+    expect(r.body.sessionId).toBe(sid);
+    expect(r.body.foodRequest.calorieTarget).toBe(600);
+    expect(r.body.done).toBe(false);
+    expect(r.body.question).toMatch(/breakfast|lunch|dinner|snack/i);
+
+    r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "Dinner" });
+    expect(r.status).toBe(200);
+    expect(r.body.done).toBe(true);
+    expect(r.body.foodRequest.mealType).toBe("dinner");
+    expect(Array.isArray(r.body.recommendations)).toBe(true);
+    expect(r.body.recommendations.length).toBeGreaterThan(0);
+    expect(r.body.source).toMatch(/local|heuristic/);
+    expect(r.body.fallbackReason).toBeTruthy();
+  });
+
+  it("conversation rejects empty message", async () => {
+    const r = await request(app).post("/api/assistant/conversation").send({ message: "  " });
+    expect(r.status).toBe(400);
   });
 
   it("unsaved removes a recipe from /api/saved", async () => {
@@ -283,19 +316,27 @@ describe("GET /api/health", () => {
     expect(res.body.db).toEqual({ ok: true, error: undefined });
     const ai = res.body.ai;
     expect(ai.providerSelection).toBeTruthy();
-    expect(["local", "groq", "heuristic", "auto"]).toContain(ai.resolvedProvider);
+    expect(["local", "heuristic"]).toContain(ai.resolvedProvider);
     const llm = ai.localLlm;
     expect(llm.enabled).toBe(true);
     expect(llm.model).toBeTruthy();
-    // No FlavoraLM service in CI/test env: service not reachable, so these MUST be false (never fabricated).
-    expect(llm.runtimeReachable).toBe(false);
-    expect(llm.modelInstalled).toBe(false);
-    expect(llm.available).toBe(false);
+    // Health must be measured: reachable flags must be booleans and internally
+    // consistent (available ⇒ reachable && installed). Whether FlavoraLM runs
+    // in this environment varies, so assert consistency, not a fixed false.
+    expect(typeof llm.runtimeReachable).toBe("boolean");
+    expect(typeof llm.modelInstalled).toBe("boolean");
+    expect(typeof llm.available).toBe("boolean");
+    if (llm.available) {
+      expect(llm.runtimeReachable).toBe(true);
+      expect(llm.modelInstalled).toBe(true);
+    }
     // §21 localModel block mirrors the same measured values.
     const lm = ai.localModel;
-    expect(lm.serviceReachable).toBe(false);
-    expect(lm.loaded).toBe(false);
+    expect(typeof lm.serviceReachable).toBe("boolean");
+    expect(typeof lm.loaded).toBe("boolean");
     expect(lm.name).toBeTruthy();
+    expect(lm.serviceReachable).toBe(llm.runtimeReachable);
+    expect(lm.loaded).toBe(llm.available);
   });
 
   it("never leaks secrets in the health payload", async () => {
@@ -303,6 +344,6 @@ describe("GET /api/health", () => {
     const flat = JSON.stringify(res.body).toLowerCase();
     expect(flat).not.toContain("apikey");
     expect(flat).not.toContain("api_key");
-    expect(flat).not.toContain("groq_api_key");
+    expect(flat).not.toContain("groq");
   });
 });

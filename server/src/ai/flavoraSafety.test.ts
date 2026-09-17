@@ -99,12 +99,19 @@ describe("no remote AI in local mode (§19)", () => {
     }
   });
 
-  it("local-mode failure never falls back to Groq (stays local-only)", async () => {
+  it("local-mode failure stays local-only (no remote fallback exists)", async () => {
     const parsed = await parseUserIntent("I have chicken and rice, 30 minutes", { selection: "local" });
-    // No FlavoraLM in CI and no Groq key → deterministic heuristic with explicit notice.
-    expect(parsed.source).toBe("heuristic");
-    expect(parsed.notice).toMatch(/local AI|deterministic/i);
-  });
+    // Live FlavoraLM may answer (source local) or honestly fall back
+    // (valid:false → heuristic + notice). Either way: never a remote provider,
+    // and heuristic results always carry an explicit notice + reason.
+    expect(["local", "heuristic"]).toContain(parsed.source);
+    if (parsed.source === "heuristic") {
+      expect(parsed.notice).toMatch(/local AI|deterministic/i);
+      expect(parsed.fallbackReason).not.toBe("none");
+    } else {
+      expect(parsed.fallbackReason).toBe("none");
+    }
+  }, 60_000);
 });
 
 describe("model failure behavior (§25)", () => {

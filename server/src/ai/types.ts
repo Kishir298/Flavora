@@ -8,6 +8,30 @@ export interface CravingSignals {
   mealStyle?: string[];
 }
 
+/**
+ * FoodRequest — the single authoritative conversational output (§15).
+ * FlavoraLM / heuristic extract it; the deterministic engine consumes it.
+ * Every field optional; the conversation machine asks only for genuinely
+ * useful missing slots and never re-asks what is known.
+ */
+export type DietaryPreference = "vegetarian" | "non-vegetarian" | "vegan" | "any";
+export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
+
+export interface FoodRequest {
+  craving?: string;
+  mealType?: MealType;
+  calorieTarget?: number;
+  dietaryPreference?: DietaryPreference;
+  availableIngredients?: string[];
+  allergies?: string[];
+  avoidFoods?: string[];
+  cuisine?: string | null;
+  spiceLevel?: "mild" | "medium" | "hot";
+  servings?: number;
+  maxCookingTime?: number;
+  skillLevel?: "beginner" | "intermediate" | "advanced";
+}
+
 /** Structured intent extracted from natural language — never invents recipes. */
 export type RecommendMode = "normal" | "food_waste" | "budget";
 
@@ -18,6 +42,8 @@ export interface RecommendationIntent {
   mode?: RecommendMode;
   craving?: string | null;
   cravingSignals?: CravingSignals;
+  /** Ingredients known to be expiring (Food Waste Mode boost). */
+  expiringIngredients?: string[];
   /**
    * Safety constraints stated in natural language ("allergic to peanuts",
    * "no mushrooms"). Additive only: the route unions these with the stored
@@ -32,14 +58,36 @@ export interface RecommendationIntent {
     highProtein?: boolean;
     lowCarb?: boolean;
   };
+  /** Conversational slots (§15) — same data as FoodRequest, engine-mapped. */
+  foodRequest?: FoodRequest;
+  /** Top-level conversational aliases (FlavoraLM may emit these flat). */
+  mealType?: MealType;
+  calorieTarget?: number;
+  dietaryPreference?: DietaryPreference;
+  spiceLevel?: "mild" | "medium" | "hot";
+  skillLevel?: "beginner" | "intermediate" | "advanced";
+  servings?: number;
+  maxCookingTime?: number;
 }
+
+export type FallbackReason =
+  | "none"
+  | "heuristic-mode"
+  | "local-unreachable"
+  | "local-timeout"
+  | "local-invalid"
+  | "local-unloaded";
 
 export interface ParsedAssistantRequest {
   intent: RecommendationIntent;
-  /** How intent was produced: local LLM, remote Groq, deterministic heuristics, or provided intent. */
-  source: "local" | "groq" | "heuristic" | "provided";
+  /** How intent was produced: local FlavoraLM, deterministic heuristics, or provided intent. */
+  source: "local" | "heuristic" | "provided";
   /** Short user-facing note when AI was unavailable or fell back. */
   notice?: string;
+  /** Machine-readable fallback classification (never collapsed to a bare "unavailable"). */
+  fallbackReason?: FallbackReason;
+  /** Technical cause for server logs / debugging (never shown verbatim in UI). */
+  detail?: string;
 }
 
 export interface AIProvider {

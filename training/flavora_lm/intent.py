@@ -37,6 +37,7 @@ VALID_INTENTS = {"recommend", "plan", "grocery", "inventory", "substitute", "cha
 VALID_MODES = {"normal", "food_waste", "budget"}
 VALID_SPICE = {"mild", "medium", "hot"}
 VALID_SKILL = {"beginner", "intermediate", "advanced"}
+VALID_DIET = {"vegetarian", "non-vegetarian", "vegan", "any"}
 VALID_CUISINES = {
     "italian", "indian", "chinese", "japanese", "mexican", "french",
     "american", "mediterranean", "middle eastern", "african",
@@ -143,6 +144,10 @@ def _canon_keys(raw: dict) -> dict:
         "cravingsignals": "cravingSignals",
         "mealtype": "mealType",
         "servings": "servings",
+        "calorietarget": "calorieTarget",
+        "calories": "calorieTarget",
+        "dietarypreference": "dietaryPreference",
+        "diet": "dietaryPreference",
     }
     out: dict = {}
     for k, v in raw.items():
@@ -200,10 +205,26 @@ def normalize_intent(raw) -> Optional[Dict]:
         out["cravingSignals"] = signals
 
     if raw.get("mealType") in {"breakfast", "lunch", "dinner", "snack", "dessert"}:
-        out["mealType"] = raw["mealType"]
+        # "dessert" is a mealStyle leak — normalize to snack so TS keeps it.
+        out["mealType"] = "snack" if raw["mealType"] == "dessert" else raw["mealType"]
 
-    if isinstance(raw.get("servings"), int) and 1 <= raw["servings"] <= 12:
+    if isinstance(raw.get("servings"), int) and 1 <= raw["servings"] <= 20:
         out["servings"] = raw["servings"]
+
+    cal = raw.get("calorieTarget")
+    if isinstance(cal, bool):
+        pass
+    elif isinstance(cal, (int, float)) and 50 <= int(round(cal)) <= 5000:
+        out["calorieTarget"] = int(round(cal))
+
+    diet = raw.get("dietaryPreference")
+    if isinstance(diet, str):
+        d = diet.lower().strip().replace("_", "-").replace(" ", "-")
+        aliases = {"veg": "vegetarian", "non-veg": "non-vegetarian", "nonveg": "non-vegetarian",
+                   "nonvegetarian": "non-vegetarian", "anything": "any", "no-preference": "any"}
+        d = aliases.get(d, d)
+        if d in VALID_DIET:
+            out["dietaryPreference"] = d
 
     # Always valid JSON, but "empty" output (nothing beyond default intent)
     # is treated as unusable so callers fall back to deterministic parsing.
@@ -302,7 +323,7 @@ def extract_intent(
             elif field == "craving":
                 words = {w for w in (content & _CRAVING_VOCAB) if len(w) >= 3}
                 _bonus_cache[field] = _vec(words, 1.0)
-            elif field in ("timelimit", "servings"):
+            elif field in ("timelimit", "servings", "calorietarget"):
                 _bonus_cache[field] = _vec(set(copy_numbers), 3.0)
             else:
                 _bonus_cache[field] = torch.zeros(model.cfg.vocab_size)
@@ -480,6 +501,8 @@ _GRAMMAR_KEYS: Dict[str, tuple] = {
     "avoidfoods": ("strarr", None),
     "timelimit": ("num", None),
     "servings": ("num", None),
+    "calorietarget": ("num", None),
+    "dietarypreference": ("enum", VALID_DIET),
     "cuisine": ("enum", VALID_CUISINES),
     "mode": ("enum", VALID_MODES),
     "spicepreference": ("enum", VALID_SPICE),

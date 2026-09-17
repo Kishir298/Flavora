@@ -45,11 +45,22 @@ export class LocalLlmError extends Error {
   }
 }
 
+/** Clamp inference timeouts to a sane range (1s–120s). NaN/0/negative → default. */
+export function clampTimeout(v: unknown, dflt = DEFAULT_TIMEOUT_MS): number {
+  const n = typeof v === "number" && Number.isFinite(v) ? Math.round(v) : NaN;
+  if (!Number.isFinite(n) || n <= 0) return dflt;
+  return Math.min(120_000, Math.max(1_000, n));
+}
+
 /** Result of probing the FlavoraLM service — each field measured, never assumed. */
 export interface LocalLlmStatus {
   runtimeReachable: boolean;
   modelInstalled: boolean;
   usable: boolean;
+  /** Machine-readable probe outcome: ok | unloaded (up but weights not loaded) | unreachable. */
+  detail: "ok" | "unloaded" | "unreachable";
+  /** HTTP status from /health when the runtime answered (e.g. 503 = starting). */
+  httpStatus?: number;
   /** Model identity reported by the service (undefined when unreachable). */
   model?: string;
   version?: string;
@@ -84,7 +95,7 @@ export class LocalLlmProvider implements AIProvider {
     }
     this.host = host.replace(/\/$/, "");
     this.model = opts?.model ?? DEFAULT_MODEL;
-    this.timeoutMs = opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.timeoutMs = clampTimeout(opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS);
   }
 
   get hostUrl(): string {
@@ -125,8 +136,31 @@ export class LocalLlmProvider implements AIProvider {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3_000);
     try {
-      const res = await fetch(`${this.host}/health`, { signal: controller.signal });
-      if (!res.ok) throw new LocalLlmError(`FlavoraLM /health HTTP ${res.status}`);
+      let res: Response;
+      try {
+        res = await fetch(`${this.host}/health`, { signal: controller.signal });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (/abort/i.test(msg)) {
+          this.availabilityCache = { ok: false, checkedAt: Date.now() };
+          return { runtimeReachable: false, modelInstalled: false, usable: false, detail: "unreachable" };
+        }
+        this.availabilityCache = { ok: false, checkedAt: Date.now() };
+        return { runtimeReachable: false, modelInstalled: false, usable: false, detail: "unreachable" };
+      }
+      if (!res.ok) {
+        // Runtime answered but model not ready (e.g. 503 weights loading).
+        // This is "unloaded", NOT "unreachable" — callers must not collapse them.
+        const unloaded = res.status === 503;
+        this.availabilityCache = { ok: false, checkedAt: Date.now() };
+        return {
+          runtimeReachable: true,
+          modelInstalled: false,
+          usable: false,
+          detail: unloaded ? "unloaded" : "unreachable",
+          httpStatus: res.status,
+        };
+      }
       const data = (await res.json()) as FlavoraHealth;
       const modelName = String(data.model ?? "");
       // Our model, any version: FlavoraLM or FlavoraLM-dev.
@@ -134,7 +168,10 @@ export class LocalLlmProvider implements AIProvider {
       const status: LocalLlmStatus = {
         runtimeReachable: true,
         modelInstalled,
+        // Reachable but not loaded (loaded:false, wrong name) = starting/unloaded.
         usable: modelInstalled,
+        detail: modelInstalled ? "ok" : "unloaded",
+        httpStatus: 200,
         model: data.model ?? undefined,
         version: data.version ?? undefined,
         device: data.device,
@@ -145,7 +182,7 @@ export class LocalLlmProvider implements AIProvider {
       return status;
     } catch {
       this.availabilityCache = { ok: false, checkedAt: Date.now() };
-      return { runtimeReachable: false, modelInstalled: false, usable: false };
+      return { runtimeReachable: false, modelInstalled: false, usable: false, detail: "unreachable" };
     } finally {
       clearTimeout(timer);
     }
@@ -170,6 +207,9 @@ export class LocalLlmProvider implements AIProvider {
       });
       if (!res.ok) {
         const body = await res.text().catch(() => "");
+        if (res.status === 503) {
+          throw new LocalLlmError(`FlavoraLM model not loaded (weights starting, /intent HTTP 503): ${body.slice(0, 200)}`);
+        }
         throw new LocalLlmError(`FlavoraLM /intent HTTP ${res.status}: ${body.slice(0, 200)}`);
       }
       const data = (await res.json()) as { intent?: unknown; valid?: boolean };

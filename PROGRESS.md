@@ -1,9 +1,35 @@
 # Flavora — Progress
 
-Status after the FlavoraLM migration (custom local model, one-command setup),
-the audit-gap closure pass, and the final verification pass (fresh 120-epoch
-dev retrain, live one-command startup incl. AirPlay port auto-fallback,
-axe-AA-driven contrast fix). Full record: `docs/FLAVORALM_FINAL_AUDIT.md`.
+## Product acceptance matrix (2026-09-17, verified live)
+
+| Objective               | Status | Implementation | Tests | Evidence |
+| ----------------------- | ------ | -------------- | ----- | -------- |
+| Working navigation      | Done | 11 destinations, NavLink active state, refresh/back/deep-link | `nav.test.tsx` 12, `navbar.spec.ts` E2E | E2E clicks every item, aria-current asserted |
+| Dashboard               | Done | Real weekly stats, goals, recent meals, insights; honest empty state | `dashboard.test.tsx`, `foodlog`/`journey` E2E | Values asserted against fixtures + live store |
+| Food logging            | Done | Full CRUD, 5 types incl. Other, datetime, servings, macros, tags/notes, search/filter, water quick-log | store 8, meals API 3, client 3, journey E2E | Restart-persistence test; live reload verified |
+| Local JSON datastore    | Done | `data/user-data.json`, atomic writes, validation, corruption backup, versioned | 8 store tests incl. corrupt/restart | `userDataStore.test.ts`; gitignored user data |
+| Data persistence        | Done | JSON (meals/goals/water) + Prisma (recipes/inventory/etc.), one source per domain | Restart + reload E2E | Journey E2E reload step; `FOODLOG_ARCHITECTURE.md` |
+| Profile/goals           | Done | ProfileForm + numeric goals form (Settings), same goals feed stats | Client + API tests, journey sets goals first | `PUT /api/goals` round-trip test |
+| Deterministic analytics | Done | Daily/weekly/monthly, timing, averages, cuisine, waste, 30-day deltas, UTC | 12 stats tests incl. boundaries | Fixture math asserted (1560 kcal, 1.3/d) |
+| Statistics page         | Done | Insights page: activity, nutrition, variety, goals, timing, waste; SVG + text summaries | E2E asserts average + activity | Live screenshots at 390px without overflow |
+| Eating insights         | Done | Neutral habit observations; language-ban tests; waste/timing/30-day | Ban sweep + waste/timing tests | `stats.test.ts`; no medical claims by construction |
+| Recipes                 | Done (preserved) | Browse/search/detail/save/subs unchanged; safety filters intact | Existing suites 140 server | `critical.spec.ts` profile→save green |
+| Meal planning           | Done (preserved) | Slots/servings/groceries unchanged; offline servings-op fix | Journey E2E plan→groceries | `meal plan → add → groceries` green |
+| Groceries               | Done (preserved) | CRUD/restore/generate unchanged | Existing + journey chain | Live generate asserted in journey |
+| Inventory               | Done (preserved) | CRUD/expiry unchanged; case-insensitive search fix | `offline.spec.ts` inventory flow | Live + offline verified |
+| Food waste              | Done | Expiry statuses → stats `waste` + insights + assistant `waste` context | Waste unit + route tests | Live `waste:{expiring,expired}` in stats JSON |
+| Assistant               | Done | NL + week-summary/yesterday/repeats/goals/waste contexts from stored facts | 5 boundary tests incl. lying prompt | Facts beat fabricated numbers, live |
+| FlavoraLM               | Done (preserved) | Production v0.1 checkpoint, service, loopback provider, fallbacks | `verify:local-ai` 8/8, init PASS | Prior audit record unchanged |
+| Offline operation       | Done | Meal-log queue + replay (tested), dashboard/stats local, PWA shell | `mealQueue.test.ts`, offline inventory E2E | Same IndexedDB path as groceries |
+| Safety                  | Done | Hard filter first, additive-only AI exclusions, schema validation | 27 safety/local tests | Peanut exclusion live in journey + E2E |
+| Accessibility           | Done | Landmarks, labels, focus, chart text summaries, skip link | a11y suite incl. new routes | 13/13 + status test green |
+| Responsive UI           | Done | Flex-wrap nav, grids collapse, SVG scales | `mobile.spec.ts` 390px | No horizontal overflow on 4 pages |
+| E2E user journey        | Done | `journey.spec.ts`: goals→3 meals→dashboard→insights→plan→groceries→assistant→reload | 1 E2E green | 14.7s live run |
+| Documentation           | Done | README food-intelligence section, `FOODLOG_ARCHITECTURE.md`, this matrix | — | Docs match implementation |
+
+Known limitations: full 1000-example `evaluate.py` not run (hardware); `favorites` store field reserved without UI (documented); 1 pre-existing flaky Python test; NL E2E timing-sensitive under CPU load (serial runs green).
+
+## Prior verification record
 
 ## Verified state
 

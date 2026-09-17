@@ -21,10 +21,11 @@ re-initialized, never crashing the server. Override path for tests:
 `FLAVORA_USER_DATA_FILE`. Reset: `POST /api/dev/reset` + delete
 `data/user-data.json` (recreated on next request).
 
-Meal record: `{id, name, mealType: breakfast|lunch|dinner|snack, loggedAt,
+Meal record: `{id, name, mealType: breakfast|lunch|dinner|snack|other, loggedAt,
 foods:[{name,quantity?,unit?}], servings?, nutrition?:{calories?,
 protein_g?,carbs_g?,fat_g?} (user- or recipe-provided, never LLM-computed),
-tags?, notes?}`.
+tags?, notes?}`. `favorites: string[]` is a reserved schema field with no UI
+yet (saved recipes live in Prisma interactions).
 
 ## API (all local, all validated)
 
@@ -33,11 +34,13 @@ tags?, notes?}`.
   vegMealsPerWeek, waterMlPerDay, cookTimesPerWeek`)
 * `GET/POST /api/water`
 * `GET /api/statistics?range=daily|weekly|monthly` — derived server-side
-  from raw meals; client totals are never trusted
-* `GET /api/insights` — neutral habit observations
-* `POST /api/assistant` + `{context:"week-summary"}` — attaches
-  deterministic `facts` (totals, goals, insight texts); any LLM may
-  verbalize `facts` only
+  from raw meals; client totals are never trusted. Includes timing
+  (UTC hour buckets), averages, cuisine variety, and inventory waste
+  (`{expiring, expired}` from Prisma expiry statuses)
+* `GET /api/insights` — neutral habit observations (weekly deltas,
+  30-day trend, timing, waste)
+* `POST /api/assistant` + `{context}` — `week-summary | yesterday |
+  repeats | goals | waste`; attaches deterministic `facts`;
 
 ## Dashboard / Meals / Insights
 

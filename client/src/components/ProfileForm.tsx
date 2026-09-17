@@ -117,7 +117,7 @@ export function ProfileForm({
         </label>
       </div>
       <p className="text-xs opacity-60">Nutrition goals influence ranking only — values are recipe estimates, not medical advice.</p>
-      <button type="submit" disabled={saving} className="px-4 py-2 rounded bg-green-600 text-white disabled:opacity-50">
+      <button type="submit" disabled={saving} className="px-4 py-2 rounded bg-green-700 text-white disabled:opacity-50">
         {saving ? "Saving…" : "Save profile"}
       </button>
     </form>

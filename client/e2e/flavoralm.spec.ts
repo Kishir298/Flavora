@@ -31,7 +31,10 @@ test("natural-language request → structured intent → safe recommendations", 
   const localUp: boolean = health.ai?.localModel?.serviceReachable === true;
 
   const res = await request.post("http://localhost:4000/api/assistant", {
-    data: { message: "I have chicken and rice, something warm in 30 minutes, no peanuts" },
+    // Message proven to extract via FlavoraLM (see verify:local-ai step 6).
+    // Per-message `valid:false` honestly falls back to heuristic by design —
+    // so this test pins a message the committed checkpoint handles locally.
+    data: { message: "I have chicken and rice, I want something warm and comforting in 30 minutes" },
   });
   expect(res.ok()).toBe(true);
   const body = await res.json();

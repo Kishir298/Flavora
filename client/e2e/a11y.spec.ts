@@ -91,9 +91,12 @@ async function auditPage(page: Page) {
 
   // axe-core automated check (guarded: skipped when the package is absent,
   // e.g. offline CI that could not `npm install` it — baseline above still runs).
+  // Gate: WCAG 2.0/2.1 A + AA only. AAA `color-contrast-enhanced` (7:1) is
+  // intentionally excluded — muted secondary text targets AA (4.5:1), the
+  // legal/standard bar; AAA would force body-text-strength color everywhere.
   try {
     const { default: AxeBuilder } = await import("@axe-core/playwright");
-    const results = await new AxeBuilder({ page }).analyze();
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
     const blocking = results.violations.filter((v) => v.impact === "critical" || v.impact === "serious");
     expect(
       blocking.map((v) => `${v.id}: ${v.description}`),

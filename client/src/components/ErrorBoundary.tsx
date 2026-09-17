@@ -24,7 +24,7 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
           <h1 className="text-xl font-bold">Something broke, but your data is safe.</h1>
           <p className="mt-2 text-sm opacity-80">{this.state.message}</p>
           <button
-            className="mt-4 px-4 py-2 rounded bg-green-600 text-white"
+            className="mt-4 px-4 py-2 rounded bg-green-700 text-white"
             onClick={() => this.setState({ hasError: false, message: "" })}
           >
             Try again

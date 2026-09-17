@@ -74,7 +74,7 @@ export function Explorer() {
             type="button"
             onClick={() => void browse(r)}
             aria-pressed={cuisine === r}
-            className={`px-3 py-1 rounded border text-sm capitalize ${cuisine === r ? "bg-green-600 text-white" : ""}`}
+            className={`px-3 py-1 rounded border text-sm capitalize ${cuisine === r ? "bg-green-700 text-white" : ""}`}
           >
             {r}
           </button>

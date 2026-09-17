@@ -159,7 +159,7 @@ export function Home() {
             )}
           </fieldset>
         </div>
-        <button type="submit" disabled={loading} className="px-4 py-2 rounded bg-green-600 text-white disabled:opacity-50">
+        <button type="submit" disabled={loading} className="px-4 py-2 rounded bg-green-700 text-white disabled:opacity-50">
           {loading ? "Thinking…" : "Suggest 3–5 recipes"}
         </button>
       </form>

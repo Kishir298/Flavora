@@ -137,7 +137,7 @@ export function RecipeDetail() {
       <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="recipe actions">
         <button
           type="button"
-          className="px-4 py-2 rounded bg-green-600 text-white disabled:opacity-50"
+          className="px-4 py-2 rounded bg-green-700 text-white disabled:opacity-50"
           disabled={busy === "saved"}
           onClick={() => void act("saved", "Saved — it will appear on your Saved page.")}
         >

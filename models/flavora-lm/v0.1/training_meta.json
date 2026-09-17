@@ -1,25 +1,25 @@
 {
-  "model": "FlavoraLM-dev",
+  "model": "FlavoraLM",
   "version": "0.1",
   "seed": 42,
   "dataset_version": "0.1",
   "tokenizer_version": "0.2",
-  "epochs": 120,
-  "steps": 18000,
-  "learning_rate": 0.005,
-  "batch_size": 8,
+  "epochs": 12,
+  "steps": 4500,
+  "learning_rate": 0.0006,
+  "batch_size": 32,
   "optimizer": "adamw+cosine-warmup",
   "hardware": "cpu (x86_64)",
   "python_version": "3.11.15",
   "pytorch_version": "2.2.2",
   "platform": "darwin",
-  "final_train_loss": 0.15274163266023,
-  "final_val_loss": 0.15513844007056246,
-  "final_val_perplexity": 1.1678196229456335,
+  "final_train_loss": 4.074386993408203,
+  "final_val_loss": 3.875399318932063,
+  "final_val_perplexity": 48.20194239673646,
   "dataset_sha256": {
-    "train.jsonl": "7aba70b796b156fd022c1a3097ca2f078efb987e0c9f3aa52398d54406f6b9c9",
-    "validation.jsonl": "b33d6dee6a29779a4a3643ca738001e374396a11d951c089ab6b96f38af56946",
-    "manifest": "45b52fcb03cab51b2d944aac4b23a761da82c262a287c2ccb47a1790ee7afdef"
+    "train.jsonl": "6da8c1ed9a9fcdebc1008cf0c699063e1cd28c6e2ac6411a4464bae1527750fb",
+    "validation.jsonl": "116d92d76ad6fcde66e99d6793a587830eb340e26593def21f03c318298747fa",
+    "manifest": "5cc1d2ef2c7e77ed3a67073b4719faa35da3ab89fbea237f00dc2996405cd346"
   },
-  "created_at": "2026-09-17T04:17:48Z"
+  "created_at": "2026-09-17T05:57:40Z"
 }

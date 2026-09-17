@@ -1,8 +1,8 @@
 {
   "type": "flavora-tokenizer-train",
   "tokenizerVersion": "0.2",
-  "vocabSize": 540,
-  "vocabTarget": 768,
+  "vocabSize": 558,
+  "vocabTarget": 4096,
   "specialTokens": [
     "<PAD>",
     "<UNK>",
@@ -14,10 +14,10 @@
   "normalization": "lowercase, whitespace split, edge-strip of .,!?;()'",
   "preTokenization": "JSON structural singletons ({ } [ ] \" : ,) split to own pieces, never merged",
   "trainingCorpus": {
-    "examples": 1200,
-    "sha256": "8853bad0e9a056ef3e45a95d8d9faf8935ea06fe197d476451be7b3bbfdf9694",
-    "source": "/Users/chhavitayalpatil/Desktop/RISARMS/Flavora/training/data/train.jsonl"
+    "examples": 12000,
+    "sha256": "85f844222a4d3c32dc7a8c90b67a82ed1aa6b4d321a448f8549ff09c095caaee",
+    "source": "training/data-small/train.jsonl"
   },
-  "config": "training/configs/flavora_lm_dev.json",
-  "trainSeconds": 0.1
+  "config": "training/configs/flavora_lm_small.json",
+  "trainSeconds": 0.3
 }

@@ -46,4 +46,7 @@ server/src/engine/.venv/
 .flavoralm-venv/
 **/__pycache__/
 *.pyc
+# FlavoraLM dev-model outputs (fast-test only; `npm run train:llm:dev` regenerates).
+# The v0.1/ production release IS committed — never ignore it.
+models/flavora-lm/dev/
 dev-dist/

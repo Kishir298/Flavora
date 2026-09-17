@@ -16,7 +16,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import threading
 import time
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -162,6 +164,28 @@ class Handler(BaseHTTPRequestHandler):
         })
 
 
+def verify_loopback_identity(host: str, port: int, attempts: int = 5) -> tuple[bool, str]:
+    """Post-bind self-check: fetch our own /health over real HTTP.
+
+    Catches the macOS case where AirPlay Receiver (AirTunes) owns port 5000:
+    binding 127.0.0.1:5000 can still succeed while AirTunes answers every
+    request (HTTP 403), so a TCP bind alone proves nothing. Without this
+    check the service reports 'listening' while unreachable.
+    """
+    last_err = "no response"
+    for _ in range(attempts):
+        try:
+            with urllib.request.urlopen(f"http://{host}:{port}/health", timeout=3) as res:
+                body = json.loads(res.read().decode("utf-8"))
+                if body.get("loaded") is True and str(body.get("model", "")).lower().startswith("flavoralm"):
+                    return True, ""
+                last_err = f"unexpected /health body: model={body.get('model')!r} loaded={body.get('loaded')!r}"
+        except Exception as e:  # noqa: BLE001
+            last_err = str(e)
+        time.sleep(0.3)
+    return False, last_err
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--artifacts", default=str(Path(__file__).resolve().parents[2] / "models" / "flavora-lm" / "v0.1"))
@@ -183,12 +207,33 @@ def main() -> int:
         return 1
 
     server = ThreadingHTTPServer((args.host, args.port), Handler)
-    print(f"[flavoralm] listening on http://{args.host}:{args.port}", flush=True)
+    # Serve in a background thread so the post-bind identity self-check below
+    # can actually reach /health (connections are only served once
+    # serve_forever() is running).
+    server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+    server_thread.start()
+    # Post-bind identity self-check: prove this process can actually serve
+    # /health on the chosen port (guards against AirPlay port squatters).
+    ok, detail = verify_loopback_identity(args.host, args.port)
+    if not ok:
+        server.shutdown()
+        server.server_close()
+        print(
+            f"[flavoralm] FATAL: bound {args.host}:{args.port} but /health is not served by this process: {detail}\n"
+            f"[flavoralm] Another service (macOS AirPlay Receiver uses :5000) is intercepting traffic.\n"
+            f"[flavoralm] Fix: set FLAVORA_LM_PORT (e.g. 5001), or disable AirPlay Receiver, then re-run.",
+            file=sys.stderr,
+            flush=True,
+        )
+        return 1
+    print(f"[flavoralm] listening on http://{args.host}:{args.port} (identity verified)", flush=True)
     try:
-        server.serve_forever()
+        while True:
+            time.sleep(3600)
     except KeyboardInterrupt:
         pass
     finally:
+        server.shutdown()
         server.server_close()
     return 0
 

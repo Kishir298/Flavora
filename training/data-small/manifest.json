@@ -1,0 +1,15 @@
+{
+  "datasetVersion": "0.1",
+  "seed": 42,
+  "splits": {
+    "train.jsonl": 12000,
+    "validation.jsonl": 1200,
+    "test.jsonl": 1000
+  },
+  "sha256": {
+    "train.jsonl": "6da8c1ed9a9fcdebc1008cf0c699063e1cd28c6e2ac6411a4464bae1527750fb",
+    "validation.jsonl": "116d92d76ad6fcde66e99d6793a587830eb340e26593def21f03c318298747fa",
+    "test.jsonl": "90872f333be5e67630e17c557c7a7e79c9172c096c02c83978049bd525a96a37"
+  },
+  "config": "training/configs/flavora_lm_small.json"
+}

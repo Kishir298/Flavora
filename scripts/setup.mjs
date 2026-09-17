@@ -33,11 +33,11 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const IS_WIN = platform() === "win32";
 const API_PORT = Number(process.env.PORT || 4000);
 const WEB_PORT = 5173;
-const LM_PORT = Number(process.env.FLAVORA_LM_PORT || 5000);
+let LM_PORT = Number(process.env.FLAVORA_LM_PORT || 5000);
 const LM_HOST = "127.0.0.1";
 const API_URL = `http://localhost:${API_PORT}`;
 const WEB_URL = `http://localhost:${WEB_PORT}`;
-const LM_URL = `http://127.0.0.1:${LM_PORT}`;
+const lmUrl = () => `http://127.0.0.1:${LM_PORT}`;
 const VENV_DIR = path.join(ROOT, ".flavoralm-venv");
 const ARTIFACTS_DIR = path.join(ROOT, "models", "flavora-lm", "v0.1");
 const REQUIRED_ARTIFACTS = ["config.json", "tokenizer.json", "model.pt"];
@@ -229,7 +229,19 @@ function checkArtifacts() {
   if (missing.length > 0) {
     fail(`Model artifacts missing: ${missing.join(", ")}`);
     info(`Expected in ${ARTIFACTS_DIR}`);
-    info("Train locally (no downloads): npm run train:llm");
+    console.log(`
+FlavoraLM model artifacts are missing.
+
+Run:
+
+npm run train:tokenizer
+npm run train:llm
+
+Then run:
+
+npm run start
+`);
+    info("(Training runs locally from the synthetic corpus — no downloads, no pretrained weights.)");
     return null;
   }
   try {
@@ -325,24 +337,50 @@ async function launch() {
   // 1. FlavoraLM inference service (our model, local only).
   // NOTE: macOS AirPlay Receiver also uses port 5000 — so an open TCP port
   // means nothing until /health identifies itself as FlavoraLM.
-  const existing = await httpGetJson(`${LM_URL}/health`, 3_000);
+  // Design: the app keeps running when FlavoraLM is down (heuristic fallback
+  // with an honest notice) — but the status below must NEVER claim FlavoraLM
+  // is running when it is not.
+  let lmReady = false;
+  let lmSummary = "";
+  const existing = await httpGetJson(`${lmUrl()}/health`, 3_000);
   if (existing?.loaded === true && /^flavoraLM/i.test(String(existing.model ?? ""))) {
-    ok(`FlavoraLM already running at ${LM_URL} (${existing.model} v${existing.version})`);
+    ok(`FlavoraLM already running at ${lmUrl()} (${existing.model} v${existing.version})`);
+    lmReady = true;
+    lmSummary = `${existing.model} v${existing.version}, ${existing.parameterCount} params, ${existing.device}`;
   } else {
     if (await tcpReachable(LM_HOST, LM_PORT, 1500)) {
       warn(`Port ${LM_PORT} is occupied by something that is not FlavoraLM (macOS AirPlay uses :5000).`);
-      warn("Set FLAVORA_LM_PORT to a free port, or disable AirPlay Receiver, then re-run.");
+      // Auto-fallback: try the next free loopback ports so one command still
+      // works. The chosen port is exported to children (Express included).
+      let fallback = 0;
+      for (let p = LM_PORT + 1; p <= LM_PORT + 10; p++) {
+        if (!(await tcpReachable(LM_HOST, p, 500))) {
+          fallback = p;
+          break;
+        }
+      }
+      if (fallback) {
+        LM_PORT = fallback;
+        process.env.FLAVORA_LM_PORT = String(fallback);
+        process.env.FLAVORA_LM_HOST = `http://127.0.0.1:${fallback}`;
+        ok(`Using FlavoraLM port ${fallback} instead (Express notified via FLAVORA_LM_HOST).`);
+      } else {
+        warn("No free fallback port nearby — set FLAVORA_LM_PORT to a free port, or disable AirPlay Receiver, then re-run.");
+      }
     }
     info("Starting FlavoraLM inference service…");
     spawnTracked(venvPython(), ["-m", "training.flavora_lm.service", "--host", LM_HOST, "--port", String(LM_PORT)], "flavoralm");
     process.stdout.write("  Waiting for FlavoraLM /health ");
-    const health = await waitForHealth(`${LM_URL}/health`, 90_000, (b) => b.loaded === true);
+    const health = await waitForHealth(`${lmUrl()}/health`, 90_000, (b) => b.loaded === true);
     console.log("");
     if (!health) {
-      fail(`FlavoraLM did not become ready at ${LM_URL}. See [flavoralm] logs above.`);
-      fail("Assistant will fall back to heuristic parsing; fix with `npm run train:llm` if artifacts are stale.");
+      fail(`FlavoraLM did not become ready at ${lmUrl()}. See [flavoralm] logs above.`);
+      fail("App continues with heuristic intent parsing (AI unavailable notice shown in UI).");
+      fail("Fix with `npm run train:llm:dev` if artifacts are stale, then re-run.");
     } else {
       ok(`FlavoraLM loaded (${health.model} v${health.version}, ${health.parameterCount} params, ${health.device})`);
+      lmReady = true;
+      lmSummary = `${health.model} v${health.version}, ${health.parameterCount} params, ${health.device}`;
     }
   }
 
@@ -354,9 +392,12 @@ async function launch() {
   const apiUp = await waitForTcp("localhost", API_PORT, 60_000);
   const webUp = await waitForTcp("localhost", WEB_PORT, 60_000);
   console.log("");
+  const lmLine = lmReady
+    ? `\x1b[32m✓\x1b[0m FlavoraLM   ${lmUrl()} (${lmSummary})`
+    : `\x1b[31m✗\x1b[0m FlavoraLM   ${lmUrl()}  NOT running — heuristic fallback (AI unavailable notice in UI)`;
 
   console.log(`
-\x1b[32m✓\x1b[0m FlavoraLM   ${LM_URL}${apiUp ? "" : ""}
+${lmLine}
 \x1b[32m✓\x1b[0m API         ${API_URL}${apiUp ? "" : "  (still starting — see logs below)"}
 \x1b[32m✓\x1b[0m Website     ${WEB_URL}${webUp ? "" : "  (still starting — see logs below)"}
 `);

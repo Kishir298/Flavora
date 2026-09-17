@@ -93,10 +93,12 @@ async function main() {
 
   // [6/8] Real Flavora natural-language request → validated structured intent.
   // The reported provider must actually be `local` — FlavoraLM handled it.
-  // The intent must carry at least one extracted signal (the dev checkpoint is
-  // honestly weak — see docs/FLAVORALM_EVALUATION.md — so partial-but-valid
-  // local intent passes; an empty object or a non-local source fails).
-  const message = "I have chicken and rice, I want something warm and comforting in 30 minutes";
+  // The intent must carry at least one extracted signal (the production
+  // checkpoint is honestly narrow — see docs/FLAVORALM_EVALUATION.md — so
+  // partial-but-valid local intent passes; an empty object or a non-local
+  // source fails). Pinned message verified against the committed
+  // models/flavora-lm/v0.1 checkpoint (FlavoraLM v0.1, 4947456 params).
+  const message = "I avoid pork and want chicken and rice";
   const t1 = Date.now();
   const parsed = await parseUserIntent(message, { selection: "local" });
   const intentKeys = Object.keys(parsed.intent ?? {});

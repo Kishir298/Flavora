@@ -1,60 +1,87 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { listPending, replayQueue, type QueuedMutation } from "./mutationQueue";
 import { api } from "./api";
 
 export type SyncState = "synchronized" | "pending" | "syncing" | "failed";
 
+// Module-level singleton: one online listener + one poll interval no matter
+// how many components call useOnlineStatus(). Previously each instance
+// started its own 3s poll + auto-sync, causing N concurrent replayQueue runs.
+interface SharedState { online: boolean; pending: number; syncState: SyncState }
+let shared: SharedState = {
+  online: typeof navigator === "undefined" ? true : navigator.onLine,
+  pending: 0,
+  syncState: "synchronized",
+};
+const listeners = new Set<() => void>();
+let started = false;
+let syncInFlight = false;
+
+function emit() {
+  for (const l of listeners) l();
+}
+
+async function refreshShared() {
+  try {
+    const p = await listPending();
+    shared = {
+      ...shared,
+      pending: p.length,
+      syncState: p.some((m) => m.status === "failed") ? "failed" : p.length ? "pending" : "synchronized",
+    };
+    emit();
+  } catch { /* indexeddb unavailable in tests */ }
+}
+
+function ensureStarted() {
+  if (started || typeof window === "undefined") return;
+  started = true;
+  window.addEventListener("online", () => {
+    shared = { ...shared, online: true };
+    emit();
+    void syncNowShared().catch(() => {});
+  });
+  window.addEventListener("offline", () => {
+    shared = { ...shared, online: false };
+    emit();
+  });
+  void refreshShared();
+  setInterval(() => void refreshShared(), 3000);
+}
+
+async function syncNowShared() {
+  if (syncInFlight) return;
+  syncInFlight = true;
+  shared = { ...shared, syncState: "syncing" };
+  emit();
+  try {
+    await replayQueue(async (m: QueuedMutation) => {
+      await executeMutation(m);
+    });
+  } finally {
+    syncInFlight = false;
+    await refreshShared();
+  }
+}
+
 /** Online/offline + pending-sync status (§6.1): online | offline | pending | syncing | synchronized | failed. */
 export function useOnlineStatus() {
-  const [online, setOnline] = useState(typeof navigator === "undefined" ? true : navigator.onLine);
-  const [pending, setPending] = useState(0);
-  const [syncState, setSyncState] = useState<SyncState>("synchronized");
-
+  ensureStarted();
+  const snap = useSyncExternalStore(
+    (cb) => {
+      listeners.add(cb);
+      return () => {
+        listeners.delete(cb);
+      };
+    },
+    () => shared,
+    () => shared
+  );
   useEffect(() => {
-    const on = () => setOnline(true);
-    const off = () => setOnline(false);
-    window.addEventListener("online", on);
-    window.addEventListener("offline", off);
-    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    const refresh = async () => {
-      try {
-        const p = await listPending();
-        if (!cancelled) {
-          setPending(p.length);
-          setSyncState(p.some((m) => m.status === "failed") ? "failed" : p.length ? "pending" : "synchronized");
-        }
-      } catch { /* indexeddb unavailable in tests */ }
-    };
-    refresh();
-    const id = setInterval(refresh, 3000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, []);
-
-  const syncNow = async () => {
-    setSyncState("syncing");
-    try {
-      const { replayed } = await replayQueue(async (m: QueuedMutation) => {
-        await executeMutation(m);
-      });
-      void replayed;
-    } finally {
-      const p = await listPending().catch(() => []);
-      setPending(p.length);
-      const hasFailed = p.some((m) => m.status === "failed");
-      setSyncState(hasFailed ? "failed" : p.length ? "pending" : "synchronized");
-    }
-  };
-
-  useEffect(() => {
-    if (online) syncNow().catch(() => {});
+    if (snap.online) void syncNowShared().catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [online]);
-
-  return { online, pending, syncState, syncNow };
+  }, [snap.online]);
+  return { online: snap.online, pending: snap.pending, syncState: snap.syncState, syncNow: syncNowShared };
 }
 
 /** Exported for tests: replay a single queued mutation against the API. */
@@ -119,6 +146,14 @@ export async function executeMutation(m: QueuedMutation): Promise<void> {  const
     case "meallog.remove":
       await api.mealLog.remove(String(p.id));
       break;
+    case "water.add":
+      await api.addWater(Number(p.ml));
+      break;
+    case "goals.save": {
+      const { ...body } = p;
+      await api.saveGoals(body as Parameters<typeof api.saveGoals>[0]);
+      break;
+    }
     default:
       throw new Error(`unknown operation: ${m.operation}`);
   }

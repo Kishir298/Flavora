@@ -11,8 +11,17 @@ export function Insights() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    api.statistics(range).then(setStats).catch((e) => setError(e instanceof Error ? e.message : String(e)));
-    if (range === "weekly") api.insights().then(setInsights).catch(() => {});
+    let cancelled = false;
+    setError("");
+    api.statistics(range).then((s) => { if (!cancelled) setStats(s); }).catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : String(e)); });
+    // Insights are weekly-only: clear stale weekly insights when leaving weekly
+    // so daily/monthly never shows last week's text.
+    if (range === "weekly") {
+      api.insights().then((i) => { if (!cancelled) setInsights(i); }).catch(() => {});
+    } else {
+      setInsights([]);
+    }
+    return () => { cancelled = true; };
   }, [range]);
 
   return (

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { chatUntilResults } from "./conversation";
 
 /**
  * FlavoraLM chain test: React → Express → FlavoraLM → deterministic engine.
@@ -15,7 +16,7 @@ test("health reports the AI provider honestly", async ({ request }) => {
   const res = await request.get("http://localhost:4000/api/health");
   expect(res.ok()).toBe(true);
   const body = await res.json();
-  expect(["local", "groq", "heuristic", "auto"]).toContain(body.ai.resolvedProvider);
+  expect(["local", "heuristic"]).toContain(body.ai.resolvedProvider);
   expect(typeof body.ai.localModel.name).toBe("string");
   expect(typeof body.ai.localModel.serviceReachable).toBe("boolean");
   if (body.ai.localModel.serviceReachable) {
@@ -39,7 +40,8 @@ test("natural-language request → structured intent → safe recommendations", 
   });
   expect(res.ok()).toBe(true);
   const body = await res.json();
-  expect(["local", "groq", "heuristic", "provided"]).toContain(body.source);
+  expect(["local", "heuristic", "provided"]).toContain(body.source);
+  expect(body.fallbackReason).toBeTruthy();
   if (localUp) {
     // The model actually served this request — not a mock, not heuristic.
     expect(body.source).toBe("local");
@@ -52,9 +54,28 @@ test("natural-language request → structured intent → safe recommendations", 
 });
 
 test("UI names the actual AI source", async ({ page }) => {
-  await page.goto("/assistant");
-  await page.getByLabel(/What do you have/i).fill("chicken, rice");
-  await page.getByRole("button", { name: /Suggest/i }).click();
-  await expect(page.getByLabel(/Open /).first()).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByTestId("ai-status")).toContainText(/AI: (FlavoraLM|Heuristic|Groq)/);
+  test.setTimeout(120_000);
+  await page.goto("/");
+  await chatUntilResults(page, "I want something with chicken");
+  await expect(page.getByTestId("ai-status")).toContainText(/AI: (FlavoraLM|Heuristic)/);
+});
+
+test("conversational journey: request → follow-ups → log meal", async ({ page, request }) => {
+  test.setTimeout(180_000);
+  await page.goto("/");
+  await chatUntilResults(page, "I want something with chicken");
+  const first = page.getByLabel(/Open /).first();
+  await expect(first).toBeVisible({ timeout: 10_000 });
+  // Log the first recommendation as eaten; dashboard must reflect it.
+  const before = await (await request.get("http://localhost:4000/api/meals")).json();
+  const beforeIds = new Set((before as { id: string }[]).map((m) => m.id));
+  await page.getByRole("button", { name: /Log .* as eaten/i }).first().click();
+  await expect(page.getByText(/Logged "/).first()).toBeVisible({ timeout: 10_000 });
+  const meals = await (await request.get("http://localhost:4000/api/meals")).json();
+  expect(Array.isArray(meals)).toBe(true);
+  expect(meals.length).toBeGreaterThan(before.length);
+  // Cleanup: remove the meal this test logged (other suites assert exact counts).
+  for (const m of (meals as { id: string }[]).filter((m) => !beforeIds.has(m.id))) {
+    await request.delete(`http://localhost:4000/api/meals/${m.id}`);
+  }
 });

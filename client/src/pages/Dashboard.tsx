@@ -28,7 +28,10 @@ export function Dashboard() {
         <section className={card} aria-label="Getting started">
           <h2 className="font-semibold text-lg">Welcome to Flavora</h2>
           <p className="mt-1">{stats.reason ?? "You haven't logged enough meals yet to generate meaningful insights."}</p>
-          <Link to="/meals" className="inline-block mt-3 rounded bg-green-700 px-4 py-2 text-white">Log your first meal</Link>
+          <div className="mt-3 flex gap-2 flex-wrap">
+            <Link to="/" className="inline-block rounded bg-green-700 px-4 py-2 text-white">Ask Flavora what to eat</Link>
+            <Link to="/meals" className="inline-block rounded border border-green-700 px-4 py-2 text-green-700">Log your first meal</Link>
+          </div>
         </section>
       ) : (
         <>

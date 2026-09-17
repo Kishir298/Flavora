@@ -21,8 +21,13 @@ export function MealPlan() {
   const load = async () => {
     setLoading(true); setError(null);
     try {
-      setSlots(await api.mealPlans());
-      try { setNutrition(await api.mealNutrition()); } catch { /* optional */ }
+      // Parallel: slots + nutrition summary are independent endpoints.
+      const [slots, nutrition] = await Promise.all([
+        api.mealPlans(),
+        api.mealNutrition().catch(() => null),
+      ]);
+      setSlots(slots);
+      if (nutrition) setNutrition(nutrition);
     } catch (e) { setError(e instanceof Error ? e.message : "Could not load meal plan."); }
     finally { setLoading(false); }
   };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Link, NavLink, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Link, Navigate, NavLink, Route, Routes } from "react-router-dom";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Home } from "./pages/Home";
 import { Dashboard } from "./pages/Dashboard";
@@ -48,10 +48,10 @@ export function App() {
           </a>
           <nav className="border-b border-neutral-200 dark:border-neutral-800 px-4 py-2 flex gap-4 text-sm flex-wrap" aria-label="main">
             <Link to="/" className="font-bold text-green-700 dark:text-green-400">Flavora</Link>
-            <NavItem to="/" label="Dashboard" end />
+            <NavItem to="/" label="Ask Flavora" end />
+            <NavItem to="/dashboard" label="Dashboard" />
             <NavItem to="/meals" label="Meals" />
             <NavItem to="/insights" label="Insights" />
-            <NavItem to="/assistant" label="Assistant" />
             <NavItem to="/explorer" label="Explorer" />
             <NavItem to="/inventory" label="Inventory" />
             <NavItem to="/groceries" label="Groceries" />
@@ -63,8 +63,11 @@ export function App() {
           <SyncBanner />
           <main id="main" tabIndex={-1}>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/assistant" element={<Home />} />
+            {/* Primary UX is conversational: / is the chat, Dashboard lives at /dashboard. */}
+            <Route path="/" element={<Home />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            {/* Back-compat: old /assistant links redirect to the new home. */}
+            <Route path="/assistant" element={<Navigate to="/" replace />} />
             <Route path="/meals" element={<Meals />} />
             <Route path="/insights" element={<Insights />} />
             <Route path="/onboarding" element={<Onboarding />} />
@@ -75,6 +78,17 @@ export function App() {
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/groceries" element={<Groceries />} />
             <Route path="/meal-plan" element={<MealPlan />} />
+            <Route
+              path="*"
+              element={
+                <div className="p-6 max-w-2xl mx-auto">
+                  <h1 className="text-2xl font-bold">Page not found</h1>
+                  <p className="mt-1 text-sm opacity-70">
+                    That page doesn&apos;t exist. <Link to="/" className="underline text-green-700 dark:text-green-400">Ask Flavora what to eat</Link> or pick a section above.
+                  </p>
+                </div>
+              }
+            />
           </Routes>
           </main>
         </div>

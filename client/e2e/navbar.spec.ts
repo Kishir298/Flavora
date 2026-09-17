@@ -8,10 +8,10 @@ test("navbar: every destination works", async ({ page }) => {
   await page.goto("/");
   const nav = page.getByRole("navigation", { name: "main" });
   const cases: [string, RegExp][] = [
+    ["Ask Flavora", /^FLAVORA$/],
     ["Dashboard", /^Dashboard$/],
     ["Meals", /^Meals$/],
     ["Insights", /^Insights$/],
-    ["Assistant", /^Assistant$/],
     ["Explorer", /explorer|cuisine|browse/i],
     ["Inventory", /^Inventory$/],
     ["Groceries", /grocer/i],

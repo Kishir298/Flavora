@@ -3,20 +3,45 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { Home } from "./Home";
 
-describe("Home assistant (guide contract)", () => {
+describe("Home conversational flow", () => {
   beforeEach(() => {
+    localStorage.clear();
+    let calls = 0;
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: unknown, init?: RequestInit) => {
         const u = String(url);
-        if (u.includes("/api/assistant")) {
+        if (u.includes("/api/assistant/conversation")) {
+          calls += 1;
+          if (calls === 1) {
+            return {
+              ok: true,
+              json: async () => ({
+                sessionId: "s1",
+                question: "About how many calories are you aiming for?",
+                done: false,
+                foodRequest: { craving: "chicken" },
+                intent: {},
+                source: "heuristic",
+                fallbackReason: "local-unreachable",
+                notice: null,
+                reply: "",
+                recommendations: [],
+              }),
+            };
+          }
           return {
             ok: true,
             json: async () => ({
-              intent: { availableIngredients: ["chicken", "rice"], mode: "food_waste", timeLimit: 20 },
+              sessionId: "s1",
+              question: null,
+              done: true,
+              foodRequest: { craving: "chicken", calorieTarget: 600, mealType: "dinner" },
+              intent: { availableIngredients: ["chicken", "rice"] },
               source: "heuristic",
-              notice: "No GROQ_API_KEY configured — using local intent parsing.",
-              reply: "Prioritising recipes that use what you already have. Tomato Pasta — Uses 2 ingredients.",
+              fallbackReason: "local-unreachable",
+              notice: null,
+              reply: "Here are allergy-safe picks from your local library.",
               recommendations: [
                 {
                   recipeId: "mock:1",
@@ -32,24 +57,8 @@ describe("Home assistant (guide contract)", () => {
             }),
           };
         }
-        if (u.includes("/api/recommendations")) {
-          return {
-            ok: true,
-            json: async () => ({
-              recommendations: [
-                {
-                  recipeId: "mock:1",
-                  title: "Tomato Pasta",
-                  score: 0.82,
-                  matchReasons: ["Uses 2 of your 2 available ingredients", "Fits your 30-minute cooking preference"],
-                  cuisine: "italian",
-                  cookTime: 25,
-                  costTier: "low",
-                  ingredients: ["pasta", "tomato"],
-                },
-              ],
-            }),
-          };
+        if (u.includes("/api/meals") && init?.method === "POST") {
+          return { ok: true, json: async () => ({ id: "m1" }) };
         }
         void init;
         return { ok: true, json: async () => ({}) };
@@ -57,51 +66,85 @@ describe("Home assistant (guide contract)", () => {
     );
   });
 
-  it("shows match reasons and a budget-mode toggle", async () => {
+  it("asks only missing info, then shows recommendations", async () => {
     render(
       <MemoryRouter>
         <Home />
       </MemoryRouter>
     );
-    expect(screen.getByText("Budget-friendly")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Budget-friendly"));
-    fireEvent.click(screen.getByRole("button", { name: /Suggest/i }));
-    await waitFor(() => expect(screen.getByText("Tomato Pasta")).toBeInTheDocument());
-    expect(screen.getByText(/Uses 2 of your 2 available ingredients/i)).toBeInTheDocument();
-    const calls = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls as [string, RequestInit][];
-    const recCall = [...calls].reverse().find(([u]) => String(u).includes("/api/recommendations"));
-    expect(String(recCall?.[1]?.body)).toContain("budget");
-    vi.unstubAllGlobals();
-  });
+    expect(screen.getByText("What are you craving today?")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/Tell Flavora what you want/i), {
+      target: { value: "I want something with chicken" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Ask Flavora/i }));
+    await waitFor(() =>
+      expect(screen.getByText("About how many calories are you aiming for?")).toBeInTheDocument()
+    );
 
-  it("offers a food-waste mode that sends mode: food_waste", async () => {
-    render(
-      <MemoryRouter>
-        <Home />
-      </MemoryRouter>
-    );
-    fireEvent.click(screen.getByText("Use what I have"));
-    fireEvent.click(screen.getByRole("button", { name: /Suggest/i }));
-    await waitFor(() => expect(screen.getByText("Tomato Pasta")).toBeInTheDocument());
-    const calls = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls as [string, RequestInit][];
-    const recCall = [...calls].reverse().find(([u]) => String(u).includes("/api/recommendations"));
-    expect(String(recCall?.[1]?.body)).toContain("food_waste");
-    vi.unstubAllGlobals();
-  });
-
-  it("natural-language ask hits /api/assistant", async () => {
-    render(
-      <MemoryRouter>
-        <Home />
-      </MemoryRouter>
-    );
-    fireEvent.change(screen.getByLabelText(/Ask in plain language/i), {
-      target: { value: "I have chicken and rice, 20 minutes" },
+    fireEvent.change(screen.getByLabelText(/Tell Flavora what you want/i), {
+      target: { value: "Around 600 calories for dinner" },
     });
     fireEvent.click(screen.getByRole("button", { name: /Ask Flavora/i }));
     await waitFor(() => expect(screen.getByText("Tomato Pasta")).toBeInTheDocument());
     const calls = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls as [string, RequestInit][];
-    expect(calls.some(([u]) => String(u).includes("/api/assistant"))).toBe(true);
+    expect(calls.some(([u]) => String(u).includes("/api/assistant/conversation"))).toBe(true);
+    vi.unstubAllGlobals();
+  });
+
+  it("logs a recommendation as eaten (never auto-logged)", async () => {
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>
+    );
+    fireEvent.change(screen.getByLabelText(/Tell Flavora what you want/i), {
+      target: { value: "I want something with chicken" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Ask Flavora/i }));
+    await waitFor(() =>
+      expect(screen.getByText("About how many calories are you aiming for?")).toBeInTheDocument()
+    );
+    fireEvent.change(screen.getByLabelText(/Tell Flavora what you want/i), {
+      target: { value: "Around 600 calories for dinner" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Ask Flavora/i }));
+    await waitFor(() => expect(screen.getByText("Tomato Pasta")).toBeInTheDocument());
+    // Nothing logged implicitly: no POST /api/meals happened yet.
+    let calls = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls as [string, RequestInit][];
+    expect(calls.some(([u, init]) => String(u).includes("/api/meals") && init?.method === "POST")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: /Log Tomato Pasta as eaten/i }));
+    await waitFor(() => expect(screen.getByText(/Logged "Tomato Pasta"/)).toBeInTheDocument());
+    calls = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls as [string, RequestInit][];
+    expect(calls.some(([u, init]) => String(u).includes("/api/meals") && init?.method === "POST")).toBe(true);
+    vi.unstubAllGlobals();
+  });
+
+  it("offers quick actions", () => {
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>
+    );
+    for (const label of ["Make a meal", "Eat healthier", "Use my pantry", "Plan meals"]) {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+  });
+
+  it("new chat resets the session", async () => {
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>
+    );
+    fireEvent.change(screen.getByLabelText(/Tell Flavora what you want/i), {
+      target: { value: "I want something with chicken" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Ask Flavora/i }));
+    await waitFor(() =>
+      expect(screen.getByText("About how many calories are you aiming for?")).toBeInTheDocument()
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Start a new conversation/i }));
+    expect(screen.queryByText("About how many calories are you aiming for?")).not.toBeInTheDocument();
     vi.unstubAllGlobals();
   });
 });

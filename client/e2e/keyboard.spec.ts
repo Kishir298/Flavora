@@ -5,7 +5,8 @@ import { test, expect } from "@playwright/test";
  * Uses real key presses — never component internals.
  */
 test("keyboard: skip link → main → navigate → operate", async ({ page }) => {
-  await page.goto("/assistant");
+  test.setTimeout(120_000);
+  await page.goto("/");
 
   // 1-2. First Tab stop is the skip link.
   await page.keyboard.press("Tab");
@@ -25,20 +26,30 @@ test("keyboard: skip link → main → navigate → operate", async ({ page }) =
       const el = document.activeElement;
       return el ? `${el.tagName}#${el.id}` : "";
     });
-    if (tag === "TEXTAREA#nl") {
+    if (tag === "INPUT#craving-input") {
       focused = tag;
       break;
     }
     await page.keyboard.press("Tab");
   }
-  expect(focused).toBe("TEXTAREA#nl");
+  expect(focused).toBe("INPUT#craving-input");
 
-  // 6. Type a request and submit via keyboard alone.
-  await page.keyboard.type("I have pasta and tomato, 30 minutes");
+  // 6. Type a request and submit via keyboard alone, answering follow-ups.
+  await page.keyboard.type("I want something with chicken");
   await page.keyboard.press("Tab"); // Ask Flavora button
   await expect(page.getByRole("button", { name: /Ask Flavora/i })).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(page.getByLabel(/Open /).first()).toBeVisible({ timeout: 15_000 });
+  for (let i = 0; i < 6; i++) {
+    try {
+      await page.getByLabel(/Open /).first().waitFor({ timeout: 20_000 });
+      break;
+    } catch {
+      const answers = ["Around 600 calories", "Non-veg", "Chicken, rice and onions", "Dinner", "Anything is fine"];
+      await page.getByLabel(/Tell Flavora what you want/i).fill(answers[Math.min(i, answers.length - 1)]);
+      await page.getByRole("button", { name: /Ask Flavora/i }).click();
+    }
+  }
+  await expect(page.getByLabel(/Open /).first()).toBeVisible({ timeout: 20_000 });
 
   // 7. Open a primary page from the nav using only the keyboard.
   await page.keyboard.press("Escape");

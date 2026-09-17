@@ -27,10 +27,10 @@ describe("navigation — every item reaches a real page", () => {
   });
 
   const cases: [string, RegExp][] = [
+    ["Ask Flavora", /^FLAVORA$/],
     ["Dashboard", /^Dashboard$/],
     ["Meals", /^Meals$/],
     ["Insights", /^Insights$/],
-    ["Assistant", /^Assistant$/],
     ["Explorer", /browse|cuisine|region/i],
     ["Inventory", /^Inventory$/],
     ["Groceries", /grocer/i],
@@ -62,7 +62,14 @@ describe("navigation — every item reaches a real page", () => {
   });
 
   it("dashboard empty state links to meal logging", async () => {
+    window.history.pushState({}, "", "/dashboard");
     render(<App />);
     await waitFor(() => expect(screen.getByText(/Log your first meal/i)).toBeInTheDocument());
+  });
+
+  it("legacy /assistant redirects to chat home", async () => {
+    window.history.pushState({}, "", "/assistant");
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(/^FLAVORA$/));
   });
 });

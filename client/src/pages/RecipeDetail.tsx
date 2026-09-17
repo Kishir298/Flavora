@@ -118,7 +118,7 @@ export function RecipeDetail() {
     <div className="p-6 max-w-2xl mx-auto">
       <p className="mb-3">
         <Link to="/" className="text-sm text-green-700 dark:text-green-400 underline">
-          ← Back to assistant
+          ← Back to Ask Flavora
         </Link>
       </p>
       <h1 className="text-2xl font-bold">{recipe.title}</h1>
@@ -262,8 +262,14 @@ export function RecipeDetail() {
         {recipe.nutrition && (
           <details className={box}>
             <summary className="font-semibold cursor-pointer">Nutrition</summary>
-            <p className="text-sm mt-1">{nutritionLine(recipe.nutrition) || "No nutrition data."}</p>
-            <p className="text-xs opacity-60 mt-1">Authored estimates per serving, not lab-verified or medical advice.</p>
+            <p className="text-sm mt-1">{nutritionLine(recipe.nutrition) || "Nutrition unavailable for this recipe — not estimated."}</p>
+            <p className="text-xs opacity-60 mt-1">
+              {recipe.nutritionSource === "usda" && "Source: USDA FoodData Central (public domain). Values per serving."}
+              {recipe.nutritionSource === "openfoodfacts" && "Source: Open Food Facts (ODbL). Values per serving."}
+              {recipe.nutritionSource === "cache" && "Source: previously verified lookup, served offline."}
+              {(!recipe.nutritionSource || recipe.nutritionSource === "authored") && "Authored estimates per serving, not lab-verified or medical advice."}
+              {recipe.nutritionSource === "unknown" && "No verified data — values are not estimated."}
+            </p>
           </details>
         )}
 

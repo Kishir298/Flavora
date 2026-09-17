@@ -1,19 +1,24 @@
 import { test, expect } from "@playwright/test";
+import { chatUntilResults } from "./conversation";
 
 /**
  * Critical path: profile -> recommend -> open -> save.
  * Runs against the local recipe database (seeded from /data).
+ *
+ * The assistant is conversational: ask, then answer follow-ups until
+ * recommendations appear (callers allow time for live inference).
  */
+
 test("profile → recommend → open → save", async ({ page }) => {
+  test.setTimeout(120_000);
   await page.goto("/onboarding");
   await page.getByLabel(/Allergies/i).fill("peanut");
   await page.getByLabel(/Foods to avoid/i).fill("pork");
   await page.getByRole("button", { name: /Save profile/i }).click();
   await expect(page).toHaveURL("/");
-  await page.goto("/assistant");
+  await page.goto("/");
 
-  await page.getByLabel(/What do you have/i).fill("pasta, tomato");
-  await page.getByRole("button", { name: /Suggest/i }).click();
+  await chatUntilResults(page, "I want something with chicken");
   const first = page.getByLabel(/Open /).first();
   await expect(first).toBeVisible({ timeout: 10_000 });
   await first.click();
@@ -27,10 +32,10 @@ test("profile → recommend → open → save", async ({ page }) => {
 });
 
 test("food waste mode → recipe", async ({ page }) => {
-  await page.goto("/assistant");
-  await page.getByLabel(/What do you have/i).fill("chickpeas, tomato, rice, onion");
-  await page.getByText("Use what I have").click();
-  await page.getByRole("button", { name: /Suggest/i }).click();
+  test.setTimeout(120_000);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Use my pantry" }).click();
+  await chatUntilResults(page, "I have chickpeas, tomato, rice and onion");
   const first = page.getByLabel(/Open /).first();
   await expect(first).toBeVisible({ timeout: 10_000 });
   await first.click();
@@ -66,9 +71,9 @@ test("grocery list → check → persists", async ({ page }) => {
 });
 
 test("meal plan → add → groceries", async ({ page }) => {
-  await page.goto("/assistant");
-  await page.getByLabel(/What do you have/i).fill("pasta, tomato");
-  await page.getByRole("button", { name: /Suggest/i }).click();
+  test.setTimeout(120_000);
+  await page.goto("/");
+  await chatUntilResults(page, "I want something with pasta and tomato");
   const first = page.getByLabel(/Open /).first();
   await expect(first).toBeVisible({ timeout: 10_000 });
   const href = await first.getAttribute("href");
@@ -82,8 +87,8 @@ test("meal plan → add → groceries", async ({ page }) => {
 });
 
 test("natural-language craving → recommendations", async ({ page }) => {
-  await page.goto("/assistant");
-  await page.getByPlaceholder(/chicken, rice/i).fill("I want something warm and comforting, creamy but not too spicy");
-  await page.getByRole("button", { name: /Ask Flavora/i }).click();
+  test.setTimeout(120_000);
+  await page.goto("/");
+  await chatUntilResults(page, "I want something warm and comforting, creamy but not too spicy");
   await expect(page.getByLabel(/Open /).first()).toBeVisible({ timeout: 10_000 });
 });

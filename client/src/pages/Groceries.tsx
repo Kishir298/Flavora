@@ -22,9 +22,11 @@ export function Groceries() {
   const load = async () => {
     setLoading(true); setError(null);
     try {
-      setItems(await api.groceries());
-      try { setRemovedItems((await api.groceries(true)).filter((g) => g.removed).slice(0, 10)); }
-      catch { /* optional */ }
+      // Single request (includeRemoved=1) then split client-side — previously
+      // two identical GETs doubled load on every visit.
+      const all = await api.groceries(true);
+      setItems(all.filter((g) => !g.removed));
+      setRemovedItems(all.filter((g) => g.removed).slice(0, 10));
     }
     catch (e) { setError(e instanceof Error ? e.message : "Could not load grocery list."); }
     finally { setLoading(false); }

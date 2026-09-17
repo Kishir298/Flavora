@@ -35,6 +35,7 @@ export interface RecipeResult {
   ingredientDetails?: IngredientDetail[];
   instructions?: string[];
   nutrition?: { calories?: number; protein?: number; protein_g?: number; carbs?: number; carbs_g?: number; fat?: number; fat_g?: number };
+  nutritionSource?: "authored" | "usda" | "openfoodfacts" | "cache" | "unknown";
   score?: number;
   substitutions?: Record<string, string[]>;
   substitutionDetails?: Record<string, SubstituteDetail[]>;
@@ -55,6 +56,7 @@ export interface Recommendation {
   costTier?: string;
   ingredients?: string[];
   nutrition?: RecipeResult["nutrition"];
+  nutritionSource?: RecipeResult["nutritionSource"];
 }
 
 export type RecommendMode = "normal" | "food_waste" | "budget";
@@ -66,12 +68,24 @@ export interface AssistantIntent {
   mode?: RecommendMode;
   craving?: string | null;
   cravingSignals?: Record<string, string[]>;
+  expiringIngredients?: string[];
+  allergies?: string[];
+  avoidFoods?: string[];
+  dietaryPreference?: string;
+  mealType?: string;
+  calorieTarget?: number;
+  spiceLevel?: string;
+  skillLevel?: string;
+  servings?: number;
+  maxCookingTime?: number;
+  foodRequest?: Record<string, unknown>;
 }
 
 export interface AssistantResponse {
   intent: AssistantIntent;
-  source: "local" | "groq" | "heuristic" | "provided";
+  source: "local" | "heuristic" | "provided";
   notice?: string | null;
+  fallbackReason?: "none" | "heuristic-mode" | "local-unreachable" | "local-timeout" | "local-invalid" | "local-unloaded";
   reply: string;
   recommendations: Recommendation[];
 }
@@ -155,10 +169,10 @@ export const api = {
     req<{
       ok: boolean;
       ai?: {
-        groqConfigured: boolean;
         providerSelection?: string;
         configuredProvider?: string;
         resolvedProvider?: string;
+        remoteConfigured?: boolean;
         localLlm?: { enabled: boolean; host: string; model: string; available: boolean };
         localModel?: {
           name: string;
@@ -192,6 +206,15 @@ export const api = {
   /** Natural-language assistant → intent → same deterministic engine. */
   assistant: (body: { message: string; intent?: Partial<AssistantIntent>; context?: "week-summary" | "yesterday" | "repeats" | "goals" | "waste" }) =>
     req<AssistantResponse & { facts?: Record<string, unknown> }>("/api/assistant", { method: "POST", body: JSON.stringify(body) }),
+  /** Conversational requirement gathering → structured FoodRequest → engine. */
+  conversation: (body: { sessionId?: string; message: string }) =>
+    req<{
+      sessionId: string; question: string | null; done: boolean;
+      foodRequest: Record<string, unknown>;
+      intent: AssistantIntent; source: AssistantResponse["source"];
+      fallbackReason: NonNullable<AssistantResponse["fallbackReason"]>;
+      notice: string | null; reply: string; recommendations: Recommendation[];
+    }>("/api/assistant/conversation", { method: "POST", body: JSON.stringify(body) }),
   explain: (recipeId: string, mode?: RecommendMode) =>
     req<{ recipeId: string; features: Record<string, number>; weights: Record<string, number>; score: number }>(
       `/api/debug/explain?recipeId=${encodeURIComponent(recipeId)}${mode ? `&mode=${mode}` : ""}`

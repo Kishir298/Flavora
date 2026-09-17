@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { chatUntilResults } from "./conversation";
 
 /**
  * Automated accessibility audit.
@@ -16,9 +17,9 @@ import { test, expect, type Page } from "@playwright/test";
 
 const ROUTES = [
   "/",
+  "/dashboard",
   "/meals",
   "/insights",
-  "/assistant",
   "/explorer",
   "/inventory",
   "/groceries",
@@ -138,13 +139,12 @@ test("a11y audit: recipe detail", async ({ page }) => {
 });
 
 test("assistant status regions are announced", async ({ page }) => {
-  await page.goto("/assistant");
-  // Loading + error + notice regions exist with accessible roles.
-  await page.getByLabel(/What do you have/i).fill("pasta, tomato");
-  await page.getByRole("button", { name: /Suggest/i }).click();
-  await expect(page.getByLabel(/Open /).first()).toBeVisible({ timeout: 10_000 });
+  test.setTimeout(120_000);
+  await page.goto("/");
+  // Chat log (role=log) + loading + error regions exist with accessible roles.
+  await chatUntilResults(page, "I want something with chicken");
   // AI status line names the actual provider (never bare "AI Powered").
   const status = page.getByTestId("ai-status");
   await expect(status).toBeVisible();
-  await expect(status).toContainText(/AI: (FlavoraLM|Heuristic|Groq)/);
+  await expect(status).toContainText(/AI: (FlavoraLM|Heuristic)/);
 });

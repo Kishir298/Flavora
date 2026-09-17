@@ -42,7 +42,7 @@ test("meal log flows into dashboard, statistics and assistant facts", async ({ p
   await expect(page.getByText(/meal activity/i)).toBeVisible({ timeout: 10_000 });
 
   // 13. Every primary navbar destination renders a heading.
-  for (const [label, heading] of [["Dashboard", "Dashboard"], ["Meals", "Meals"], ["Insights", "Insights"], ["Assistant", "Assistant"], ["Settings", "Settings"]] as const) {
+  for (const [label, heading] of [["Ask Flavora", "FLAVORA"], ["Dashboard", "Dashboard"], ["Meals", "Meals"], ["Insights", "Insights"], ["Settings", "Settings"]] as const) {
     await page.getByRole("navigation", { name: "main" }).getByRole("link", { name: label }).click();
     await expect(page.getByRole("heading", { level: 1 })).toContainText(heading);
   }

@@ -89,6 +89,33 @@ export interface GroceryItem {
   source: string; recipeIds: string[];
 }
 
+export interface MealLog {
+  id: string; name: string; mealType: "breakfast" | "lunch" | "dinner" | "snack";
+  loggedAt: string; foods: { name: string; quantity?: number | null; unit?: string | null }[];
+  servings?: number | null;
+  nutrition?: { calories?: number | null; protein_g?: number | null; carbs_g?: number | null; fat_g?: number | null } | null;
+  tags?: string[]; notes?: string;
+}
+
+export interface Goals {
+  maxCalories?: number | null; protein_g?: number | null; mealsPerDay?: number | null;
+  vegMealsPerWeek?: number | null; waterMlPerDay?: number | null; cookTimesPerWeek?: number | null;
+  updatedAt?: string | null;
+}
+
+export interface StatsBucket { date: string; meals: number; calories: number | null; protein_g: number | null }
+export interface StatsResult {
+  status: "ok" | "insufficient"; reason?: string; range: string;
+  totalMeals: number; activeDays: number; mealsPerDay: number[];
+  byType: Record<string, number>; variety: { uniqueFoods: number; uniqueMeals: number };
+  repeats: { name: string; count: number }[];
+  nutrition: { calories: number | null; protein_g: number | null; carbs_g: number | null; fat_g: number | null; daysWithData: number };
+  goalProgress: { label: string; target: number | null; actual: number; met: boolean | null }[];
+  buckets: StatsBucket[]; waterMl: number | null;
+}
+
+export interface Insight { id: string; text: string; kind: string }
+
 export interface MealSlot {
   id: number; day: string; date: string; meal: string; recipeId: string;
   servings: number; appliedSubs: { originalName: string; replacementName: string }[];
@@ -159,8 +186,8 @@ export const api = {
       body: JSON.stringify(body),
     }),
   /** Natural-language assistant → intent → same deterministic engine. */
-  assistant: (body: { message: string; intent?: Partial<AssistantIntent> }) =>
-    req<AssistantResponse>("/api/assistant", { method: "POST", body: JSON.stringify(body) }),
+  assistant: (body: { message: string; intent?: Partial<AssistantIntent>; context?: "week-summary" }) =>
+    req<AssistantResponse & { facts?: Record<string, unknown> }>("/api/assistant", { method: "POST", body: JSON.stringify(body) }),
   explain: (recipeId: string, mode?: RecommendMode) =>
     req<{ recipeId: string; features: Record<string, number>; weights: Record<string, number>; score: number }>(
       `/api/debug/explain?recipeId=${encodeURIComponent(recipeId)}${mode ? `&mode=${mode}` : ""}`
@@ -209,4 +236,15 @@ export const api = {
   removeMeal: (id: number) => req(`/api/meal-plans/${id}`, { method: "DELETE" }),
   clearMealDay: (day: string) => req("/api/meal-plans/clear-day", { method: "POST", body: JSON.stringify({ day }) }),
   mealNutrition: () => req<Record<string, { calories: number | null; protein: number | null; carbs: number | null; fat: number | null; unknown: boolean }>>("/api/meal-plans/nutrition/summary"),
+  // Meal log / goals / statistics (local JSON store, deterministic engines)
+  mealLog: {
+    list: () => req<MealLog[]>("/api/meals"),
+    add: (b: Omit<MealLog, "id">) => req<MealLog>("/api/meals", { method: "POST", body: JSON.stringify(b) }),
+    update: (id: string, b: Partial<MealLog>) => req<MealLog>(`/api/meals/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(b) }),
+    remove: (id: string) => req(`/api/meals/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  },
+  getGoals: () => req<Goals>("/api/goals"),
+  saveGoals: (b: Partial<Goals>) => req<Goals>("/api/goals", { method: "PUT", body: JSON.stringify(b) }),
+  statistics: (range: "daily" | "weekly" | "monthly" = "weekly") => req<StatsResult>(`/api/statistics?range=${range}`),
+  insights: () => req<Insight[]>("/api/insights"),
 };

@@ -112,7 +112,7 @@ export function Inventory() {
   };
 
   const shown = useMemo(() => {
-    const filtered = items.filter((i) => !filter || i.name.includes(filter.toLowerCase()) || (i.status ?? "") === filter);
+    const filtered = items.filter((i) => !filter || i.name.toLowerCase().includes(filter.toLowerCase()) || (i.status ?? "") === filter);
     const sorted = [...filtered].sort((a, b) => {
       if (sort === "name") return a.name.localeCompare(b.name);
       if (sort === "status") return statusRank(a.status) - statusRank(b.status) || a.name.localeCompare(b.name);

@@ -108,6 +108,17 @@ async function executeMutation(m: QueuedMutation): Promise<void> {
     case "meal.clearDay":
       await api.clearMealDay(String(p.day));
       break;
+    case "meallog.add": {
+      const { id: _drop, ...body } = p;
+      await api.mealLog.add(body as Parameters<typeof api.mealLog.add>[0]);
+      break;
+    }
+    case "meallog.update":
+      await api.mealLog.update(String(p.id), p as Parameters<typeof api.mealLog.update>[1]);
+      break;
+    case "meallog.remove":
+      await api.mealLog.remove(String(p.id));
+      break;
     default:
       throw new Error(`unknown operation: ${m.operation}`);
   }

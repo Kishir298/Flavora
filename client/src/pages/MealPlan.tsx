@@ -94,7 +94,7 @@ export function MealPlan() {
     if (next === s.servings) return;
     setSlots((prev) => prev.map((x) => (x.id === s.id ? { ...x, servings: next } : x)));
     try {
-      if (!online) await enqueueMutation({ operation: "meal.add", entityType: "meal", entityId: `${s.day}-${s.meal}`, payload: { day: s.day, meal: s.meal, recipeId: s.recipeId, servings: next } });
+      if (!online) await enqueueMutation({ operation: "meal.update", entityType: "meal", entityId: String(s.id), payload: { id: s.id, servings: next } });
       else await api.updateMeal(s.id, { servings: next });
     } catch { await load(); }
   };

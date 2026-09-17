@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Link, NavLink, Route, Routes } from "react-router-dom";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Home } from "./pages/Home";
+import { Dashboard } from "./pages/Dashboard";
+import { Meals } from "./pages/Meals";
+import { Insights } from "./pages/Insights";
 import { Onboarding } from "./pages/Onboarding";
 import { RecipeDetail } from "./pages/RecipeDetail";
 import { Saved } from "./pages/Saved";
@@ -43,21 +46,27 @@ export function App() {
           >
             Skip to content
           </a>
-          <nav className="border-b border-neutral-200 dark:border-neutral-800 px-4 py-2 flex gap-4 text-sm" aria-label="main">
+          <nav className="border-b border-neutral-200 dark:border-neutral-800 px-4 py-2 flex gap-4 text-sm flex-wrap" aria-label="main">
             <Link to="/" className="font-bold text-green-700 dark:text-green-400">Flavora</Link>
-            <Link to="/">Assistant</Link>
-            <Link to="/explorer">Explorer</Link>
-            <Link to="/inventory">Inventory</Link>
-            <Link to="/groceries">Groceries</Link>
-            <Link to="/meal-plan">Meal plan</Link>
-            <Link to="/saved">Saved</Link>
-            <Link to="/settings">Settings</Link>
+            <NavItem to="/" label="Dashboard" end />
+            <NavItem to="/meals" label="Meals" />
+            <NavItem to="/insights" label="Insights" />
+            <NavItem to="/assistant" label="Assistant" />
+            <NavItem to="/explorer" label="Explorer" />
+            <NavItem to="/inventory" label="Inventory" />
+            <NavItem to="/groceries" label="Groceries" />
+            <NavItem to="/meal-plan" label="Meal plan" />
+            <NavItem to="/saved" label="Saved" />
+            <NavItem to="/settings" label="Settings" />
             <Link to="/onboarding" className="ml-auto opacity-70">Profile</Link>
           </nav>
           <SyncBanner />
           <main id="main" tabIndex={-1}>
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/assistant" element={<Home />} />
+            <Route path="/meals" element={<Meals />} />
+            <Route path="/insights" element={<Insights />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/recipe/:id" element={<RecipeDetail />} />
             <Route path="/saved" element={<Saved />} />
@@ -71,6 +80,18 @@ export function App() {
         </div>
       </BrowserRouter>
     </ErrorBoundary>
+  );
+}
+
+function NavItem({ to, label, end }: { to: string; label: string; end?: boolean }) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      className={({ isActive }) => (isActive ? "font-semibold underline underline-offset-4" : "opacity-80")}
+    >
+      {label}
+    </NavLink>
   );
 }
 

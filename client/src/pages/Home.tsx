@@ -42,6 +42,8 @@ export function Home() {
   const [error, setError] = useState("");
   const [asked, setAsked] = useState(false);
   const [aiSource, setAiSource] = useState<AiSource>(null);
+  const [weekSummary, setWeekSummary] = useState("");
+  const [weekFacts, setWeekFacts] = useState<Record<string, unknown> | null>(null);
 
   function rememberHave(have: string[]) {
     try {
@@ -103,9 +105,26 @@ export function Home() {
     }
   }
 
+  async function summarizeWeek() {
+    setLoading(true);
+    setError("");
+    try {
+      // Deterministic stats are computed server-side and returned as `facts`;
+      // the assistant explains them — it never invents them.
+      const res = await api.assistant({ message: "How have I been eating this week?", context: "week-summary" });
+      setWeekSummary(res.reply);
+      setWeekFacts(res.facts ?? null);
+      setAiSource(res.source);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "assistant failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
 <div className="p-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold">What should you cook?</h1>
+      <h1 className="text-2xl font-bold">Assistant</h1>
       <p className="mt-1 text-sm opacity-70">
         Tell Flavora what you have — it handpicks practical meals from your local recipe library.
         Allergy filtering always runs first.
@@ -123,6 +142,9 @@ export function Home() {
         />
         <button type="submit" disabled={loading || !nl.trim()} className="px-4 py-2 rounded bg-green-700 text-white disabled:opacity-50">
           {loading ? "Thinking…" : "Ask Flavora"}
+        </button>
+        <button type="button" disabled={loading} onClick={() => void summarizeWeek()} className="ml-2 px-4 py-2 rounded border border-green-700 text-green-700 dark:text-green-400 disabled:opacity-50">
+          Summarize my week
         </button>
         <p className="text-xs opacity-60">
           Optional AI parses intent on the server; ranking stays local and allergy-safe. Works without an API key via local parsing.
@@ -167,6 +189,16 @@ export function Home() {
       {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
       {notice && <p className="mt-3 text-sm text-amber-800 dark:text-amber-200" role="status">{notice}</p>}
       {reply && <p className="mt-3 text-sm opacity-90" role="status">{reply}</p>}
+      {weekSummary && (
+        <div className="mt-3 rounded border border-neutral-200 dark:border-neutral-700 p-3" role="status" aria-label="week summary">
+          <p className="text-sm">{weekSummary}</p>
+          {weekFacts && typeof weekFacts.totalMeals === "number" && (
+            <p className="mt-1 text-xs opacity-70" data-testid="week-facts">
+              Based on your logged data: {String(weekFacts.totalMeals)} meal(s), {String(weekFacts.activeDays)} active day(s).
+            </p>
+          )}
+        </div>
+      )}
 
       <section aria-label="results" className="mt-6 grid gap-3" aria-live="polite">
         {results.map((r) => (

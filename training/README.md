@@ -9,8 +9,8 @@ No pretrained weights, no pretrained tokenizer, no external data.
 
 ```bash
 npm run train:tokenizer # standalone BPE training → tokenizer.json + tokenizer_meta.json
-npm run train:llm:dev   # fast dev model → models/flavora-lm/v0.1/ (minutes, CI-sized)
-npm run train:llm       # full small model (longer; same artifact dir after config version bump)
+npm run train:llm:dev   # fast dev model → models/flavora-lm/dev/ (minutes, CI-sized)
+npm run train:llm       # full small model → models/flavora-lm/v0.1/ (1–3h CPU)
 npm run evaluate:llm    # held-out evaluation → models/flavora-lm/v0.1/eval.json
 npm run verify:llm:init # prove weights are freshly initialized (no pretrained content)
 npm run lm:serve        # run the inference service manually (127.0.0.1:5000)

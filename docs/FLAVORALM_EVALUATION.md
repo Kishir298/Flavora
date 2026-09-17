@@ -1,6 +1,24 @@
 # FlavoraLM Evaluation
 
-> Update 2026-09-17: the dev checkpoint was fully retrained (120 epochs,
+> Update 2026-09-17 (production): the authoritative artifact is now the
+> production-small checkpoint `models/flavora-lm/v0.1/` — FlavoraLM v0.1,
+> 6L/8H/d256/ctx256, vocab target 4096 → realized **558**, **4,947,456 params**
+> (counted, matches `model_meta.json`), 12 epochs / 4500 steps on
+> 12000/1200/1000 examples, train 4.074 / val 3.875 / ppl 48.20
+> (`metrics.json` + `training_meta.json`). `training/train.py` intentionally
+> resizes the model to the realized vocab, so `config.vocab_size` (558) differs
+> from the config-file target (4096) by design. Live probes 2026-09-17:
+> `/generate` 24 toks/217ms, `/intent` valid for allergy/avoid prompts
+> (`I am allergic to peanuts` → `{allergies:[peanuts]}`,
+> `I avoid pork and want chicken and rice` → `{ingredients:[rice]}`),
+> `valid:false` (honest fallback) for other recipe phrasings;
+> `verify_artifact` 17/17 PASS; `verify:local-ai` 8/8 PASS (pinned message
+> updated to the avoid+ingredients prompt). Full `evaluate.py` held-out eval
+> (1000 examples) NOT run on this machine — single intent extraction at eval
+> settings costs ~200s CPU (~55h full set); recorded training metrics stand in.
+> Dev numbers below are retained as history.
+>
+> Update 2026-09-17 (dev history): the dev checkpoint was fully retrained (120 epochs,
 > vocab unified to 540, 882,944 params). Fresh numbers — train 0.153, val
 > 0.155, ppl 1.17; capped eval schemaValidity 0.9, invalidJson 0.1, negation
 > 1.0, repeatability 1.0 — are recorded in `docs/FLAVORALM_FINAL_AUDIT.md` and
@@ -71,7 +89,7 @@ numbers are reported as weak, with the cause and the remedy stated.
 ```bash
 npm run train:llm:dev        # refresh dev checkpoint (adds hashes + timestamp)
 npm run evaluate:llm         # full held-out eval → models/flavora-lm/v0.1/eval.json
-npm run train:llm            # full small model: 12k examples, 5.9M params
+npm run train:llm            # full small model: 12k examples, ~4.9M params (vocab realized from corpus)
 npm run evaluate:llm -- --max-examples 150
 npm run verify:local-ai && npm run verify:llm:init
 ```

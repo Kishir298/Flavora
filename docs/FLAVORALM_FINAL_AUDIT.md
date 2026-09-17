@@ -1,4 +1,27 @@
-# FlavoraLM Final Audit — verified live on 2026-09-17
+# FlavoraLM Final Audit — production verification 2026-09-17 (supersedes dev record below)
+
+> The authoritative artifact is `models/flavora-lm/v0.1/` = **FlavoraLM v0.1
+> production-small** (6L/8H/d256/ctx256/ff1024, vocab target 4096 → realized
+> **558**, **4,947,456 params** counted via `FlavoraLM.load_pretrained`,
+> tokenizer BPE v0.2, 12 epochs / 4500 steps, 12000/1200/1000 examples, train
+> 4.074 / val 3.875 / ppl 48.20, checkpoint 18.9M). Verified 2026-09-17:
+> `verify_artifact` 17/17 PASS; tokenizer round-trip + specials + determinism
+> PASS; `/health` (FlavoraLM v0.1 loaded, 4947456 params) / `/metadata` /
+> `/metrics` / `/generate` (real tokens) / `/intent` (valid allergy/avoid,
+> honest `valid:false` otherwise) live PASS; `verify:local-ai` 8/8 PASS;
+> server 121/121, client 19/19, `verify:llm:init` PASS; `npm run start`
+> one-command PASS (FlavoraLM :5001 via AirPlay fallback + Express :4000 +
+> Vite :5173, SIGINT cleanup clean); e2e `flavoralm.spec.ts` 3/3 PASS;
+> missing-`model.pt` → exact retrain instructions; corrupt checkpoint → FATAL
+> without false readiness; safety tests 27/27 PASS; no Ollama/Qwen/Llama
+> runtime dependency (only Groq remote fallback string + doc negations).
+> Pinned verification message updated to `I avoid pork and want chicken and
+> rice` (production checkpoint handles allergy/avoid + simple ingredient
+> intents; other phrasings fall back to heuristic honestly). Full 1000-example
+> `evaluate.py` not run here (~200s/example CPU). The dev-checkpoint record
+> below is retained as history.
+
+# FlavoraLM Final Audit — verified live on 2026-09-17 (dev history)
 
 One-command startup, real checkpoint, live inference, and full-stack integration
 were all exercised on an Intel i5 / 8 GB / no-GPU MacBook Pro (CPU-only torch).

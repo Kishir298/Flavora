@@ -156,11 +156,35 @@ intent.
 No downloads — training runs locally from the synthetic corpus generator:
 
 ```bash
-npm run train:tokenizer   # standalone BPE training → tokenizer.json + tokenizer_meta.json
-npm run train:llm:dev   # fast dev model (CI-sized, minutes)
-npm run train:llm       # full small model (longer)
-npm run evaluate:llm    # held-out evaluation → models/flavora-lm/v0.1/eval.json
+npm run train:tokenizer   # production BPE (12k corpus → models/flavora-lm/v0.1/)
+npm run train:llm         # production small model → models/flavora-lm/v0.1/ (1–3h CPU)
+npm run evaluate:llm      # held-out evaluation → models/flavora-lm/v0.1/eval.json
 ```
+
+Fast-test variants (append `:dev`) train the smaller dev configuration into the
+untracked `models/flavora-lm/dev/` directory — they never touch `v0.1/`:
+
+```bash
+npm run train:tokenizer:dev
+npm run train:llm:dev     # fast dev model (CI-sized, minutes)
+npm run evaluate:llm:dev
+```
+
+### Production vs dev model (no ambiguity)
+
+|  | Production (`v0.1/`) | Dev (`dev/`, untracked) |
+|---|---|---|
+| Name | `FlavoraLM` | `FlavoraLM-dev` |
+| Config | `training/configs/flavora_lm_small.json` | `training/configs/flavora_lm_dev.json` |
+| Corpus | `training/data-small/` (12k/1.2k/1k) | `training/data/` (1200/150/150) |
+| Loaded by `npm run start` | **yes** | no (serve manually with `--artifacts`) |
+| Committed to git | **yes** | no (`train:llm:dev` regenerates) |
+
+Machine cost: the production small model (4,947,456 params measured —
+6L/8H/d256/ctx256, vocab target 4096 → realized 558 BPE tokens on the 12k
+corpus — 12k examples) takes 1–3 hours on an 8 GB / no-GPU laptop; the dev
+model takes minutes. Both train CPU-only. `npm run start` never trains — it
+only loads the committed `v0.1/` checkpoint.
 
 Pipeline: `training/build_dataset.py` (generate + validate splits) →
 `training/train.py` (train tokenizer on corpus → encode → random init →
@@ -176,7 +200,7 @@ Training is separated from startup: normal `npm run start` never retrains.
 |---|---|
 | `verify:local-ai` → service FAIL | Run `npm run start` (it launches the service), or `npm run lm:serve` manually |
 | Port 5000 busy on macOS (AirPlay Receiver) | `npm run start` auto-falls-back to the next free port (e.g. 5001) and notifies Express — no action needed. Or disable AirPlay Receiver / set `FLAVORA_LM_PORT=5001` |
-| Service up but model not loaded | Check `models/flavora-lm/v0.1/model.pt`; retrain with `npm run train:llm:dev` |
+| Service up but model not loaded | Check `models/flavora-lm/v0.1/model.pt`; retrain with `npm run train:llm` (`:dev` for the fast test model) |
 | `.flavoralm-venv` broken/missing | Delete it and run `npm run setup` (recreates + installs torch CPU) |
 | Python < 3.11 | Install Python 3.11+ and re-run |
 

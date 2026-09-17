@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 
-export type AiSource = "local" | "groq" | "heuristic" | "provided" | null;
+export type AiSource = "local" | "heuristic" | "provided" | null;
 
 interface Health {
   resolvedProvider?: string;
@@ -14,13 +14,13 @@ interface Health {
 }
 
 /**
- * AI provider status line (§38). Always names the actual provider that
+ * AI provider status line. Always names the actual provider that
  * processed the request — never a bare "AI Powered".
  * - AI: FlavoraLM v0.1            (our local model handled it)
  * - AI: Heuristic (…)             (deterministic parser, not an LLM)
- * - AI: Groq                      (remote fallback, only if configured)
+ * Flavora is local-only: there is no remote fallback.
  */
-export function AiStatus({ source }: { source?: AiSource }) {
+export function AiStatus({ source, fallbackReason }: { source?: AiSource; fallbackReason?: string | null }) {
   const [health, setHealth] = useState<Health | null>(null);
 
   useEffect(() => {
@@ -40,10 +40,14 @@ export function AiStatus({ source }: { source?: AiSource }) {
   let label: string;
   if (source === "local" || (!source && health?.resolvedProvider === "local" && lm?.loaded)) {
     label = `AI: FlavoraLM${lm?.version ? ` v${lm.version}` : ""}`;
-  } else if (source === "groq" || (!source && health?.resolvedProvider === "groq")) {
-    label = "AI: Groq (remote fallback)";
   } else if (source === "provided") {
     label = "AI: none (structured request)";
+  } else if (fallbackReason === "local-timeout") {
+    label = "AI: Heuristic (FlavoraLM timed out)";
+  } else if (fallbackReason === "local-invalid") {
+    label = "AI: Heuristic (FlavoraLM answer invalid)";
+  } else if (fallbackReason === "local-unloaded") {
+    label = "AI: Heuristic (FlavoraLM starting)";
   } else {
     label = lm && !lm.serviceReachable ? "AI: Heuristic (FlavoraLM unavailable)" : "AI: Heuristic";
   }

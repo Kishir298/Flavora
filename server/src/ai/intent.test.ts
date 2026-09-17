@@ -82,27 +82,29 @@ describe("ai/parseUserIntent", () => {
     expect(parsed.notice).toBeTruthy();
   });
 
-  it("uses Groq provider output when available", async () => {
+  it("uses local provider output when available", async () => {
     const provider: AIProvider = {
-      name: "groq",
+      name: "local",
       isAvailable: () => true,
       complete: async () => JSON.stringify({ availableIngredients: ["eggs"], mode: "normal", timeLimit: 15 }),
     };
     const parsed = await parseUserIntent("something with eggs", { provider });
-    expect(parsed.source).toBe("groq");
+    expect(parsed.source).toBe("local");
+    expect(parsed.fallbackReason).toBe("none");
     expect(parsed.intent.availableIngredients).toEqual(["eggs"]);
     expect(parsed.intent.timeLimit).toBe(15);
   });
 
-  it("recovers with heuristic when Groq returns garbage", async () => {
+  it("recovers with heuristic + local-invalid reason when local returns garbage", async () => {
     const provider: AIProvider = {
-      name: "groq",
+      name: "local",
       isAvailable: () => true,
       complete: async () => "definitely not json",
     };
     const parsed = await parseUserIntent("I have rice, 20 minutes", { provider });
     expect(parsed.source).toBe("heuristic");
-    expect(parsed.notice).toMatch(/unavailable/i);
+    expect(parsed.notice).toMatch(/deterministic/i);
+    expect(["local-invalid", "local-unreachable"]).toContain(parsed.fallbackReason);
   });
 });
 

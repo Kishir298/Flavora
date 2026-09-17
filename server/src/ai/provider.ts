@@ -1,9 +1,8 @@
 import { config } from "../config.js";
-import { GroqProvider } from "./groqProvider.js";
 import { LocalLlmProvider, isLocalHost } from "./localLlmProvider.js";
 import type { AIProvider } from "./types.js";
 
-export type ProviderSelection = "local" | "groq" | "heuristic" | "auto";
+export type ProviderSelection = "local" | "heuristic";
 export { isLocalHost };
 
 /** Unavailable stub — isAvailable() false; complete() throws. */
@@ -19,31 +18,25 @@ class UnavailableProvider implements AIProvider {
 
 export interface ProviderFactoryResult {
   provider: AIProvider;
-  /** Resolved selection mode (auto resolved to its concrete first choice). */
-  resolvedMode: Exclude<ProviderSelection, "auto">;
-  /** For auto/local: the local provider when one is constructible. */
+  /** Resolved selection mode (local-only; no remote providers exist). */
+  resolvedMode: ProviderSelection;
+  /** The local provider when one is constructible. */
   localProvider?: LocalLlmProvider;
-  groqProvider?: GroqProvider;
 }
 
 /**
- * Build providers according to the selection mode (AI_PROVIDER env):
- * - "local"     → LocalLlmProvider only. Caller decides fallback policy; we do
- *                 NOT silently switch to a remote provider in this mode.
- * - "groq"      → GroqProvider when a key exists, else unavailable.
+ * Build providers. Flavora is local-only:
+ * - "local"     → LocalLlmProvider. Caller decides fallback policy; we
+ *                 never switch to a remote provider (none exists).
  * - "heuristic" → unavailable (deterministic parsing used upstream).
- * - "auto"      → prefer local LLM (if constructible), then Groq (if key), else unavailable.
  */
 export function createAIProvider(overrides?: {
   selection?: ProviderSelection;
-  apiKey?: string;
-  model?: string;
   localHost?: string;
   localModel?: string;
   localTimeoutMs?: number;
 }): ProviderFactoryResult {
   const selection = overrides?.selection ?? config.aiProvider;
-  const apiKey = overrides?.apiKey ?? config.groqApiKey;
 
   let localProvider: LocalLlmProvider | undefined;
   if (config.localLlmEnabled || overrides?.localHost) {
@@ -58,20 +51,11 @@ export function createAIProvider(overrides?: {
     }
   }
 
-  const groqProvider = apiKey ? new GroqProvider(apiKey, overrides?.model ?? config.groqModel) : undefined;
-
   switch (selection) {
-    case "local":
-      return { provider: localProvider ?? new UnavailableProvider(), resolvedMode: "local", localProvider };
-    case "groq":
-      return { provider: groqProvider ?? new UnavailableProvider(), resolvedMode: "groq", groqProvider };
     case "heuristic":
       return { provider: new UnavailableProvider(), resolvedMode: "heuristic" };
-    case "auto":
-    default: {
-      if (localProvider) return { provider: localProvider, resolvedMode: "local", localProvider };
-      if (groqProvider) return { provider: groqProvider, resolvedMode: "groq", groqProvider };
-      return { provider: new UnavailableProvider(), resolvedMode: "heuristic" };
-    }
+    case "local":
+    default:
+      return { provider: localProvider ?? new UnavailableProvider(), resolvedMode: "local", localProvider };
   }
 }

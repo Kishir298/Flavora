@@ -5,7 +5,7 @@ import type { RecommendationIntent } from "./types.js";
 // truth); assistantService layers it on top of this parser's output.
 
 /**
- * Deterministic NL → intent fallback when Groq is unavailable.
+ * Deterministic NL → intent fallback when FlavoraLM is unavailable.
  * Never invents recipes — only structured recommendation parameters.
  */
 export function parseIntentHeuristic(message: string): RecommendationIntent {
@@ -14,7 +14,38 @@ export function parseIntentHeuristic(message: string): RecommendationIntent {
 
   // Time: "20 minutes", "in 30 min", "only have 15 minutes"
   const timeMatch = text.match(/\b(\d{1,3})\s*(?:minutes?|mins?|min)\b/);
-  if (timeMatch) raw.timeLimit = Number(timeMatch[1]);
+  if (timeMatch) {
+    raw.timeLimit = Number(timeMatch[1]);
+    raw.maxCookingTime = Number(timeMatch[1]);
+  }
+
+  // Calorie target: "around 600", "under 600 calories", "roughly 700 kcal"
+  const calMatch = text.match(/\b(?:around|about|roughly|under|below|max|up to|~)?\s*(\d{2,4})\s*(?:calories?|kcal|cals?)\b/);
+  if (calMatch) raw.calorieTarget = Number(calMatch[1]);
+
+  // Meal type: "for dinner", "dinner", "lunch"
+  const mealMatch = text.match(/\b(breakfast|lunch|dinner|snack)\b/);
+  if (mealMatch) raw.mealType = mealMatch[1];
+
+  // Dietary preference (check non-veg BEFORE veg: "non-veg" contains "veg").
+  // Latest explicit wins at merge time; the parser just extracts.
+  if (/\bnon[- ]?veg\b|\bnon[- ]?vegetarian\b/.test(text)) raw.dietaryPreference = "non-vegetarian";
+  else if (/\bvegan\b/.test(text)) raw.dietaryPreference = "vegan";
+  else if (/\bvegetarian\b|\bveg\b|\bno meat\b|\bmeatless\b/.test(text)) raw.dietaryPreference = "vegetarian";
+  else if (/\bchicken is fine\b|\bmeat is fine\b/.test(text)) {
+    raw.dietaryPreference = "non-vegetarian";
+  }
+
+  // Servings: "for 2", "serves 4", "2 servings"
+  const servMatch = text.match(/\b(?:for|serves?|servings?[:\s]*)\s*(\d{1,2})\b/) ?? text.match(/\b(\d{1,2})\s*servings?\b/);
+  if (servMatch) raw.servings = Number(servMatch[1]);
+
+  // Spice level phrases
+  if (/\b(not too spicy|mild)\b/.test(text)) raw.spiceLevel = "mild";
+  else if (/\bspicy\b|\bhot\b/.test(text) && !raw.preferences) raw.spiceLevel = "hot";
+
+  // Skip / unknown: "don't care", "whatever", "anything is fine", "skip"
+  // → deliberately leave slots unset so safe defaults apply downstream.
 
   // Mode signals
   if (/\b(cheap|budget|inexpensive|low[- ]?cost|affordable)\b/.test(text)) {
@@ -55,12 +86,28 @@ export function parseIntentHeuristic(message: string): RecommendationIntent {
   if (haveMatch) {
     const chunk = haveMatch[1]
       .replace(/\band\b/g, ",")
-      .replace(/\b(what|can|i|make|cook|tonight|already|only|just)\b/g, " ");
+      // Strip calorie/time tails so "rice under 600 calories" → "rice".
+      .replace(/\b(under|over|below|around|about|roughly)\s+\d+.*$/, " ")
+      .replace(/\b\d+\s*(calories?|kcal|cals?|minutes?|mins?|min)\b.*$/, " ")
+      .replace(/\b(what|can|i|make|cook|tonight|already|only|just|got|get)\b/g, " ");
     const parts = chunk
       .split(/,|\/|&/)
       .map((s) => s.trim())
       .filter((s) => s.length > 1 && s.length < 40 && !/^\d+$/.test(s));
     if (parts.length) raw.availableIngredients = parts;
+  }
+  // Bare ingredient lists without "I have/with/using" ("chicken rice onions
+  // and peppers, for dinner"): harvest known-food words so multi-field
+  // conversational answers are not lost.
+  if (!raw.availableIngredients) {
+    const words = text
+      .replace(/\band\b/g, ",")
+      .split(/[,;.!?]+/)
+      .flatMap((s) => s.trim().split(/\s+/))
+      .map((w) => w.toLowerCase().trim())
+      .filter((w) => KNOWN_FOODS.has(w) || KNOWN_FOODS.has(w.replace(/s$/, "")));
+    const unique = [...new Set(words)];
+    if (unique.length >= 2) raw.availableIngredients = unique.slice(0, 8);
   }
 
   // Soft craving: keep short free-text when vague

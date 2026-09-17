@@ -14,6 +14,7 @@ import { mealsRouter, goalsRouter, waterRouter } from "./routes/meals.js";
 import { statsRouter } from "./routes/stats.js";
 import { groceriesRouter } from "./routes/groceries.js";
 import { mealPlansRouter } from "./routes/mealPlans.js";
+import { nutritionRouter } from "./routes/nutrition.js";
 import { config } from "./config.js";
 import { createAIProvider } from "./ai/provider.js";
 import type { LocalLlmStatus } from "./ai/localLlmProvider.js";
@@ -48,10 +49,10 @@ export function createApp() {
       version: 1,
       db: { ok: dbOk, error: dbError },
       ai: {
-        groqConfigured: Boolean(config.groqApiKey),
         providerSelection: config.aiProvider,
         configuredProvider: config.aiProvider,
         resolvedProvider: resolvedMode,
+        remoteConfigured: false,
         localLlm: {
           enabled: config.localLlmEnabled,
           host: config.localLlmHost,
@@ -115,6 +116,7 @@ export function createApp() {
   app.use("/api", statsRouter);
   app.use("/api/groceries", groceriesRouter);
   app.use("/api/meal-plans", mealPlansRouter);
+  app.use("/api/nutrition", nutritionRouter);
 
   // Central error handler (keeps error shape stable for frontend).
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

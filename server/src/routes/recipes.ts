@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { prisma, ensureProfileRow } from "../db.js";
 import { getRecipeById, rowToRecipe, substitutesFor, flattenSubstitutions } from "../recipesDb.js";
+import { authoredNutrition } from "../nutrition/sources.js";
 
 export const recipesRouter = Router();
 
@@ -22,6 +23,7 @@ function toDetail(
     const usedOwned = have.length > 0 && have.some((h) => name.toLowerCase().includes(h) || h.includes(name.toLowerCase()));
     return { ...(typeof ing === "string" ? { name: ing, quantity: null, unit: null } : ing), display: ingredientDisplay(ing), usedOwned };
   });
+  const sourced = authoredNutrition(recipe.nutrition);
   return {
     id: recipe.id,
     title: recipe.title,
@@ -34,7 +36,8 @@ function toDetail(
     ingredients: ingredients.map((i) => i.display),
     ingredientDetails: ingredients,
     instructions: recipe.instructions,
-    nutrition: recipe.nutrition,
+    nutrition: sourced.values,
+    nutritionSource: sourced.source,
     costTier: recipe.costTier,
     storage: recipe.storageTips,
     storageTips: recipe.storageTips,

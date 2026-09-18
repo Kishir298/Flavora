@@ -47,6 +47,11 @@ export function Saved() {
       <div className="mt-4 grid gap-3">
         {items.map((r) => (
           <div key={r.id} className="flex flex-col gap-1">
+            {r.unsafe && (
+              <p role="alert" className="text-sm text-amber-800 bg-amber-100 rounded px-2 py-1">
+                Heads up: this saved recipe now conflicts with your current allergies/avoid foods. Check ingredients before cooking.
+              </p>
+            )}
             <RecipeCard recipe={r} />
             <button
               type="button"

@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { listPending, replayQueue, type QueuedMutation } from "./mutationQueue";
+import { listAll, replayQueue, type QueuedMutation } from "./mutationQueue";
 import { api } from "./api";
 
 export type SyncState = "synchronized" | "pending" | "syncing" | "failed";
@@ -23,11 +23,12 @@ function emit() {
 
 async function refreshShared() {
   try {
-    const p = await listPending();
+    const all = await listAll();
+    const pending = all.filter((m) => m.status === "pending");
     shared = {
       ...shared,
-      pending: p.length,
-      syncState: p.some((m) => m.status === "failed") ? "failed" : p.length ? "pending" : "synchronized",
+      pending: pending.length,
+      syncState: all.some((m) => m.status === "failed") ? "failed" : pending.length ? "pending" : "synchronized",
     };
     emit();
   } catch { /* indexeddb unavailable in tests */ }
@@ -152,6 +153,11 @@ export async function executeMutation(m: QueuedMutation): Promise<void> {  const
     case "goals.save": {
       const { ...body } = p;
       await api.saveGoals(body as Parameters<typeof api.saveGoals>[0]);
+      break;
+    }
+    case "profile.save": {
+      const { ...body } = p;
+      await api.saveProfile(body as Parameters<typeof api.saveProfile>[0]);
       break;
     }
     default:

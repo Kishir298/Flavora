@@ -20,9 +20,10 @@ export function useSubstitutions(recipeId: string | undefined) {
 
   const apply = async (originalName: string, replacementName: string) => {
     if (!recipeId) return;
+    const prev = subs;
     // optimistic local mirror — keeps recipe detail, groceries, meal plans consistent offline
-    setSubs((prev) => {
-      const rest = prev.filter((s) => s.originalName.toLowerCase() !== originalName.toLowerCase());
+    setSubs((prevSubs) => {
+      const rest = prevSubs.filter((s) => s.originalName.toLowerCase() !== originalName.toLowerCase());
       return [...rest, { recipeId, originalName, replacementName, safety: "unknown" }];
     });
     if (!online) {
@@ -34,17 +35,35 @@ export function useSubstitutions(recipeId: string | undefined) {
       });
       return { recipeId, originalName, replacementName, safety: "unknown" } as AppliedSub;
     }
-    const res = await api.applySub({ recipeId, originalName, replacementName });
-    setSubs((prev) => {
-      const rest = prev.filter((s) => s.originalName.toLowerCase() !== originalName.toLowerCase());
-      return [...rest, res];
-    });
-    return res;
+    try {
+      const res = await api.applySub({ recipeId, originalName, replacementName });
+      setSubs((prevSubs) => {
+        const rest = prevSubs.filter((s) => s.originalName.toLowerCase() !== originalName.toLowerCase());
+        return [...rest, res];
+      });
+      return res;
+    } catch (e) {
+      // Roll back optimistic UI on rejection (e.g. UNSAFE_SUBSTITUTION 400);
+      // offline/network failures queue instead.
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/failed to fetch|network|offline|load failed/i.test(msg)) {
+        await enqueueMutation({
+          operation: "sub.apply",
+          entityType: "substitution",
+          entityId: `${recipeId}||${originalName}`,
+          payload: { recipeId, originalName, replacementName },
+        });
+        return { recipeId, originalName, replacementName, safety: "unknown" } as AppliedSub;
+      }
+      setSubs(prev);
+      throw e;
+    }
   };
 
   const revert = async (originalName: string) => {
     if (!recipeId) return;
-    setSubs((prev) => prev.filter((s) => s.originalName.toLowerCase() !== originalName.toLowerCase()));
+    const prev = subs;
+    setSubs((prevSubs) => prevSubs.filter((s) => s.originalName.toLowerCase() !== originalName.toLowerCase()));
     if (!online) {
       await enqueueMutation({
         operation: "sub.revert",
@@ -54,7 +73,22 @@ export function useSubstitutions(recipeId: string | undefined) {
       });
       return;
     }
-    await api.revertSub({ recipeId, originalName });
+    try {
+      await api.revertSub({ recipeId, originalName });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/failed to fetch|network|offline|load failed/i.test(msg)) {
+        await enqueueMutation({
+          operation: "sub.revert",
+          entityType: "substitution",
+          entityId: `${recipeId}||${originalName}`,
+          payload: { recipeId, originalName },
+        });
+        return;
+      }
+      setSubs(prev);
+      throw e;
+    }
   };
 
   return { subs, loading, refresh, apply, revert };

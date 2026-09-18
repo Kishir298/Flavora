@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, type RecipeResult } from "../lib/api";
 import { useSubstitutions } from "../lib/useSubstitutions";
+import { enqueueMutation } from "../lib/mutationQueue";
 
 function nutritionLine(n?: RecipeResult["nutrition"]): string {
   if (!n) return "";
@@ -94,7 +95,24 @@ export function RecipeDetail() {
       if (action === "saved") setSaved(true);
       if (action === "unsaved") setSaved(false);
       setFeedback(okMsg);
-    } catch {
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/failed to fetch|network|offline|load failed/i.test(msg)) {
+        try {
+          await enqueueMutation({
+            operation: "interact",
+            entityType: "interaction",
+            entityId: `${recipe.id}||${action}`,
+            payload: { recipeId: recipe.id, action },
+          });
+          if (action === "saved") setSaved(true);
+          if (action === "unsaved") setSaved(false);
+          setFeedback("Saved locally — will sync when you're back online.");
+          return;
+        } catch {
+          /* fall through */
+        }
+      }
       setFeedback("Could not save that action — try again.");
     } finally {
       setBusy("");

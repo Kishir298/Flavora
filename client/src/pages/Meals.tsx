@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type MealLog } from "../lib/api";
 import { enqueueMealLog } from "../lib/mealQueue";
+import { enqueueMutation } from "../lib/mutationQueue";
 
 const TYPES = ["breakfast", "lunch", "dinner", "snack", "other"] as const;
 
@@ -27,14 +28,16 @@ export function Meals() {
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
 
-  const reload = async () => {
+  const reload = async (opts?: { quiet?: boolean }) => {
     try {
       const [m, w] = await Promise.all([api.mealLog.list(), api.water()]);
       setMeals(m);
       const today = new Date().toISOString().slice(0, 10);
       setWaterToday(w.filter((r) => r.loggedAt.slice(0, 10) === today).reduce((a, r) => a + r.ml, 0));
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      // Offline after a queued mutation: keep the "Saved locally" message;
+      // only surface load errors when there is no pending offline message.
+      if (!opts?.quiet) setError(e instanceof Error ? e.message : String(e));
     }
   };
   useEffect(() => { void reload(); }, []);
@@ -66,7 +69,11 @@ export function Meals() {
         catch { await enqueueMealLog("add", body); setMsg("Saved locally — will sync when online."); }
       }
       setForm(blank());
-      await reload();
+      try {
+        await reload();
+      } catch {
+        /* offline reload already handled; keep queued message */
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -88,9 +95,14 @@ export function Meals() {
   }
 
   async function remove(id: string) {
+    setError("");
     try { await api.mealLog.remove(id); }
     catch { await enqueueMealLog("remove", { id }); setMsg("Delete queued — will sync when online."); }
-    await reload();
+    try {
+      await reload();
+    } catch {
+      /* keep queued message offline */
+    }
   }
 
   async function logWater(e: React.FormEvent) {
@@ -98,7 +110,20 @@ export function Meals() {
     const ml = Number(waterMl);
     if (!Number.isFinite(ml) || ml <= 0) { setError("Enter water in ml."); return; }
     try { await api.addWater(ml); setWaterMl(""); await reload(); }
-    catch { setError("Could not log water."); }
+    catch {
+      try {
+        await enqueueMutation({ operation: "water.add", entityType: "water", entityId: `ml-${Date.now()}`, payload: { ml } });
+        setWaterMl("");
+        setMsg("Water saved locally — will sync when online.");
+        try {
+          await reload({ quiet: true });
+        } catch {
+          /* offline — keep local message */
+        }
+      } catch {
+        setError("Could not log water.");
+      }
+    }
   }
 
   const q = query.trim().toLowerCase();

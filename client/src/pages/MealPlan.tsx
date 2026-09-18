@@ -34,38 +34,64 @@ export function MealPlan() {
   useEffect(() => { load(); }, []);
 
   const add = async (ev: React.FormEvent) => {
-    ev.preventDefault(); setMsg(null);
+    ev.preventDefault(); setMsg(null); setError(null);
     try {
-      if (!online) {
-        await enqueueMutation({ operation: "meal.add", entityType: "meal", entityId: `${day}-${meal}`, payload: { day, meal, recipeId, servings } });
-        setMsg("You're offline. Changes are saved locally and will sync when connection returns.");
-      } else {
-        await api.addMeal({ day, meal, recipeId, servings });
-      }
+      await api.addMeal({ day, meal, recipeId, servings });
+    } catch {
+      await enqueueMutation({ operation: "meal.add", entityType: "meal", entityId: `${day}-${meal}`, payload: { day, meal, recipeId, servings } });
+      setMsg("You're offline. Changes are saved locally and will sync when connection returns.");
+    }
+    try {
       setRecipeId("");
       await load();
-    } catch (e) { setError(e instanceof Error ? e.message : "Add failed."); }
+    } catch {
+      /* keep queued message */
+    }
   };
 
   const remove = async (s: MealSlot) => {
     // optimistic removal
-    setSlots((prev) => prev.filter((x) => x.id !== s.id));
+    const prev = slots;
+    setSlots((prevSlots) => prevSlots.filter((x) => x.id !== s.id));
     try {
-      if (!online) await enqueueMutation({ operation: "meal.remove", entityType: "meal", entityId: String(s.id), payload: { id: s.id } });
-      else await api.removeMeal(s.id);
-    } catch { await load(); }
+      await api.removeMeal(s.id);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/failed to fetch|network|offline|load failed/i.test(msg)) {
+        await enqueueMutation({ operation: "meal.remove", entityType: "meal", entityId: String(s.id), payload: { id: s.id } });
+        setMsg("You're offline. Changes are saved locally and will sync when connection returns.");
+        return;
+      }
+      setSlots(prev);
+      setError(e instanceof Error ? e.message : "Remove failed.");
+      return;
+    }
+    try {
+      await load();
+    } catch {
+      /* offline */
+    }
   };
 
   const move = async (s: MealSlot, targetDay: string, targetMeal: string) => {
     if (targetDay === s.day && targetMeal === s.meal) return;
     setMsg(null);
     try {
-      if (!online) await enqueueMutation({ operation: "meal.update", entityType: "meal", entityId: String(s.id), payload: { id: s.id, day: targetDay, meal: targetMeal } });
-      else await api.updateMeal(s.id, { day: targetDay, meal: targetMeal });
+      await api.updateMeal(s.id, { day: targetDay, meal: targetMeal });
       await load();
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/failed to fetch|network|offline|load failed/i.test(msg)) {
+        await enqueueMutation({ operation: "meal.update", entityType: "meal", entityId: String(s.id), payload: { id: s.id, day: targetDay, meal: targetMeal } });
+        setMsg("You're offline. Changes are saved locally and will sync when connection returns.");
+        return;
+      }
       setError(e instanceof Error ? e.message : "Move failed — is that day/meal slot already occupied?");
-      await load();
+      try {
+        await load();
+      } catch {
+        /* ignore */
+      }
     }
   };
 
@@ -75,10 +101,10 @@ export function MealPlan() {
     if (daySlots.length === 0) { setMsg(`Nothing on ${src} to copy.`); return; }
     try {
       for (const s of daySlots) {
-        if (!online) {
-          await enqueueMutation({ operation: "meal.add", entityType: "meal", entityId: `${target}-${s.meal}`, payload: { day: target, meal: s.meal, recipeId: s.recipeId, servings: s.servings } });
-        } else {
+        try {
           await api.addMeal({ day: target, meal: s.meal, recipeId: s.recipeId, servings: s.servings });
+        } catch {
+          await enqueueMutation({ operation: "meal.add", entityType: "meal", entityId: `${target}-${s.meal}`, payload: { day: target, meal: s.meal, recipeId: s.recipeId, servings: s.servings } });
         }
       }
       setMsg(`Copied ${daySlots.length} meal(s) from ${src} to ${target}.`);
@@ -87,21 +113,42 @@ export function MealPlan() {
   };
 
   const clearDay = async (d: string) => {
-    setSlots((prev) => prev.filter((s) => s.day !== d));
+    const prev = slots;
+    setSlots((prevSlots) => prevSlots.filter((s) => s.day !== d));
     try {
-      if (!online) await enqueueMutation({ operation: "meal.clearDay", entityType: "meal", entityId: d, payload: { day: d } });
-      else await api.clearMealDay(d);
-    } catch { await load(); }
+      await api.clearMealDay(d);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/failed to fetch|network|offline|load failed/i.test(msg)) {
+        await enqueueMutation({ operation: "meal.clearDay", entityType: "meal", entityId: d, payload: { day: d } });
+        setMsg("You're offline. Changes are saved locally and will sync when connection returns.");
+        return;
+      }
+      setSlots(prev);
+      setError(e instanceof Error ? e.message : "Clear failed.");
+    }
   };
 
   const changeServings = async (s: MealSlot, delta: number) => {
     const next = Math.min(12, Math.max(1, s.servings + delta));
     if (next === s.servings) return;
-    setSlots((prev) => prev.map((x) => (x.id === s.id ? { ...x, servings: next } : x)));
+    const prev = slots;
+    setSlots((prevSlots) => prevSlots.map((x) => (x.id === s.id ? { ...x, servings: next } : x)));
     try {
-      if (!online) await enqueueMutation({ operation: "meal.update", entityType: "meal", entityId: String(s.id), payload: { id: s.id, servings: next } });
-      else await api.updateMeal(s.id, { servings: next });
-    } catch { await load(); }
+      await api.updateMeal(s.id, { servings: next });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/failed to fetch|network|offline|load failed/i.test(msg)) {
+        await enqueueMutation({ operation: "meal.update", entityType: "meal", entityId: String(s.id), payload: { id: s.id, servings: next } });
+        return;
+      }
+      setSlots(prev);
+      try {
+        await load();
+      } catch {
+        /* ignore */
+      }
+    }
   };
 
   const generate = async () => {

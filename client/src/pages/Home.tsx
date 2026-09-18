@@ -72,14 +72,14 @@ export function Home() {
     setMessages((m) => [...m, { id: nextId(), role, text }]);
   }
 
-  async function send(text: string) {
+  async function send(text: string, opts?: { skipUserPush?: boolean }) {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
     setLoading(true);
     setError("");
     setLastSent(trimmed);
     setDoneNoResults(false);
-    push("user", trimmed);
+    if (!opts?.skipUserPush) push("user", trimmed);
     setInput("");
     try {
       const res = await api.conversation({ sessionId, message: trimmed });
@@ -88,6 +88,14 @@ export function Home() {
       setFallbackReason(res.fallbackReason ?? null);
       if (res.done) {
         setResults(res.recommendations);
+        // Keep logged flags only for recipes still shown; drop stale ids
+        // from earlier turns so a later query never shows a disabled Logged ✓.
+        setLogged((prev) => {
+          const ids = new Set(res.recommendations.map((r) => r.recipeId));
+          const next: Record<string, boolean> = {};
+          for (const [k, v] of Object.entries(prev)) if (ids.has(k) && v) next[k] = true;
+          return next;
+        });
         setDoneNoResults(res.recommendations.length === 0);
         const fr = res.foodRequest as { mealType?: string; availableIngredients?: string[] };
         if (typeof fr?.mealType === "string") setMealType(fr.mealType);
@@ -100,7 +108,8 @@ export function Home() {
         }
         push("flavora", res.reply || "Here are my picks.");
       } else {
-        setResults([]);
+        // Keep prior recommendations visible until the next done turn
+        // replaces them; clearing here caused flicker mid-conversation.
         setDoneNoResults(false);
         push("flavora", res.question || "Tell me a bit more.");
       }
@@ -176,7 +185,7 @@ export function Home() {
       <h1 className="text-3xl font-bold tracking-tight">FLAVORA</h1>
       <p className="mt-1 text-lg">What are you craving today?</p>
 
-      <div ref={logRef} role="log" aria-live="polite" aria-label="Flavora conversation" className="mt-4 space-y-2 min-h-24">
+      <div ref={logRef} role="log" aria-live="polite" aria-busy={loading} aria-label="Flavora conversation" className="mt-4 space-y-2 min-h-24">
         <div className="flex justify-end">
           <button
             type="button"
@@ -269,7 +278,7 @@ export function Home() {
           {lastSent && (
             <button
               type="button"
-              onClick={() => void send(lastSent)}
+              onClick={() => void send(lastSent, { skipUserPush: true })}
               disabled={loading}
               className="px-2 py-1 rounded border border-red-600 disabled:opacity-50"
             >

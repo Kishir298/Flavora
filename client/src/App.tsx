@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Link, Navigate, NavLink, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Home } from "./pages/Home";
 import { Dashboard } from "./pages/Dashboard";
@@ -62,6 +62,7 @@ export function App() {
           </nav>
           <SyncBanner />
           <main id="main" tabIndex={-1}>
+          <RouteFocus />
           <Routes>
             {/* Primary UX is conversational: / is the chat, Dashboard lives at /dashboard. */}
             <Route path="/" element={<Home />} />
@@ -107,6 +108,17 @@ function NavItem({ to, label, end, className }: { to: string; label: string; end
       {label}
     </NavLink>
   );
+}
+
+function RouteFocus() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    // Move focus to main on route change so keyboard/screen-reader users
+    // land in the new page (skip link already handles manual jumps).
+    const main = document.getElementById("main");
+    if (main && document.activeElement?.closest("nav")) main.focus({ preventScroll: true });
+  }, [pathname]);
+  return null;
 }
 
 function SyncBanner() {

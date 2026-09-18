@@ -78,6 +78,11 @@ export async function listPending(): Promise<QueuedMutation[]> {
   return all.filter((m) => m.status === "pending").sort((a, b) => a.createdAt - b.createdAt);
 }
 
+export async function listAll(): Promise<QueuedMutation[]> {
+  const all = await tx<QueuedMutation>("readonly", () => {});
+  return all.sort((a, b) => a.createdAt - b.createdAt);
+}
+
 export async function markDone(id: string): Promise<void> {
   const db = await openDb();
   await new Promise<void>((resolve, reject) => {

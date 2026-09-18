@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, type Profile, type Goals } from "../lib/api";
 import { AiStatus } from "../components/AiStatus";
 import { ProfileForm } from "../components/ProfileForm";
+import { enqueueMutation } from "../lib/mutationQueue";
 
 export function Settings({ onTheme }: { onTheme: (t: string) => void }) {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -47,13 +48,26 @@ export function Settings({ onTheme }: { onTheme: (t: string) => void }) {
           onSave={async (p) => {
             setSaving(true);
             setError("");
+            setMsg("");
             try {
               const next = await api.saveProfile(p);
               setProfile(next);
               onTheme(next.theme);
               setMsg("Profile saved.");
-            } catch {
-              setError("Could not save profile.");
+            } catch (e) {
+              const msg = e instanceof Error ? e.message : String(e);
+              if (/failed to fetch|network|offline|load failed/i.test(msg)) {
+                try {
+                  await enqueueMutation({ operation: "profile.save", entityType: "profile", entityId: "local", payload: { ...p } });
+                  setProfile({ ...profile, ...p });
+                  if (p.theme) onTheme(p.theme);
+                  setMsg("Profile saved locally — will sync when online.");
+                  return;
+                } catch {
+                  /* fall through */
+                }
+              }
+              setError(e instanceof Error ? e.message : "Could not save profile.");
             } finally {
               setSaving(false);
             }
@@ -62,18 +76,20 @@ export function Settings({ onTheme }: { onTheme: (t: string) => void }) {
       </div>
       <GoalsForm
         goals={goals}
-        onSave={async (g) => {
-          setSaving(true);
-          setError("");
-          try {
-            setGoals(await api.saveGoals(g));
-            setMsg("Goals saved.");
-          } catch {
-            setError("Could not save goals.");
-          } finally {
-            setSaving(false);
-          }
-        }}
+          onSave={async (g) => {
+            setSaving(true);
+            setError("");
+            try {
+              setGoals(await api.saveGoals(g));
+              setMsg("Goals saved.");
+            } catch {
+              await enqueueMutation({ operation: "goals.save", entityType: "goals", entityId: "local", payload: { ...g } });
+              setGoals(g);
+              setMsg("Goals saved locally — will sync when online.");
+            } finally {
+              setSaving(false);
+            }
+          }}
       />
       <div className="mt-6 space-y-2">
         <div className="flex gap-2">

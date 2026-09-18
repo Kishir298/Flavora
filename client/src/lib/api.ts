@@ -36,6 +36,7 @@ export interface RecipeResult {
   instructions?: string[];
   nutrition?: { calories?: number; protein?: number; protein_g?: number; carbs?: number; carbs_g?: number; fat?: number; fat_g?: number };
   nutritionSource?: "authored" | "usda" | "openfoodfacts" | "cache" | "unknown";
+  unsafe?: boolean;
   score?: number;
   substitutions?: Record<string, string[]>;
   substitutionDetails?: Record<string, SubstituteDetail[]>;

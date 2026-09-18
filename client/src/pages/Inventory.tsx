@@ -52,17 +52,27 @@ export function Inventory() {
   const add = async (ev: React.FormEvent) => {
     ev.preventDefault();
     setMsg(null);
+    setError(null);
+    const body = { name, quantity: qty === "" ? null : Number(qty), unit, expiryDate: expiry || undefined };
     try {
-      const body = { name, quantity: qty === "" ? null : Number(qty), unit, expiryDate: expiry || undefined };
-      if (!online) {
-        await enqueueMutation({ operation: "inventory.add", entityType: "inventory", entityId: name, payload: { name, quantity: body.quantity, unit } });
-        setMsg("You're offline. Changes are saved locally and will sync when connection returns.");
-      } else {
-        await api.addInventory(body);
-      }
+      await api.addInventory(body);
+    } catch {
+      // Offline or server-down: queue with full payload (incl. expiryDate)
+      // so online/offline behavior matches; executor forwards expiryDate.
+      await enqueueMutation({
+        operation: "inventory.add",
+        entityType: "inventory",
+        entityId: name,
+        payload: { name, quantity: body.quantity, unit, expiryDate: expiry || undefined },
+      });
+      setMsg("You're offline. Changes are saved locally and will sync when connection returns.");
+    }
+    try {
       setName(""); setQty(""); setExpiry("");
       await load();
-    } catch (e) { setError(e instanceof Error ? e.message : "Add failed."); }
+    } catch {
+      /* keep queued message offline */
+    }
   };
 
   const startEdit = (it: InventoryItem) => {
@@ -83,32 +93,44 @@ export function Inventory() {
       expiryDate: editExpiry || null,
     };
     try {
-      if (!online) {
-        await enqueueMutation({ operation: "inventory.update", entityType: "inventory", entityId: String(it.id), payload: { id: it.id, ...body } });
-        setMsg("You're offline. Changes are saved locally and will sync when connection returns.");
-      } else {
-        await api.updateInventory(it.id, body);
-      }
+      await api.updateInventory(it.id, body);
+    } catch {
+      await enqueueMutation({ operation: "inventory.update", entityType: "inventory", entityId: String(it.id), payload: { id: it.id, ...body } });
+      setMsg("You're offline. Changes are saved locally and will sync when connection returns.");
+    }
+    try {
       setEditId(null);
       await load();
-    } catch (e) { setError(e instanceof Error ? e.message : "Update failed."); }
+    } catch {
+      /* keep queued message */
+    }
   };
 
   const consume = async (id: number) => {
     try {
-      if (!online) await enqueueMutation({ operation: "inventory.consume", entityType: "inventory", entityId: String(id), payload: { id, amount: 1 } });
-      else await api.consumeInventory(id, 1);
-      await load();
+      await api.consumeInventory(id, 1);
+    } catch {
+      await enqueueMutation({ operation: "inventory.consume", entityType: "inventory", entityId: String(id), payload: { id, amount: 1 } });
+      setMsg("You're offline. Changes are saved locally and will sync when connection returns.");
     }
-    catch (e) { setError(e instanceof Error ? e.message : "Consume failed."); }
+    try {
+      await load();
+    } catch {
+      /* offline */
+    }
   };
   const remove = async (id: number) => {
     try {
-      if (!online) await enqueueMutation({ operation: "inventory.remove", entityType: "inventory", entityId: String(id), payload: { id } });
-      else await api.removeInventory(id);
-      await load();
+      await api.removeInventory(id);
+    } catch {
+      await enqueueMutation({ operation: "inventory.remove", entityType: "inventory", entityId: String(id), payload: { id } });
+      setMsg("You're offline. Changes are saved locally and will sync when connection returns.");
     }
-    catch (e) { setError(e instanceof Error ? e.message : "Remove failed."); }
+    try {
+      await load();
+    } catch {
+      /* offline */
+    }
   };
 
   const shown = useMemo(() => {

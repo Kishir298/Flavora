@@ -36,26 +36,44 @@ export function Groceries() {
   const add = async (ev: React.FormEvent) => {
     ev.preventDefault();
     setError(null);
+    setMsg(null);
+    const payload = { name, quantity: qty === "" ? null : Number(qty), unit };
     try {
-      const payload = { name, quantity: qty === "" ? null : Number(qty), unit };
-      if (!online) {
-        await enqueueMutation({ operation: "grocery.add", entityType: "grocery", entityId: name, payload });
-        setMsg("You're offline. Changes are saved locally and will sync when connection returns.");
-      } else {
-        await api.addGrocery(payload);
-      }
+      await api.addGrocery(payload);
+    } catch {
+      await enqueueMutation({ operation: "grocery.add", entityType: "grocery", entityId: name, payload });
+      setMsg("You're offline. Changes are saved locally and will sync when connection returns.");
+    }
+    try {
       setName(""); setQty("");
       await load();
-    } catch (e) { setError(e instanceof Error ? e.message : "Add failed."); }
+    } catch {
+      /* keep queued message */
+    }
   };
 
   const toggle = async (it: GroceryItem) => {
     // optimistic UI
-    setItems((prev) => prev.map((x) => (x.id === it.id ? { ...x, checked: !x.checked } : x)));
+    const prev = items;
+    setItems((prevItems) => prevItems.map((x) => (x.id === it.id ? { ...x, checked: !x.checked } : x)));
     try {
-      if (!online) await enqueueMutation({ operation: "grocery.check", entityType: "grocery", entityId: String(it.id), payload: { id: it.id, checked: !it.checked } });
-      else await api.updateGrocery(it.id, { checked: !it.checked });
-    } catch { await load(); }
+      await api.updateGrocery(it.id, { checked: !it.checked });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/failed to fetch|network|offline|load failed/i.test(msg)) {
+        await enqueueMutation({ operation: "grocery.check", entityType: "grocery", entityId: String(it.id), payload: { id: it.id, checked: !it.checked } });
+        setMsg("You're offline. Changes are saved locally and will sync when connection returns.");
+        return;
+      }
+      setItems(prev);
+      setError(e instanceof Error ? e.message : "Update failed.");
+      return;
+    }
+    try {
+      await load();
+    } catch {
+      /* offline */
+    }
   };
 
   const startEdit = (it: GroceryItem) => {
@@ -68,33 +86,60 @@ export function Groceries() {
   const saveEdit = async (it: GroceryItem) => {
     const body = { name: editName, quantity: editQty === "" ? null : Number(editQty), unit: editUnit };
     try {
-      if (!online) {
-        await enqueueMutation({ operation: "grocery.update", entityType: "grocery", entityId: String(it.id), payload: { id: it.id, ...body } });
-        setMsg("You're offline. Changes are saved locally and will sync when connection returns.");
-      } else {
-        await api.updateGrocery(it.id, body);
-      }
+      await api.updateGrocery(it.id, body);
+    } catch {
+      await enqueueMutation({ operation: "grocery.update", entityType: "grocery", entityId: String(it.id), payload: { id: it.id, ...body } });
+      setMsg("You're offline. Changes are saved locally and will sync when connection returns.");
+    }
+    try {
       setEditId(null);
       await load();
-    } catch (e) { setError(e instanceof Error ? e.message : "Update failed."); }
+    } catch {
+      /* keep queued message */
+    }
   };
 
   const remove = async (it: GroceryItem) => {
     // optimistic removal
-    setItems((prev) => prev.filter((x) => x.id !== it.id));
+    const prev = items;
+    setItems((prevItems) => prevItems.filter((x) => x.id !== it.id));
     try {
-      if (!online) await enqueueMutation({ operation: "grocery.remove", entityType: "grocery", entityId: String(it.id), payload: { id: it.id } });
-      else await api.removeGrocery(it.id);
+      await api.removeGrocery(it.id);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/failed to fetch|network|offline|load failed/i.test(msg)) {
+        await enqueueMutation({ operation: "grocery.remove", entityType: "grocery", entityId: String(it.id), payload: { id: it.id } });
+        setMsg("You're offline. Changes are saved locally and will sync when connection returns.");
+        try {
+          await load();
+        } catch {
+          /* offline */
+        }
+        return;
+      }
+      setItems(prev);
+      setError(e instanceof Error ? e.message : "Remove failed.");
+      return;
+    }
+    try {
       await load();
-    } catch { await load(); }
+    } catch {
+      /* offline */
+    }
   };
 
   const restore = async (it: GroceryItem) => {
     try {
-      if (!online) await enqueueMutation({ operation: "grocery.remove", entityType: "grocery", entityId: String(it.id), payload: { id: it.id, restore: true } });
-      else await api.removeGrocery(it.id, true);
+      await api.removeGrocery(it.id, true);
+    } catch {
+      await enqueueMutation({ operation: "grocery.remove", entityType: "grocery", entityId: String(it.id), payload: { id: it.id, restore: true } });
+      setMsg("You're offline. Changes are saved locally and will sync when connection returns.");
+    }
+    try {
       await load();
-    } catch (e) { setError(e instanceof Error ? e.message : "Restore failed."); }
+    } catch {
+      /* keep queued message */
+    }
   };
 
   const groups = new Map<string, GroceryItem[]>();

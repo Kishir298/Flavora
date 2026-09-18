@@ -13,9 +13,27 @@ export function Dashboard() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([api.statistics("weekly"), api.insights(), api.mealLog.list(), api.getGoals()])
-      .then(([s, i, m, g]) => { setStats(s); setInsights(i); setMeals(m.slice(0, 5)); setGoals(g); })
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)));
+    let cancelled = false;
+    (async () => {
+      const [s, i, m, g] = await Promise.allSettled([
+        api.statistics("weekly"),
+        api.insights(),
+        api.mealLog.list(),
+        api.getGoals(),
+      ]);
+      if (cancelled) return;
+      if (s.status === "fulfilled") setStats(s.value);
+      else setError(s.reason instanceof Error ? s.reason.message : String(s.reason));
+      if (i.status === "fulfilled") setInsights(i.value);
+      if (m.status === "fulfilled") setMeals(m.value.slice(0, 5));
+      if (g.status === "fulfilled") setGoals(g.value);
+      if (s.status === "rejected" && i.status === "rejected" && m.status === "rejected" && g.status === "rejected") {
+        // error already set from stats; keep partial UI for any fulfilled slice
+      }
+    })().catch((e) => setError(e instanceof Error ? e.message : String(e)));
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -59,7 +77,7 @@ export function Dashboard() {
                   <GoalRing key={g.label} label={g.label} actual={g.actual} target={g.target as number} />
                 ))}
               </div>
-              {Object.values(goals).every((v) => v == null) && (
+              {Object.entries(goals).filter(([k]) => k !== "updatedAt").every(([, v]) => v == null) && (
                 <p className="text-sm mt-2"><Link to="/settings" className="underline">Set goals in Settings</Link> to track progress.</p>
               )}
             </section>

@@ -98,14 +98,16 @@ export function parseIntentHeuristic(message: string): RecommendationIntent {
   }
   // Bare ingredient lists without "I have/with/using" ("chicken rice onions
   // and peppers, for dinner"): harvest known-food words so multi-field
-  // conversational answers are not lost.
+  // conversational answers are not lost. Near-miss spellings ("chickewn")
+  // resolve conservatively; safety extractors below stay exact-only.
   if (!raw.availableIngredients) {
     const words = text
       .replace(/\band\b/g, ",")
       .split(/[,;.!?]+/)
       .flatMap((s) => s.trim().split(/\s+/))
       .map((w) => w.toLowerCase().trim())
-      .filter((w) => KNOWN_FOODS.has(w) || KNOWN_FOODS.has(w.replace(/s$/, "")));
+      .map((w) => (KNOWN_FOODS.has(w) || KNOWN_FOODS.has(w.replace(/s$/, "")) ? w : (fuzzyFood(w) ?? "")))
+      .filter((w) => w.length > 0);
     const unique = [...new Set(words)];
     if (unique.length >= 2) raw.availableIngredients = unique.slice(0, 8);
   }
@@ -153,13 +155,20 @@ export function parseIntentHeuristic(message: string): RecommendationIntent {
       .slice(0, 120);
     if (cleaned.length >= 2 && cleaned.length <= 60 && !BARE_SLOT_WORD_RE.test(cleaned)) {
       raw.craving = cleaned;
-      // A lone known-food word ("chicken") doubles as an owned ingredient.
-      if (/^[a-z][a-z-]{1,29}$/.test(cleaned)) {
-        const w = cleaned.toLowerCase();
-        if (KNOWN_FOODS.has(w) || KNOWN_FOODS.has(w.replace(/s$/, ""))) {
-          raw.availableIngredients = [w];
-        }
-      }
+      // Seed owned ingredients from any known (or near-miss) food words in
+      // the phrase ("chicken for dinner" → [chicken]). Words the user never
+      // typed are never added — each candidate comes from this message.
+      const resolved = cleaned
+        .split(/\s+/)
+        .map((tok) => {
+          const t = tok.toLowerCase().replace(/[^a-z-]/g, "");
+          if (t.length < 2) return null;
+          if (KNOWN_FOODS.has(t) || KNOWN_FOODS.has(t.replace(/s$/, ""))) return t;
+          return fuzzyFood(t);
+        })
+        .filter((t): t is string => t !== null);
+      const unique = [...new Set(resolved)];
+      if (unique.length) raw.availableIngredients = unique.slice(0, 8);
     }
   }
 
@@ -190,6 +199,53 @@ const KNOWN_FOODS = new Set(
 const NON_FOOD_WORDS = new Set(
   "spicy sweet salty sour bitter savory hot mild warm cold creamy crispy crunchy".split(/\s+/)
 );
+
+/** Classic edit distance (small words only — inputs are single tokens). */
+function levenshtein(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    let cur0 = i;
+    let prevDiag = i - 1;
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      const next = Math.min(prev[j] + 1, cur0 + 1, prevDiag + cost);
+      prevDiag = prev[j];
+      prev[j - 1] = cur0;
+      cur0 = next;
+    }
+    prev[n] = cur0;
+  }
+  return prev[n];
+}
+
+/**
+ * Conservative typo resolution for craving/ingredient words ONLY.
+ * Returns the known food when the word (≥4 chars) is exactly one edit away
+ * from a single vocabulary entry, else null. Short words ("dih") stay
+ * free-text; multi-word phrases are never fuzzy-matched. Safety extractors
+ * (allergies/avoid) deliberately do NOT use this — exact allowlist there.
+ */
+export function fuzzyFood(word: string): string | null {
+  const w = String(word ?? "").toLowerCase().trim();
+  if (w.length < 4 || w.length > 30 || w.includes(" ")) return null;
+  if (KNOWN_FOODS.has(w)) return w;
+  const singular = (s: string) => (s.endsWith("s") ? s.slice(0, -1) : s);
+  let best: string | null = null;
+  for (const food of KNOWN_FOODS) {
+    if (food.includes(" ")) continue;
+    if (Math.abs(food.length - w.length) > 1) continue;
+    if (singular(food) === singular(w)) continue; // plural variant — callers strip plurals first
+    if (levenshtein(w, food) <= 1) {
+      if (best !== null) return null; // ambiguous — refuse to guess
+      best = food;
+    }
+  }
+  return best;
+}
 
 function cleanFoodWord(w: string): string {
   return w.toLowerCase().trim();

@@ -26,6 +26,11 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts", "src/**/*.test.js"],
-    testTimeout: 15000,
+    // Live FlavoraLM inference is ~10s+/request on CPU and the model serves
+    // one request at a time: run test FILES serially and allow slow
+    // integration tests room. Parallel workers caused CPU contention
+    // timeouts (fast unit tests still finish in ms).
+    poolOptions: { threads: { singleThread: true } },
+    testTimeout: 90000,
   },
 });

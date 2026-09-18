@@ -1,10 +1,12 @@
 import { test, expect } from "@playwright/test";
+import { chatUntilResults } from "./conversation";
 
 /**
  * §21: complete user journey — goals → 3 meals → dashboard → statistics →
  * meal plan → groceries → assistant facts → reload persistence.
  */
 test("complete journey: goals, meals, dashboard, plan, groceries, reload", async ({ page, request }) => {
+  test.setTimeout(300_000);
   const stamp = Date.now();
   const nav = page.getByRole("navigation", { name: "main" });
 
@@ -44,8 +46,7 @@ test("complete journey: goals, meals, dashboard, plan, groceries, reload", async
 
   // Meal plan → groceries chain (existing critical-path APIs via UI).
   await nav.getByRole("link", { name: "Assistant" }).click();
-  await page.getByLabel(/what do you have/i).fill("oats, milk");
-  await page.getByRole("button", { name: /^suggest/i }).click();
+  await chatUntilResults(page, "I want something with oats and milk");
   const first = page.getByLabel(/open /i).first();
   await expect(first).toBeVisible({ timeout: 15_000 });
   const href = await first.getAttribute("href");

@@ -9,6 +9,7 @@ import {
   parseTurn,
 } from "./conversationService.js";
 import { normalizeIntent } from "./intentSchema.js";
+import { fuzzyFood, parseIntentHeuristic } from "./heuristicParser.js";
 
 describe("conversation — full user journey", () => {
   it("chicken request → asks only missing info (calories first)", () => {
@@ -188,5 +189,38 @@ describe("conversation — full user journey", () => {
     expect(r.session.request.mealType).toBe("dinner");
     const intent = foodRequestToIntent(r.session.request);
     expect(intent.availableIngredients?.length).toBeGreaterThan(0);
+  });
+});
+
+describe("conservative typo tolerance (craving/ingredients only, safety exact)", () => {
+  it("resolves distance-1 typos to known foods", () => {
+    expect(fuzzyFood("chickewn")).toBe("chicken");
+    expect(fuzzyFood("garlik")).toBe("garlic");
+    expect(fuzzyFood("cheeze")).toBe("cheese");
+  });
+
+  it("refuses short, distant, multi-word, or ambiguous inputs", () => {
+    expect(fuzzyFood("dih")).toBeNull(); // too short — stays free-text
+    expect(fuzzyFood("maska")).toBeNull(); // too far from anything
+    expect(fuzzyFood("chicken curry")).toBeNull(); // phrases never fuzzy-matched
+    expect(fuzzyFood("peanut")).toBe("peanut"); // exact words pass through
+  });
+
+  it("seeds typo-resolved ingredients while keeping raw craving text", () => {
+    const r = advanceConversation(undefined, "i want chickewn maska");
+    expect(r.session.request.availableIngredients).toContain("chicken");
+    expect(r.session.request.craving).toBe("chickewn maska");
+    if (!r.done) expect(r.question).not.toBe("What are you craving today?");
+  });
+
+  it("safety extractors stay exact — typo allergies are never invented", () => {
+    const out = parseIntentHeuristic("allergic to penut");
+    // The raw token is preserved (never fuzzy-resolved into a real allergy),
+    // so the deterministic filter treats it as written — no invented allergy.
+    expect(out.allergies).toEqual(["penut"]);
+    expect(fuzzyFood("penut")).toBe("peanut"); // resolver exists…
+    // …but the allergy path does not use it (assert via no silent mapping):
+    const out2 = parseIntentHeuristic("allergic to peanuts");
+    expect(out2.allergies).toContain("peanuts");
   });
 });

@@ -5,7 +5,11 @@ export default defineConfig({
   // Offline spec requires the production build (vite preview, service worker);
   // run it with: npx playwright test --config=playwright.offline.config.ts
   testIgnore: "**/offline.spec.ts",
-  timeout: 30_000,
+  // Live FlavoraLM inference is ~10s+/turn and serves one request at a time:
+  // serial workers + generous timeout. Parallel workers caused contention
+  // failures (fast specs are unaffected).
+  workers: 1,
+  timeout: 120_000,
   use: {
     baseURL: "http://localhost:5173",
     trace: "retain-on-failure",

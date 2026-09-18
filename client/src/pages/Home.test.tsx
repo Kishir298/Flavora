@@ -174,4 +174,52 @@ describe("Home conversational flow", () => {
     expect(screen.queryByText("About how many calories are you aiming for?")).not.toBeInTheDocument();
     vi.unstubAllGlobals();
   });
+
+  it("retry does not duplicate the user bubble", async () => {
+    let calls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: unknown) => {
+        const u = String(url);
+        if (u.includes("/api/assistant/conversation")) {
+          calls += 1;
+          if (calls === 1) throw new Error("load failed");
+          return {
+            ok: true,
+            json: async () => ({
+              sessionId: "s1",
+              question: "About how many calories are you aiming for?",
+              done: false,
+              foodRequest: { craving: "chicken" },
+              intent: {},
+              source: "heuristic",
+              fallbackReason: "local-unreachable",
+              notice: null,
+              reply: "",
+              recommendations: [],
+            }),
+          };
+        }
+        return { ok: true, json: async () => ({}) };
+      }) as unknown as typeof fetch
+    );
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>
+    );
+    fireEvent.change(screen.getByLabelText(/Tell Flavora what you want/i), {
+      target: { value: "i want chicken" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Ask Flavora/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /Retry/i })).toBeInTheDocument());
+    expect(screen.getAllByText("i want chicken")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: /Retry/i }));
+    await waitFor(() =>
+      expect(screen.getByText("About how many calories are you aiming for?")).toBeInTheDocument()
+    );
+    // Still a single user bubble after retry (no duplicate push).
+    expect(screen.getAllByText("i want chicken")).toHaveLength(1);
+    vi.unstubAllGlobals();
+  });
 });

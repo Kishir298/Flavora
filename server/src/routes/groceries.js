@@ -1,9 +1,14 @@
 import { Router } from "express";
 import { prisma, ensureProfileRow } from "../db.js";
 import { getRecipeById } from "../recipesDb.js";
+import { passesHardFilter } from "../engine/filter.js";
 import { parseIngredient, ingredientKey, categorizeIngredient, mergeIngredientAmounts, subtractInventory, validateAmount } from "../engine/ingredients.js";
 
 export const groceriesRouter = Router();
+
+function isNotFound(e) {
+  return e?.code === "P2025";
+}
 
 function shape(r) {
   let recipeIds = [];
@@ -69,7 +74,10 @@ groceriesRouter.put("/:id", async (req, res, next) => {
     if (checked !== undefined) data.checked = Boolean(checked);
     const row = await prisma.groceryItem.update({ where: { id }, data });
     res.json(shape(row));
-  } catch (e) { next(e); }
+  } catch (e) {
+    if (isNotFound(e)) return res.status(404).json({ error: "NOT_FOUND", message: "grocery item not found" });
+    next(e);
+  }
 });
 
 groceriesRouter.delete("/:id", async (req, res, next) => {
@@ -81,7 +89,10 @@ groceriesRouter.delete("/:id", async (req, res, next) => {
     }
     const row = await prisma.groceryItem.update({ where: { id: Number(req.params.id) }, data: { removed: true } });
     res.json(shape(row));
-  } catch (e) { next(e); }
+  } catch (e) {
+    if (isNotFound(e)) return res.status(404).json({ error: "NOT_FOUND", message: "grocery item not found" });
+    next(e);
+  }
 });
 
 groceriesRouter.post("/clear-completed", async (_req, res, next) => {
@@ -102,12 +113,23 @@ groceriesRouter.post("/generate", async (req, res, next) => {
       return res.status(400).json({ error: "VALIDATION_ERROR", message: "recipeIds must be a non-empty array" });
     }
     if (recipeIds.length > 50) return res.status(400).json({ error: "VALIDATION_ERROR", message: "too many recipes" });
+    await ensureProfileRow();
+    const prow = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
+    const safeParse = (raw, fb) => { try { const v = JSON.parse(raw); return Array.isArray(v) ? v : fb; } catch { return fb; } };
+    const profile = {
+      allergies: safeParse(prow.allergies, []),
+      avoid_foods: safeParse(prow.avoidFoods, []),
+      avoidFoods: safeParse(prow.avoidFoods, []),
+    };
     const subs = await prisma.appliedSubstitution.findMany({ where: { userId: "local", recipeId: { in: recipeIds } } });
     const subMap = new Map(subs.map((s) => [`${s.recipeId}||${ingredientKey(s.originalName)}`, s.replacementName]));
     const needed = [];
     for (const rid of recipeIds) {
       const recipe = await getRecipeById(String(rid));
       if (!recipe) return res.status(400).json({ error: "VALIDATION_ERROR", message: `unknown recipeId: ${rid}` });
+      if (!passesHardFilter(recipe, profile)) {
+        return res.status(400).json({ error: "UNSAFE_RECIPE", message: `recipe conflicts with allergies/avoid foods: ${rid}` });
+      }
       for (const ing of recipe.ingredients) {
         const raw = typeof ing === "string" ? { name: ing, quantity: null, unit: null } : ing;
         const key = ingredientKey(raw.name);

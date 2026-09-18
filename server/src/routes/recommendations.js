@@ -152,6 +152,12 @@ recommendationsRouter.post("/", async (req, res, next) => {
         costTier: r.recipe.costTier ?? "low",
         ingredients: (r.recipe.ingredients ?? []).map(ingredientDisplay),
         nutrition: r.recipe.nutrition ?? {},
+        nutritionSource:
+          typeof r.recipe.nutrition?.calories === "number" &&
+          Number.isFinite(r.recipe.nutrition.calories) &&
+          r.recipe.nutrition.calories >= 0
+            ? "authored"
+            : "unknown",
       })),
     });
   } catch (e) {

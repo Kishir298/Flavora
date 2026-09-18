@@ -8,6 +8,11 @@ export const mealPlansRouter = Router();
 const VALID_DAYS = new Set(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]);
 const VALID_MEALS = new Set(["breakfast", "lunch", "dinner", "snack"]);
 
+function isNotFound(e) {
+  return e?.code === "P2025";
+}
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 function shape(r) {
   let appliedSubs = [];
   try { appliedSubs = JSON.parse(r.appliedSubs ?? "[]"); } catch { appliedSubs = []; }
@@ -49,6 +54,10 @@ mealPlansRouter.post("/", async (req, res, next) => {
     }
     const sv = servings != null ? Number(servings) : 1;
     if (!Number.isInteger(sv) || sv < 1 || sv > 12) return res.status(400).json({ error: "VALIDATION_ERROR", message: "servings must be 1..12" });
+    if (date !== undefined && date !== "" && date !== null) {
+      const ds = String(date).slice(0, 10);
+      if (!DATE_RE.test(ds) || Number.isNaN(new Date(ds).getTime())) return res.status(400).json({ error: "VALIDATION_ERROR", message: "date must be YYYY-MM-DD" });
+    }
     const subs = await prisma.appliedSubstitution.findMany({ where: { userId: "local", recipeId: String(recipeId) } });
     const row = await prisma.mealPlanSlot.upsert({
       where: { userId_day_meal: { userId: "local", day: d, meal: m } },
@@ -85,7 +94,14 @@ mealPlansRouter.put("/:id", async (req, res, next) => {
       if (!VALID_DAYS.has(String(day).toLowerCase())) return res.status(400).json({ error: "VALIDATION_ERROR", message: "invalid day" });
       data.day = String(day).toLowerCase();
     }
-    if (date !== undefined) data.date = String(date).slice(0, 10);
+    if (date !== undefined) {
+      if (date === "" || date === null) data.date = "";
+      else {
+        const ds = String(date).slice(0, 10);
+        if (!DATE_RE.test(ds) || Number.isNaN(new Date(ds).getTime())) return res.status(400).json({ error: "VALIDATION_ERROR", message: "date must be YYYY-MM-DD" });
+        data.date = ds;
+      }
+    }
     if (recipeId !== undefined) {
       const recipe = await getRecipeById(String(recipeId));
       if (!recipe) return res.status(400).json({ error: "VALIDATION_ERROR", message: "unknown recipeId" });
@@ -95,14 +111,20 @@ mealPlansRouter.put("/:id", async (req, res, next) => {
     }
     const row = await prisma.mealPlanSlot.update({ where: { id }, data });
     res.json(shape(row));
-  } catch (e) { next(e); }
+  } catch (e) {
+    if (isNotFound(e)) return res.status(404).json({ error: "NOT_FOUND", message: "meal plan slot not found" });
+    next(e);
+  }
 });
 
 mealPlansRouter.delete("/:id", async (req, res, next) => {
   try {
     await prisma.mealPlanSlot.delete({ where: { id: Number(req.params.id) } });
     res.json({ removed: true });
-  } catch (e) { next(e); }
+  } catch (e) {
+    if (isNotFound(e)) return res.status(404).json({ error: "NOT_FOUND", message: "meal plan slot not found" });
+    next(e);
+  }
 });
 
 mealPlansRouter.post("/clear-day", async (req, res, next) => {

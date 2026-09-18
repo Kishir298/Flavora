@@ -91,8 +91,10 @@ function loadProfile(row) {
  */
 assistantRouter.post("/conversation", async (req, res, next) => {
   try {
-    const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
-    if (!message) return res.status(400).json({ error: "message required" });
+    const rawMsg = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+    if (!rawMsg) return res.status(400).json({ error: "VALIDATION_ERROR", message: "message required" });
+    if (rawMsg.length > 2000) return res.status(400).json({ error: "VALIDATION_ERROR", message: "message too long (max 2000)" });
+    const message = rawMsg.slice(0, 2000);
 
     await ensureProfileRow();
     const row = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
@@ -201,9 +203,11 @@ assistantRouter.post("/conversation", async (req, res, next) => {
 });
 assistantRouter.post("/", async (req, res, next) => {
   try {
-    const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+    const rawMessage = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+    if (rawMessage.length > 2000) return res.status(400).json({ error: "VALIDATION_ERROR", message: "message too long (max 2000)" });
+    const message = rawMessage.slice(0, 2000);
     if (!message && !req.body?.intent) {
-      return res.status(400).json({ error: "message (or intent) required" });
+      return res.status(400).json({ error: "VALIDATION_ERROR", message: "message (or intent) required" });
     }
 
     await ensureProfileRow();

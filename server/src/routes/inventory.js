@@ -6,6 +6,10 @@ import { expiryStatus } from "../engine/expiry.js";
 export const inventoryRouter = Router();
 const VALID_CATEGORIES = new Set(["produce", "protein", "dairy", "grains", "pantry", "spices", "frozen", "other"]);
 
+function isNotFound(e) {
+  return e?.code === "P2025";
+}
+
 function daysRemaining(expiryDate, now = new Date()) {
   if (!expiryDate) return null;
   const d = expiryDate instanceof Date ? expiryDate : new Date(expiryDate);
@@ -106,12 +110,18 @@ inventoryRouter.put("/:id", async (req, res, next) => {
     if (notes !== undefined) data.notes = String(notes).slice(0, 500);
     const updated = await prisma.inventoryItem.update({ where: { id }, data });
     res.json(shape(updated));
-  } catch (e) { next(e); }
+  } catch (e) {
+    if (isNotFound(e)) return res.status(404).json({ error: "NOT_FOUND", message: "inventory item not found" });
+    next(e);
+  }
 });
 
 inventoryRouter.delete("/:id", async (req, res, next) => {
   try {
     await prisma.inventoryItem.delete({ where: { id: Number(req.params.id) } });
     res.json({ removed: true });
-  } catch (e) { next(e); }
+  } catch (e) {
+    if (isNotFound(e)) return res.status(404).json({ error: "NOT_FOUND", message: "inventory item not found" });
+    next(e);
+  }
 });

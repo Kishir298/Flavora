@@ -88,19 +88,65 @@ export function createApp() {
         .map(([id]) => id);
       if (ids.length === 0) return res.json([]);
       const rows = await prisma.recipe.findMany({ where: { id: { in: ids } } });
+      // Current profile for honest safety flags: a saved recipe that now
+      // conflicts with allergies/avoid foods is still returned (user data is
+      // never silently dropped) but marked unsafe so the UI can warn.
+      let profile: { allergies: string[]; avoid_foods: string[]; avoidFoods: string[] } = {
+        allergies: [],
+        avoid_foods: [],
+        avoidFoods: [],
+      };
+      try {
+        const prow = await prisma.userProfile.findUnique({ where: { id: 1 } });
+        if (prow) {
+          const safeParse = (raw: string, fb: string[]) => {
+            try {
+              const v = JSON.parse(raw);
+              return Array.isArray(v) ? v : fb;
+            } catch {
+              return fb;
+            }
+          };
+          profile = {
+            allergies: safeParse(prow.allergies, []),
+            avoid_foods: safeParse(prow.avoidFoods, []),
+            avoidFoods: safeParse(prow.avoidFoods, []),
+          };
+        }
+      } catch {
+        /* profile optional for saved display */
+      }
+      const { passesHardFilter } = await import("./engine/filter.js");
       res.json(
-        rows.map((c) => ({
-          id: c.id,
-          title: c.title,
-          cuisine: c.cuisine,
-          cookTime: c.cookTimeMinutes,
-          difficulty: c.difficulty,
-          nutrition: JSON.parse(c.nutrition),
-          ingredients: JSON.parse(c.ingredients),
-          instructions: JSON.parse(c.instructions),
-          costTier: c.costTier,
-          storage: c.storageTips,
-        }))
+        rows.map((c) => {
+          let nutrition: Record<string, unknown> = {};
+          try {
+            nutrition = JSON.parse(c.nutrition);
+          } catch {
+            nutrition = {};
+          }
+          const cal = (nutrition as { calories?: unknown }).calories;
+          return {
+            id: c.id,
+            title: c.title,
+            cuisine: c.cuisine,
+            cookTime: c.cookTimeMinutes,
+            difficulty: c.difficulty,
+            nutrition,
+            nutritionSource:
+              typeof cal === "number" && Number.isFinite(cal) && (cal as number) >= 0
+                ? "authored"
+                : "unknown",
+            ingredients: JSON.parse(c.ingredients),
+            instructions: JSON.parse(c.instructions),
+            costTier: c.costTier,
+            storage: c.storageTips,
+            unsafe: !passesHardFilter(
+              { ingredients: JSON.parse(c.ingredients) },
+              profile
+            ),
+          };
+        })
       );
     } catch (e) {
       next(e);

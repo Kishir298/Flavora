@@ -51,20 +51,70 @@ profileRouter.put("/", async (req, res, next) => {
         maxCookTime: number;
       }
     >;
+    const bad = (msg: string) => res.status(400).json({ error: "VALIDATION_ERROR", message: msg });
+    const asStringArray = (v: unknown, field: string, max = 50): string[] | null => {
+      if (!Array.isArray(v)) return null;
+      if (v.length > max) return null;
+      const out: string[] = [];
+      for (const item of v) {
+        if (typeof item !== "string") return null;
+        const s = item.trim().slice(0, 60);
+        if (!s) continue;
+        if (s.length < 1 || s.length > 60) return null;
+        out.push(s);
+      }
+      void field;
+      return out;
+    };
     const data: Record<string, unknown> = {};
-    if (b.allergies !== undefined) data.allergies = JSON.stringify(b.allergies);
-    if (b.avoidFoods !== undefined) data.avoidFoods = JSON.stringify(b.avoidFoods);
-    if (b.favoriteCuisines !== undefined) data.favoriteCuisines = JSON.stringify(b.favoriteCuisines);
-    else if (b.cuisines !== undefined) data.favoriteCuisines = JSON.stringify(b.cuisines);
-    if (b.spicePreference !== undefined) data.spicePreference = b.spicePreference;
-    else if (b.spice !== undefined) data.spicePreference = b.spice;
-    if (b.skillLevel !== undefined) data.skillLevel = b.skillLevel;
-    else if (b.skill !== undefined) data.skillLevel = b.skill;
-    if (b.nutritionGoals !== undefined) data.nutritionGoals = JSON.stringify(b.nutritionGoals);
-    if (b.preferredCookTimeMinutes !== undefined)
-      data.preferredCookTimeMinutes = Number(b.preferredCookTimeMinutes);
-    else if (b.maxCookTime !== undefined) data.preferredCookTimeMinutes = Number(b.maxCookTime);
-    if (b.theme !== undefined) data.theme = b.theme;
+    if (b.allergies !== undefined) {
+      const arr = asStringArray(b.allergies, "allergies");
+      if (!arr) return bad("allergies must be an array of strings (max 50)");
+      data.allergies = JSON.stringify(arr);
+    }
+    if (b.avoidFoods !== undefined) {
+      const arr = asStringArray(b.avoidFoods, "avoidFoods");
+      if (!arr) return bad("avoidFoods must be an array of strings (max 50)");
+      data.avoidFoods = JSON.stringify(arr);
+    }
+    const favRaw = b.favoriteCuisines !== undefined ? b.favoriteCuisines : b.cuisines;
+    if (favRaw !== undefined) {
+      const arr = asStringArray(favRaw, "favoriteCuisines");
+      if (!arr) return bad("favoriteCuisines must be an array of strings (max 50)");
+      data.favoriteCuisines = JSON.stringify(arr);
+    }
+    const spiceRaw = b.spicePreference !== undefined ? b.spicePreference : b.spice;
+    if (spiceRaw !== undefined) {
+      if (!["mild", "medium", "hot"].includes(String(spiceRaw))) return bad("spicePreference must be mild|medium|hot");
+      data.spicePreference = String(spiceRaw);
+    }
+    const skillRaw = b.skillLevel !== undefined ? b.skillLevel : b.skill;
+    if (skillRaw !== undefined) {
+      if (!["beginner", "intermediate", "advanced"].includes(String(skillRaw))) return bad("skillLevel must be beginner|intermediate|advanced");
+      data.skillLevel = String(skillRaw);
+    }
+    if (b.nutritionGoals !== undefined) {
+      if (typeof b.nutritionGoals !== "object" || b.nutritionGoals === null || Array.isArray(b.nutritionGoals))
+        return bad("nutritionGoals must be an object");
+      const g = b.nutritionGoals as Record<string, unknown>;
+      if (g.highProtein !== undefined && typeof g.highProtein !== "boolean") return bad("nutritionGoals.highProtein must be boolean");
+      if (g.lowCarb !== undefined && typeof g.lowCarb !== "boolean") return bad("nutritionGoals.lowCarb must be boolean");
+      if (g.maxCalories !== undefined) {
+        const n = Number(g.maxCalories);
+        if (!Number.isFinite(n) || n < 50 || n > 10000) return bad("nutritionGoals.maxCalories must be 50..10000");
+      }
+      data.nutritionGoals = JSON.stringify(b.nutritionGoals);
+    }
+    const cookRaw = b.preferredCookTimeMinutes !== undefined ? b.preferredCookTimeMinutes : b.maxCookTime;
+    if (cookRaw !== undefined) {
+      const n = Number(cookRaw);
+      if (!Number.isFinite(n) || n < 5 || n > 300) return bad("preferredCookTimeMinutes must be 5..300");
+      data.preferredCookTimeMinutes = n;
+    }
+    if (b.theme !== undefined) {
+      if (!["light", "dark"].includes(String(b.theme))) return bad("theme must be light|dark");
+      data.theme = String(b.theme);
+    }
     const row = await prisma.userProfile.update({ where: { id: 1 }, data: data as never });
     res.json(rowToProfile(row));
   } catch (e) {

@@ -1,5 +1,22 @@
 # Flavora — Progress
 
+## Conversational broken loop: trace, repair, verify (2026-09-18, this session)
+
+Root cause: `parseIntentHeuristic` returned an EMPTY intent for single-food-word
+(`i want chicken` — below the ≥2-word bare-list threshold), unmapped vague
+words (`healthy`), and typos — and FlavoraLM returns `valid:false` for these,
+so `missingSlots` always headed on `craving` → the same
+"What are you craving today?" question every turn. Frontend submit/state/render
+verified correct (exact string reaches the API; user bubble renders).
+
+| Objective | Status | Implementation | Tests | Evidence |
+|---|---|---|---|---|
+| Loop fix | Fixed | Free-text craving fallback in `heuristicParser` (short unrecognized text → craving, max 120 chars); lone known-food word also seeds `availableIngredients`; never fires on safety-only/skip/bare-slot-word messages | conversation 21, intent 12, localLlm 18 | `i want chicken` → calories question (was craving loop) |
+| Regression | Done | Bug-input loop cases, slot-capture cases, full acceptance journey (chicken → 600+non-veg → ingredients+dinner → done), client Enter-submit exact-string + follow-up test | server 51/51 (3 files), client 18/18 (2 files), safety/engine/nutrition 46/46 | live 3-turn journey → 5 safe recs |
+| Live E2E | Done | Real stack + Playwright `flavoralm.spec.ts` 3/4 in parallel run (journey incl. meal log green), 4th green in isolation (parallel model contention) | 4/4 across runs | browser walkthrough of §27 flow |
+
+Known limitations: parallel live-model E2E can contend on CPU (serial green); typo words are kept as free-text craving, not fuzzy-matched (per scope decision).
+
 ## Audit repair + chat-first rebuild (2026-09-17, this session)
 
 | Objective | Status | Implementation | Tests | Evidence |

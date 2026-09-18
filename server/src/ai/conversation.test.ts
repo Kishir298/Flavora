@@ -130,4 +130,63 @@ describe("conversation — full user journey", () => {
     expect(out.mealType).toBe("snack");
     expect(out.foodRequest?.mealType).toBe("snack");
   });
+
+  // Regression: inputs carrying food info must advance the conversation,
+  // never loop on the initial craving question.
+  const LOOP_CASES: [string, (req: Record<string, unknown>) => void][] = [
+    ["i want chicken", (req) => {
+      expect(req.craving ?? req.availableIngredients).toBeTruthy();
+    }],
+    ["i want dih", (req) => {
+      expect(req.craving).toBeTruthy();
+    }],
+    ["i want chickewn maska", (req) => {
+      expect(req.craving).toBeTruthy();
+    }],
+    ["I want something healthy", (req) => {
+      expect(req.craving).toBeTruthy();
+    }],
+    ["I want chicken for dinner", (req) => {
+      expect(req.mealType).toBe("dinner");
+      expect(req.craving ?? req.availableIngredients).toBeTruthy();
+    }],
+    ["I have chicken rice and onions", (req) => {
+      expect((req.availableIngredients as string[] | undefined)?.length).toBeGreaterThanOrEqual(2);
+    }],
+  ];
+  for (const [msg, check] of LOOP_CASES) {
+    it(`advances on ${JSON.stringify(msg)} (no craving loop)`, () => {
+      const r = advanceConversation(undefined, msg);
+      check(r.session.request as Record<string, unknown>);
+      // Either done or a follow-up that is NOT the initial prompt.
+      if (!r.done) expect(r.question).not.toBe("What are you craving today?");
+    });
+  }
+
+  // Slot-only messages carry no food info: capturing the slot while (correctly)
+  // asking what they're craving is NOT a loop — state progressed.
+  it("captures slots from food-less messages without wiping state", () => {
+    const cal = advanceConversation(undefined, "I want something around 600 calories");
+    expect(cal.session.request.calorieTarget).toBe(600);
+    const diet = advanceConversation(undefined, "I want a vegetarian dinner");
+    expect(diet.session.request.dietaryPreference).toBe("vegetarian");
+    expect(diet.session.request.mealType).toBe("dinner");
+    // …and a follow-up naming food then advances past craving.
+    const next = advanceConversation(diet.session.id, "chicken please");
+    expect(next.session.request.dietaryPreference).toBe("vegetarian");
+    if (!next.done) expect(next.question).not.toBe("What are you craving today?");
+  });
+
+  it("full acceptance journey: chicken → calories+diet → ingredients+meal → done", () => {
+    let r = advanceConversation(undefined, "I want chicken.");
+    expect(r.question).toMatch(/calories/i);
+    r = advanceConversation(r.session.id, "Around 600 calories, non-veg.");
+    expect(r.done).toBe(false);
+    expect(r.session.request.calorieTarget).toBe(600);
+    r = advanceConversation(r.session.id, "Chicken, rice and onions. Dinner.");
+    expect(r.done).toBe(true);
+    expect(r.session.request.mealType).toBe("dinner");
+    const intent = foodRequestToIntent(r.session.request);
+    expect(intent.availableIngredients?.length).toBeGreaterThan(0);
+  });
 });

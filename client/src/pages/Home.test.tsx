@@ -130,6 +130,33 @@ describe("Home conversational flow", () => {
     }
   });
 
+  it("submits the exact typed message and shows user bubble + follow-up (no loop)", async () => {
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>
+    );
+    // Submit via Enter key.
+    fireEvent.change(screen.getByLabelText(/Tell Flavora what you want/i), {
+      target: { value: "i want chicken" },
+    });
+    fireEvent.submit(screen.getByRole("form", { name: /ask-flavora-form/i }));
+    // User message is rendered verbatim…
+    await waitFor(() => expect(screen.getByText("i want chicken")).toBeInTheDocument());
+    // …the exact string reached the API…
+    const calls = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls as [string, RequestInit][];
+    const bodies = calls
+      .filter(([u]) => String(u).includes("/api/assistant/conversation"))
+      .map(([, init]) => JSON.parse(String(init?.body ?? "{}")) as { message?: string });
+    expect(bodies.length).toBeGreaterThan(0);
+    expect(bodies[0].message).toBe("i want chicken");
+    // …and the assistant moved past the initial prompt.
+    await waitFor(() =>
+      expect(screen.getByText("About how many calories are you aiming for?")).toBeInTheDocument()
+    );
+    vi.unstubAllGlobals();
+  });
+
   it("new chat resets the session", async () => {
     render(
       <MemoryRouter>

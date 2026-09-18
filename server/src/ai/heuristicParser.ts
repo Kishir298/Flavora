@@ -129,8 +129,50 @@ export function parseIntentHeuristic(message: string): RecommendationIntent {
   const avoidFoods = extractAvoidFoods(text);
   if (avoidFoods.length) raw.avoidFoods = avoidFoods;
 
+  // Free-text craving fallback: when NO food signal was recognized
+  // ("i want chicken" is a single food word — below the bare-list threshold;
+  // "something healthy" maps to no slot; typos match no vocabulary), the old
+  // code returned an empty intent, so the conversation asked "What are you
+  // craving today?" forever. Instead, keep the user's own short words as the
+  // craving so the conversation always advances past answered input.
+  // Never fires when a craving/ingredients were found, when the message was
+  // purely a safety statement (allergies/avoid ask craving next — correct),
+  // on skip/unknown phrases (safe defaults apply), or on bare slot words
+  // ("dinner", "vegetarian" — the slot is captured, craving truly unknown).
+  const hasFoodSignal = raw.craving || raw.availableIngredients;
+  const safetyOnly = raw.allergies || raw.avoidFoods;
+  if (!hasFoodSignal && !safetyOnly && !SKIP_LIKE_RE.test(text)) {
+    const cleaned = stripLeadFiller(
+      text
+        .replace(/\b(under|over|below|around|about|roughly)\s+\d+.*$/, " ")
+        .replace(/\b\d+\s*(calories?|kcal|cals?|minutes?|mins?|min)\b.*$/, " ")
+        .replace(/^(i(\s+am|'m)?|we|you)\s+/i, "")
+    )
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 120);
+    if (cleaned.length >= 2 && cleaned.length <= 60 && !BARE_SLOT_WORD_RE.test(cleaned)) {
+      raw.craving = cleaned;
+      // A lone known-food word ("chicken") doubles as an owned ingredient.
+      if (/^[a-z][a-z-]{1,29}$/.test(cleaned)) {
+        const w = cleaned.toLowerCase();
+        if (KNOWN_FOODS.has(w) || KNOWN_FOODS.has(w.replace(/s$/, ""))) {
+          raw.availableIngredients = [w];
+        }
+      }
+    }
+  }
+
   return normalizeIntent(raw);
 }
+
+/** Skip/unknown phrases — safe defaults apply, never stored as craving. */
+const SKIP_LIKE_RE =
+  /\b(don'?t care|whatever|anything( is)? fine|i don'?t know|skip( that| this)?|no preference|doesn'?t matter|surprise me)\b/i;
+
+/** Bare slot words carry no food info — the slot is captured, craving stays unknown. */
+const BARE_SLOT_WORD_RE =
+  /^(breakfast|lunch|dinner|snack|vegetarian|vegan|non[\s-]?veg(etarian)?|veg)$/i;
 
 /** Foods the parser is allowed to treat as exclusions (conservative allowlist). */
 const KNOWN_FOODS = new Set(

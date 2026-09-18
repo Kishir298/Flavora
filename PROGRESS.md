@@ -115,7 +115,7 @@ Known limitations: full 1000-example `evaluate.py` not run (hardware); `favorite
 | Substitutions | PRESERVED | apply/revert/undo UI, safe/unsafe/unknown revalidation, unsafe blocked, offline queueing |
 | Offline mutations | PRESERVED | IndexedDB queue (dedupe, ordered replay, max 5 attempts), sync banner |
 | Groceries / Inventory / Meal plans / Cravings / Modes / Learning | PRESERVED | no behavior changes; see README |
-| Groq | OPTIONAL FALLBACK | server-side key, timeout, validated output, heuristic fallback; never used in `local` mode |
+| Groq (REMOVED 2026-09-17, superseded) | OPTIONAL FALLBACK | server-side key, timeout, validated output, heuristic fallback; never used in `local` mode |
 | Heuristic parser | PRESERVED + EXTENDED | deterministic, zero-network; now also extracts allergies/avoidFoods (additive only); correctly labeled, never called an LLM |
 | README | REWRITTEN | Quickstart = `npm run start`; FlavoraLM architecture/training/troubleshooting; docs index + accessibility section; no Ollama; every command exists (`train:tokenizer`, `verify:llm:init` added) |
 | Architecture docs | IMPLEMENTED | `docs/FLAVORALM_AUDIT.md`, `FLAVORALM_ARCHITECTURE.md`, `FLAVORALM_TRAINING.md`, `FLAVORALM_EVALUATION.md` |

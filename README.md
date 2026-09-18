@@ -95,7 +95,7 @@ Open http://localhost:5173 → tell Flavora what you're craving → answer follo
 
 Flavora is local-only: natural-language requests are parsed by the built-in
 FlavoraLM model (or the deterministic local parser as honest fallback).
-There is no remote AI provider and no API key. Ranking and allergy filtering
+There is no remote AI provider and no AI API key (optional nutrition enrichment aside — see Layers). Ranking and allergy filtering
 always run on the local engine.
 
 ## Local AI — FlavoraLM (our own model, genuinely local)
@@ -317,7 +317,7 @@ Not yet audited with assistive technology — see `docs/FLAVORALM_AUDIT.md`.
 User request (form or natural language)
         ↓
 AI provider abstraction
-  FlavoraLM (our model)  |  Groq (optional, remote)  |  heuristic parser
+  FlavoraLM (our model)  |  heuristic parser (Groq remote removed 2026-09-17 — see PROGRESS.md)
   — output is schema-validated, never decides allergen safety
         ↓
 Deterministic recommendation engine
@@ -336,7 +336,7 @@ Optional short assistant reply (explains engine results only)
 - **Recipe data** — `prisma/schema.prisma`, `data/*.json`, `server/src/recipesDb.ts` (local SQLite; no network)
 - **Engine** — `server/src/engine/*` (filter → features → scorer → recommend; `retrain.py` for learning)
 - **API** — thin Express routes; business logic stays in the engine / AI modules
-- **AI** — `server/src/ai/*` local-only (`LocalLlmProvider` → FlavoraLM service, or deterministic heuristic fallback; `AI_PROVIDER=local|heuristic`). No keys, no remote calls; the local host must be a local address. `local` means our FlavoraLM — never Ollama, never a third-party model.
+- **AI** — `server/src/ai/*` local-only (`LocalLlmProvider` → FlavoraLM service, or deterministic heuristic fallback; `AI_PROVIDER=local|heuristic`). No remote **AI** provider and no **AI** API key; the local host must be a local address. `local` means our FlavoraLM — never Ollama, never a third-party model. Optional USDA/Open Food Facts nutrition enrichment (server-side, cached, offline-safe) is the only network call and never carries prompts.
 - **Conversation** — `server/src/ai/conversationService.ts` (in-memory sessions → `FoodRequest` → deterministic engine); `POST /api/assistant/conversation`
 - **Nutrition** — authored recipe values first (`nutritionSource: "authored"`); optional server-side enrichment via USDA FoodData Central (CC0, `USDA_FDC_API_KEY`) / Open Food Facts (ODbL), cached locally in `data/nutrition-cache.json`; missing data is `"unknown"` (UI shows "unavailable", never invented)
 - **Client** — React screens talk only through `client/src/lib/api.ts`

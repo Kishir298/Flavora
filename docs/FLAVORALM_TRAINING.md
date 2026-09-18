@@ -90,7 +90,7 @@ npm run train:llm       # full small model (longer; 5.9M params)
 corpus → adjust model width to **realized** vocab → encode with
 `<BOS><USER>…<ASSISTANT>…<EOS>` + `target_start_index` masks → random-init
 `FlavoraLM` → AdamW + cosine-warmup, grad clip, per-epoch validation →
-per-epoch `training_state.pt` → final artifacts.
+per-epoch `training_state.pt (intentionally untracked)` → final artifacts.
 
 Committed dev checkpoint (`training_meta.json`): seed 42, 80 epochs, 3040
 steps, LR 0.003 (warmup 50), batch 32, AdamW+cosine, CPU x86_64, Python 3.11.15,
@@ -104,7 +104,7 @@ was written). Retrain to refresh; `npm run start` never retrains on its own.
 
 Per-epoch `save_checkpoint()` + final `save_pretrained()` write
 `models/flavora-lm/v0.1/`: `config.json` (realized `vocab_size` 540),
-`tokenizer.json`, `tokenizer_meta.json`, `model.pt`, `training_state.pt`,
+`tokenizer.json`, `tokenizer_meta.json`, `model.pt`, `training_state.pt (intentionally untracked)`,
 `metrics.json`, `training_meta.json`, `model_meta.json` (`trainedAt`).
 
 ## Evaluation

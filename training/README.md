@@ -27,7 +27,7 @@ Direct (venv) equivalents:
 
 ## Pipeline (`train.py`)
 
-1. Load dataset (`training/data/{train,validation}.jsonl`) + validate.
+1. Load dataset (`training/data/{train,validation}.jsonl (dev 1200/150/150) or training/data-small/ (prod 12k/1.2k/1k; evaluate uses data-small/test.jsonl)`) + validate.
 2. Train tokenizer on the **training corpus only** (no leakage) → `tokenizer.json`.
 3. Encode examples as `<BOS><USER> {input} <ASSISTANT> {json} <EOS>`.
 4. Initialize the Transformer from scratch (random weights, seed recorded).

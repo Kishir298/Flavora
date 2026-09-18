@@ -60,7 +60,7 @@ yet (saved recipes live in Prisma interactions).
 Meal logging/editing/deleting, dashboard, statistics, insights, goals,
 history, recipes and deterministic recommendations all work offline
 (same PWA shell + mutation queue as inventory/groceries). Only
-FlavoraLM/Groq intent parsing degrades (honest heuristic fallback).
+FlavoraLM intent parsing degrades (Groq removed 2026-09-17) (honest heuristic fallback).
 
 ## AI vs deterministic responsibilities
 

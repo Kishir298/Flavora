@@ -72,4 +72,10 @@ models/flavora-lm/dev/
 # (full set, hours); never commit timing-laden reports.
 models/flavora-lm/v0.1/eval.json
 models/flavora-lm/dev/eval.json
+# Resumable-eval checkpoints + per-run result bundles (see training/evaluate.py
+# --checkpoint/--out and `npm run eval:slow`; recreated on every run).
+models/flavora-lm/v0.1/eval-checkpoint.jsonl
+models/flavora-lm/dev/eval-checkpoint.jsonl
+eval-results/
+playwright-eval-results/
 dev-dist/

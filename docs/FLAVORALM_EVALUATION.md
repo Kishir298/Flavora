@@ -98,11 +98,29 @@ numbers are reported as weak, with the cause and the remedy stated.
 ## How to improve (exact commands)
 ```bash
 npm run train:llm:dev        # refresh dev checkpoint (adds hashes + timestamp)
-npm run evaluate:llm         # full held-out eval → models/flavora-lm/v0.1/eval.json
+npm run eval:full            # full 1000-example held-out eval (~2.5h, resumable)
+npm run eval:full -- --resume  # resume an interrupted run (completed IDs skipped)
+npm run eval:full -- --limit 25  # bounded smoke (same as --max-examples 25)
 npm run train:llm            # full small model: 12k examples, ~4.9M params (vocab realized from corpus)
 npm run evaluate:llm -- --max-examples 150
 npm run verify:local-ai && npm run verify:llm:init
 ```
+
+## Resumable full evaluation (runner v1.1.0)
+
+`training/evaluate.py` assigns every example a stable ID
+(`ex-{index}-{sha8(input)}`) and appends each result to
+`models/flavora-lm/v0.1/eval-checkpoint.jsonl` (gitignored) with status
+(`pass`/`fail`/`error`), latency, error/category and timestamp — results are
+never held until the end, so a crash loses nothing completed. `--resume`
+reloads the checkpoint and skips recorded IDs; `--limit N` bounds the run;
+`--timeout-s S` guards hung extractions (`timeout` failure category);
+`--checkpoint <path>` / `--out <path>` relocate the checkpoint / final
+report. The final `eval.json` reports total/completed/passed/failed/errored/
+skipped, avg + median latency, 5 slowest examples, failure categories, and
+the dataset/model/config/runner record. CI runs the full set only on manual
+dispatch or weekly schedule (`.github/workflows/eval.yml`, artifacts
+uploaded); PRs run the 25-example smoke plus unit suites (`ci.yml`).
 
 ## Reproducibility record
 Seed 42, dataset v0.1 + split SHA256 (`manifest.json`), tokenizer v0.2,

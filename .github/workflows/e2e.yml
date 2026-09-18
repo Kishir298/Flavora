@@ -36,6 +36,15 @@ jobs:
       - run: npm run db:seed
       - run: npx playwright test e2e/a11y.spec.ts e2e/keyboard.spec.ts e2e/navbar.spec.ts e2e/mobile.spec.ts e2e/critical.spec.ts --reporter=list
         working-directory: client
+      - name: Upload fast-spec results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-fast-results
+          path: |
+            client/test-results/
+            client/playwright-report/
+          if-no-files-found: warn
 
   # Offline / PWA sync (needs a production build for the service worker).
   e2e-offline:
@@ -58,6 +67,15 @@ jobs:
       - run: npm run build --workspace=client
       - run: npx playwright test --config=playwright.offline.config.ts --reporter=list
         working-directory: client
+      - name: Upload offline results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-offline-results
+          path: |
+            client/test-results/
+            client/playwright-report/
+          if-no-files-found: warn
 
   # Slow conversational specs (live chat loops, 120-300s each) run on demand,
   # not per push: `gh workflow run E2E --ref <sha> -f slow=true`.
@@ -79,5 +97,15 @@ jobs:
         working-directory: client
       - run: npx prisma db push --schema prisma/schema.prisma --skip-generate
       - run: npm run db:seed
-      - run: npx playwright test e2e/flavoralm.spec.ts e2e/journey.spec.ts e2e/foodlog.spec.ts --reporter=list
+      - run: npx playwright test e2e/flavoralm.spec.ts e2e/journey.spec.ts e2e/foodlog.spec.ts --reporter=list,json:../../playwright-eval-results/slow.json
         working-directory: client
+      - name: Upload slow-spec results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-slow-results
+          path: |
+            playwright-eval-results/
+            client/test-results/
+            client/playwright-report/
+          if-no-files-found: warn

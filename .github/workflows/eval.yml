@@ -1,0 +1,86 @@
+name: Eval
+
+on:
+  # Never on push/PR: the full set takes ~2.5h CPU. Manual or scheduled only.
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Example cap (0 = full 1000-example set)"
+        required: false
+        default: "0"
+      timeout-s:
+        description: "Per-example timeout in seconds (0 = none)"
+        required: false
+        default: "0"
+      min-intent-acc:
+        description: "Fail if intent exact-match accuracy is below this"
+        required: false
+        default: "0.0"
+  schedule:
+    # Weekly full-set Sunday 03:00 UTC (runners: ~2.5h, resumable on retry).
+    - cron: "0 3 * * 0"
+
+env:
+  DATABASE_URL: "file:./dev.db"
+
+jobs:
+  eval-full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install --index-url https://download.pytorch.org/whl/cpu torch "numpy>=1.26,<2"
+      - name: Run evaluation (resumable)
+        run: >
+          python -m training.evaluate
+          --artifacts models/flavora-lm/v0.1
+          --test-file training/data-small/test.jsonl
+          --limit ${{ inputs.limit || 0 }}
+          --timeout-s ${{ inputs.timeout-s || 0 }}
+          --min-intent-acc ${{ inputs.min-intent-acc || 0.0 }}
+      - name: Upload eval artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: |
+            models/flavora-lm/v0.1/eval.json
+            models/flavora-lm/v0.1/eval-checkpoint.jsonl
+          if-no-files-found: warn
+
+  # Slow browser specs on demand (long chat loops, 120-300s each).
+  eval-slow:
+    if: inputs.limit == '0' || inputs.limit == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      AI_PROVIDER: heuristic
+      PORT: "4000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+        working-directory: client
+      - run: npx prisma db push --schema prisma/schema.prisma --skip-generate
+      - run: npm run db:seed
+      - name: Run slow specs (persisted JSON + list output)
+        run: npx playwright test e2e/flavoralm.spec.ts e2e/journey.spec.ts e2e/foodlog.spec.ts --reporter=list,json:../../playwright-eval-results/slow.json
+        working-directory: client
+      - name: Upload slow-spec results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: slow-spec-results
+          path: |
+            playwright-eval-results/
+            client/test-results/
+            client/playwright-report/
+          if-no-files-found: warn

@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  DATABASE_URL: "file:./dev.db"
+
+jobs:
+  # Fast checks: typecheck + unit/integration (no browsers, no model).
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx tsc --noEmit -p server/tsconfig.json
+      - run: npx tsc --noEmit -p client/tsconfig.json
+      - run: npm run test --workspace=server
+      - run: npm run test --workspace=client
+
+  # Python runner unit tests (no model weights needed).
+  python-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install --index-url https://download.pytorch.org/whl/cpu torch "numpy>=1.26,<2"
+      - run: python -m unittest training.tests.test_evaluate training.tests.test_env -v

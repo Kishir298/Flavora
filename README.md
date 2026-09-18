@@ -204,6 +204,48 @@ invalid-JSON rate, negation handling, repeatability on the held-out test set).
 
 Training is separated from startup: normal `npm run start` never retrains.
 
+### Evaluation (fast smoke, full set, slow browser specs)
+
+Fast validation (seconds–minutes, every PR via `ci.yml`):
+
+```bash
+npm test                                   # server + client unit/integration
+npx tsc --noEmit -p server/tsconfig.json && npx tsc --noEmit -p client/tsconfig.json
+node scripts/py.mjs -m unittest training.tests.test_evaluate training.tests.test_env
+npm run evaluate:llm:sample               # 25-example model eval smoke
+```
+
+Full evaluation (~2.5h @ ~9s/example on laptop CPU; manual/scheduled only,
+never on PR — see `.github/workflows/eval.yml`):
+
+```bash
+npm run eval:full                          # 1000 held-out examples
+npm run eval:full -- --resume              # resume after interruption (no reruns)
+npm run eval:full -- --limit 25            # bounded smoke (same as --max-examples)
+npm run eval:full -- --timeout-s 120       # per-example timeout guard
+```
+
+How checkpointing works: each example gets a stable ID
+(`ex-{index}-{sha8(input)}`); every result is appended to
+`models/flavora-lm/v0.1/eval-checkpoint.jsonl` immediately with status,
+latency, error and timestamp. A crash loses nothing completed; `--resume`
+skips recorded IDs. One bad example is recorded with its failure category
+(`invalid_json` / `timeout` / `model_error`) and never aborts the run.
+Final report lands in `models/flavora-lm/v0.1/eval.json` (gitignored):
+total/completed/passed/failed/errored/skipped, avg + median latency, 5
+slowest examples, failure categories, dataset/model/runner config.
+
+Slow-spec evaluation (long browser chat loops, heuristic mode):
+
+```bash
+npm run eval:slow                          # flavoralm + journey + foodlog specs
+```
+
+Expected runtime: minutes per spec (120–300s timeouts each). Results persist
+to `playwright-eval-results/slow.json` (gitignored) plus the standard
+Playwright report. Requires `npm run setup` once + `npx playwright install
+chromium`; override the API base with `API_URL` if it is not `:4000`.
+
 **Troubleshooting model startup**
 
 | Symptom | Fix |
@@ -252,8 +294,10 @@ The retrain trigger prefers `server/src/engine/.venv/bin/python` when that venv 
 | `npm run dev` | client + server concurrently |
 | `npm run train:llm` / `train:llm:dev` | train FlavoraLM (small / fast dev config) |
 | `npm run train:tokenizer` | train the BPE tokenizer standalone |
-| `npm run evaluate:llm` | held-out FlavoraLM evaluation (full set, hours) |
+| `npm run evaluate:llm` | held-out FlavoraLM evaluation, full 1000-example set, ~2.5h (alias of `eval:full`) |
 | `npm run evaluate:llm:sample` | 25-example eval smoke (minutes; report → `eval.json`, gitignored) |
+| `npm run eval:full` | full-set evaluation, resumable via `-- --resume`, bounded via `-- --limit N` (see Evaluation below) |
+| `npm run eval:slow` | slow browser specs (`flavoralm` + `journey` + `foodlog`; long-running, heuristic mode) |
 | `npm run verify:local-ai` | 8-step real-inference FlavoraLM verification |
 | `npm run verify:llm:init` | prove weights are freshly initialized |
 | `npm run lm:serve` | run the FlavoraLM inference service manually |
@@ -278,9 +322,11 @@ focus rings, `prefers-reduced-motion` support, `role=status/alert` live regions
 (including the `AiStatus` provider line). Automated coverage:
 `client/e2e/a11y.spec.ts` (dependency-free baseline on every route **plus**
 guarded `@axe-core/playwright` critical/serious check when installed) and
-`client/e2e/keyboard.spec.ts` (keyboard-only skip → main → operate).
-Manual assistive-technology pass not yet done — checklist in
-`docs/ACCESSIBILITY.md`.
+`client/e2e/keyboard.spec.ts` (keyboard-only skip → main → operate), plus
+route-specific contracts (live regions, chart text alternatives, named recipe
+links, announced form errors). Human screen-reader validation is **PENDING
+HUMAN VALIDATION** — see `docs/accessibility-screen-reader-checklist.md`
+(NVDA + VoiceOver 24-step plans); automation is evidence, not a substitute.
 
 ## Architecture
 

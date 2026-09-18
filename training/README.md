@@ -58,7 +58,7 @@ Stdlib HTTP service (no web-framework dependency), binds `127.0.0.1`:
 - `GET /metrics` → `metrics.json` sidecar (latest training loss/perplexity).
 - `POST /generate` → autoregressive sampling (`temperature`, `topK/topP`,
   `maxNewTokens`, repetition handling).
-- `POST /intent` → greedy (near-deterministic) generation → JSON parse →
+- `POST /intent` → constrained beam search (`beam_width=4`, near-deterministic) → JSON parse →
   schema validation/normalization (`flavora_lm/intent.py`). Invalid output
   yields `{"intent": null, "valid": false}` — never a crash, never a safety
   verdict. The deterministic engine remains the safety authority.

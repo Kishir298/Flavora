@@ -1,5 +1,11 @@
 # FlavoraLM Audit — actual repository state (2026-09-16)
 
+> Historical record of the 2026-09-16 audit. Superseded in part by the
+> 2026-09-17 conversational reconstruction (see PROGRESS.md): the Groq remote
+> fallback was removed (Flavora is local-only), `AI_PROVIDER=local|heuristic`,
+> and the assistant is now conversational (`POST /api/assistant/conversation`).
+> Rows below mentioning Groq/`auto` describe the pre-reconstruction state.
+
 Audit date: 2026-09-16. Method: full tree read + `grep` for
 `ollama|qwen|llama|mistral|gemma|LOCAL_LLM|localLlm|AI_PROVIDER|groq|heuristic|tokenizer|transformer|torch|FastAPI|aria-|Playwright|Vitest|axe`.
 No assumptions from prior docs — every row verified against code.

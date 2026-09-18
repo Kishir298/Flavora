@@ -35,9 +35,9 @@ weights, tokenizer, or data are used anywhere.
        └──────────────────┘        └────────┬─────────┘
                                             ▼
                                   ┌──────────────────┐
-                                  │ Custom Tokenizer │  BPE v0.2, 540 tokens
-                                  │ Custom Vocabulary│  trained on our corpus
-                                  │ Custom Transformer│  912K (dev) / 5.9M (small)
+                                  │ Custom Tokenizer │  BPE v0.2, 558 tokens (production v0.1)
+                                  │ Custom Vocabulary│  trained on our corpus (dev: 540)
+                                  │ Custom Transformer│  4,947,456 params prod (dev: 882,944)
                                   │ Custom Weights   │  random init, our training
                                   └──────────────────┘
 ```
@@ -73,16 +73,16 @@ Each block: `x + masked-self-attention(LN(x))` then `x + FFN(LN(x)))`
 (GELU, residual connections throughout). Causal masking via upper-triangular
 `-inf` mask; context truncation to `context_length`; configurable vocab size.
 
-| Config | dev (`flavora_lm_dev.json`) | small (`flavora_lm_small.json`) |
+| Config | dev (`flavora_lm_dev.json`) | small / production v0.1 (`flavora_lm_small.json`) |
 |---|---|---|
 | context_length | 160 | 256 |
-| vocab_size (target / realized) | 768 / **540** | 4096 / corpus-dependent |
+| vocab_size (target / realized) | 768 / **540** | 4096 / **558** (production checkpoint) |
 | embedding_dim | 128 | 256 |
 | layers | 4 | 6 |
 | attention_heads | 4 | 8 |
 | ffn_dim | 512 | 1024 |
 | dropout | 0.1 | 0.1 |
-| **parameters (measured)** | **882,944** (540 vocab) | **5,853,184** (4096 vocab target) |
+| **parameters (measured)** | **882,944** (540 vocab dev) | **4,947,456** (558 vocab production v0.1; 5,853,184 was the pre-realization estimate at 4096 target) |
 
 Initialization: all Linear/Embedding weights `N(0, 0.02)`, biases zero
 (`_init_weights`). Provenance: `npm run verify:llm:init` rebuilds from seed 42
@@ -134,7 +134,7 @@ the metadata needed to reproduce or inspect it.
 
 `FlavoraLM.generate()` (temperature, top-k/top-p, repetition penalty, EOS,
 context window) backs `POST /generate`. `POST /intent` uses constrained
-beam search (greedy, near-deterministic) → JSON extraction → schema
+beam search (`beam_width=4`, near-deterministic) → JSON extraction → schema
 validation/normalization; invalid output yields
 `{"intent": null, "valid": false}` — never a crash, never a safety verdict.
 CPU-first (`device: cpu` auto; CUDA/MPS detected where available).

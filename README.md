@@ -112,7 +112,7 @@ data leaves it. This is a real neural model runtime, not the heuristic parser
 - **Tokenizer:** custom BPE tokenizer trained on the Flavora corpus
   (`training/flavora_lm/tokenizer.py`) — no pretrained vocabulary.
 - **Artifacts:** `models/flavora-lm/v0.1/` (`config.json`, `tokenizer.json`,
-  `model.pt`, `training_state.pt`, `metrics.json`, `training_meta.json`).
+  `model.pt`, `metrics.json`, `training_meta.json`; `training_state.pt` is intentionally untracked and regenerated on retrain).
 - **Service:** `training/flavora_lm/service.py` serves
   `GET /health`, `GET /metadata`, `GET /metrics`, `POST /generate`, `POST /intent`
   on `127.0.0.1:5000`.
@@ -157,8 +157,8 @@ AI_PROVIDER=local                       # local | heuristic (default local)
 **What happens when the model is unavailable:** you get an explicit notice naming the reason (`not reachable` / `timed out` / `unusable answer` / `starting`) plus a machine-readable `fallbackReason`; the UI status line reflects it (`AI: Heuristic (…)`).
 
 **Performance note (honest):** FlavoraLM is a small CPU-friendly model; inference
-is seconds on a laptop, not minutes. Intent extraction uses greedy
-(near-deterministic) decoding so the same request yields the same structured
+is seconds on a laptop, not minutes. Intent extraction uses constrained beam
+search (`beam_width=4`, near-deterministic) so the same request yields the same structured
 intent.
 
 ### Training FlavoraLM yourself

@@ -58,8 +58,8 @@ and Express validation:
 
 ```json
 { "text": "I want something spicy, quick, high protein and I don't want peanuts",
-  "intent": { "spice": "hot", "maxCookTimeMinutes": 30,
-              "nutritionGoals": ["highProtein"], "avoidFoods": ["peanuts"] } }
+  "intent": { "spiceLevel": "hot", "maxCookingTime": 30,
+              "preferences": { "highProtein": true }, "avoidFoods": ["peanuts"] } }
 ```
 
 Covered: recipe/ingredient/cuisine search, cravings, flavor/texture/temperature/

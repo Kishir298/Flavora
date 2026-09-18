@@ -7,6 +7,16 @@ node_modules/
 .env
 .env.local
 .env.*.local
+.env.*
+!.env.example
+
+# TLS / key material (never commit even if dropped here by tooling)
+*.pem
+*.key
+*.pfx
+*.p12
+*.crt
+*.cer
 
 # SQLite local data (holds real user data even in dev)
 *.db
@@ -19,6 +29,8 @@ prisma/*.db
 # Local JSON user-data store (real user meals/goals; recreated on launch)
 data/user-data.json
 data/user-data.json.corrupt-*.bak
+# Local nutrition cache (server-side USDA/OFF lookups; recreated on demand)
+data/nutrition-cache.json
 
 # Build output
 dist/

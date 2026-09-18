@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { chatUntilResults } from "./conversation";
+import { apiUrl } from "./apiBase";
 
 /**
  * §21: complete user journey — goals → 3 meals → dashboard → statistics →
@@ -11,9 +12,9 @@ test("complete journey: goals, meals, dashboard, plan, groceries, reload", async
   const nav = page.getByRole("navigation", { name: "main" });
 
   // Start clean: remove leftovers from interrupted runs.
-  const pre = await (await request.get("http://localhost:4000/api/meals")).json();
+  const pre = await (await request.get(apiUrl("/api/meals"))).json();
   for (const m of pre.filter((x: { name: string }) => x.name.startsWith("J "))) {
-    await request.delete(`http://localhost:4000/api/meals/${m.id}`);
+    await request.delete(apiUrl(`/api/meals/${m.id}`));
   }
 
   // Goals first (Settings).
@@ -61,7 +62,7 @@ test("complete journey: goals, meals, dashboard, plan, groceries, reload", async
   await expect(page.getByRole("heading", { level: 1 })).toContainText(/grocer/i);
 
   // Assistant answers from stored facts.
-  const res = await request.post("http://localhost:4000/api/assistant", {
+  const res = await request.post(apiUrl("/api/assistant"), {
     data: { message: "How many meals did I log?", context: "week-summary" },
   });
   expect(res.ok()).toBe(true);
@@ -75,8 +76,8 @@ test("complete journey: goals, meals, dashboard, plan, groceries, reload", async
   for (const name of logged) await expect(page.getByText(name)).toBeVisible();
 
   // Cleanup test data.
-  const list = await (await request.get("http://localhost:4000/api/meals")).json();
+  const list = await (await request.get(apiUrl("/api/meals"))).json();
   for (const m of list.filter((x: { name: string }) => x.name.includes(String(stamp)))) {
-    await request.delete(`http://localhost:4000/api/meals/${m.id}`);
+    await request.delete(apiUrl(`/api/meals/${m.id}`));
   }
 });

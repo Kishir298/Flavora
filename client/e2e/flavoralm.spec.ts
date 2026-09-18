@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { chatUntilResults } from "./conversation";
+import { apiUrl } from "./apiBase";
 
 /**
  * FlavoraLM chain test: React → Express → FlavoraLM → deterministic engine.
@@ -13,7 +14,7 @@ import { chatUntilResults } from "./conversation";
  *   peanut recipes regardless of which provider handled the request.
  */
 test("health reports the AI provider honestly", async ({ request }) => {
-  const res = await request.get("http://localhost:4000/api/health");
+  const res = await request.get(apiUrl("/api/health"));
   expect(res.ok()).toBe(true);
   const body = await res.json();
   expect(["local", "heuristic"]).toContain(body.ai.resolvedProvider);
@@ -28,10 +29,10 @@ test("health reports the AI provider honestly", async ({ request }) => {
 test("natural-language request → structured intent → safe recommendations", async ({
   request,
 }) => {
-  const health = await (await request.get("http://localhost:4000/api/health")).json();
+  const health = await (await request.get(apiUrl("/api/health"))).json();
   const localUp: boolean = health.ai?.localModel?.serviceReachable === true;
 
-  const res = await request.post("http://localhost:4000/api/assistant", {
+  const res = await request.post(apiUrl("/api/assistant"), {
     // Message proven to extract via FlavoraLM (see verify:local-ai step 6,
     // pinned against the committed models/flavora-lm/v0.1 checkpoint).
     // Per-message `valid:false` honestly falls back to heuristic by design —
@@ -67,15 +68,15 @@ test("conversational journey: request → follow-ups → log meal", async ({ pag
   const first = page.getByLabel(/Open /).first();
   await expect(first).toBeVisible({ timeout: 10_000 });
   // Log the first recommendation as eaten; dashboard must reflect it.
-  const before = await (await request.get("http://localhost:4000/api/meals")).json();
+  const before = await (await request.get(apiUrl("/api/meals"))).json();
   const beforeIds = new Set((before as { id: string }[]).map((m) => m.id));
   await page.getByRole("button", { name: /Log .* as eaten/i }).first().click();
   await expect(page.getByText(/Logged "/).first()).toBeVisible({ timeout: 10_000 });
-  const meals = await (await request.get("http://localhost:4000/api/meals")).json();
+  const meals = await (await request.get(apiUrl("/api/meals"))).json();
   expect(Array.isArray(meals)).toBe(true);
   expect(meals.length).toBeGreaterThan(before.length);
   // Cleanup: remove the meal this test logged (other suites assert exact counts).
   for (const m of (meals as { id: string }[]).filter((m) => !beforeIds.has(m.id))) {
-    await request.delete(`http://localhost:4000/api/meals/${m.id}`);
+    await request.delete(apiUrl(`/api/meals/${m.id}`));
   }
 });

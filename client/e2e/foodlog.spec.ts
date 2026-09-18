@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { apiUrl } from "./apiBase";
 
 /**
  * Food-intelligence E2E: Dashboard → Meals → create → Dashboard →
@@ -26,7 +27,7 @@ test("meal log flows into dashboard, statistics and assistant facts", async ({ p
 
   // 6-7. Dashboard shows the meal (log 2 more for the weekly minimum of 3).
   for (const extra of ["breakfast", "lunch"]) {
-    await request.post("http://localhost:4000/api/meals", {
+    await request.post(apiUrl("/api/meals"), {
       data: { name: `${mealName} ${extra}`, mealType: extra, foods: [{ name: "oats" }] },
     });
   }
@@ -48,7 +49,7 @@ test("meal log flows into dashboard, statistics and assistant facts", async ({ p
   }
 
   // 14. Assistant week-summary is grounded in stored facts.
-  const res = await request.post("http://localhost:4000/api/assistant", {
+  const res = await request.post(apiUrl("/api/assistant"), {
     data: { message: "I ate 50 meals this week, right?", context: "week-summary" },
   });
   expect(res.ok()).toBe(true);
@@ -57,8 +58,8 @@ test("meal log flows into dashboard, statistics and assistant facts", async ({ p
   expect(body.reply).not.toContain("50 meals");
 
   // Cleanup: remove test meals.
-  const list = await (await request.get("http://localhost:4000/api/meals")).json();
+  const list = await (await request.get(apiUrl("/api/meals"))).json();
   for (const m of list.filter((x: { name: string }) => x.name.includes("E2E Soup"))) {
-    await request.delete(`http://localhost:4000/api/meals/${m.id}`);
+    await request.delete(apiUrl(`/api/meals/${m.id}`));
   }
 });

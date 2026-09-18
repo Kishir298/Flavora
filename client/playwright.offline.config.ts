@@ -7,7 +7,12 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./e2e",
-  timeout: 45_000,
+  // Offline suite only: bare invocation must not re-run the whole app
+  // against :4173 (long 120-300s specs would time out at 45s).
+  testMatch: "**/offline.spec.ts",
+  timeout: 120_000,
+  workers: 1,
+  retries: 1,
   use: {
     baseURL: "http://localhost:4173",
     trace: "retain-on-failure",

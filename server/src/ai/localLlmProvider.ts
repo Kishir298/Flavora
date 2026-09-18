@@ -149,19 +149,42 @@ export class LocalLlmProvider implements AIProvider {
         return { runtimeReachable: false, modelInstalled: false, usable: false, detail: "unreachable" };
       }
       if (!res.ok) {
-        // Runtime answered but model not ready (e.g. 503 weights loading).
-        // This is "unloaded", NOT "unreachable" — callers must not collapse them.
-        const unloaded = res.status === 503;
+        // 503 is our service reporting weights-loading ("unloaded", still ours).
+        // Any other non-OK status means the responder is NOT FlavoraLM
+        // (e.g. macOS AirPlay Receiver squatting :5000 returns 404/405) —
+        // report unreachable, never claim our service is reachable.
+        if (res.status === 503) {
+          this.availabilityCache = { ok: false, checkedAt: Date.now() };
+          return {
+            runtimeReachable: true,
+            modelInstalled: false,
+            usable: false,
+            detail: "unloaded",
+            httpStatus: res.status,
+          };
+        }
         this.availabilityCache = { ok: false, checkedAt: Date.now() };
         return {
-          runtimeReachable: true,
+          runtimeReachable: false,
           modelInstalled: false,
           usable: false,
-          detail: unloaded ? "unloaded" : "unreachable",
+          detail: "unreachable",
           httpStatus: res.status,
         };
       }
-      const data = (await res.json()) as FlavoraHealth;
+      let data: FlavoraHealth;
+      try {
+        data = (await res.json()) as FlavoraHealth;
+      } catch {
+        // 200 with a non-JSON body is not our service (port squat) — unreachable.
+        this.availabilityCache = { ok: false, checkedAt: Date.now() };
+        return { runtimeReachable: false, modelInstalled: false, usable: false, detail: "unreachable", httpStatus: 200 };
+      }
+      if (typeof data !== "object" || data === null || !("loaded" in data) || !("model" in data)) {
+        // 200 JSON without the FlavoraLM health shape is not our service.
+        this.availabilityCache = { ok: false, checkedAt: Date.now() };
+        return { runtimeReachable: false, modelInstalled: false, usable: false, detail: "unreachable", httpStatus: 200 };
+      }
       const modelName = String(data.model ?? "");
       // Our model, any version: FlavoraLM or FlavoraLM-dev.
       const modelInstalled = data.loaded === true && /^flavoraLM/i.test(modelName);

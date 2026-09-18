@@ -72,7 +72,7 @@ jobs:
       - run: npx prisma db push --schema prisma/schema.prisma --skip-generate
       - run: npm run db:seed
       - name: Run slow specs (persisted JSON + list output)
-        run: npx playwright test e2e/flavoralm.spec.ts e2e/journey.spec.ts e2e/foodlog.spec.ts --reporter=list,json:../../playwright-eval-results/slow.json
+        run: npx playwright test --config=playwright.slow.config.ts
         working-directory: client
       - name: Upload slow-spec results
         if: always()

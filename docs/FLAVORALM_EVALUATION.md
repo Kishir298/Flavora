@@ -18,6 +18,18 @@
 > settings costs ~200s CPU (~55h full set); recorded training metrics stand in.
 > Dev numbers below are retained as history.
 >
+> Update 2026-09-18 (FULL production eval, runner v1.2.0): the complete
+> 1000-example held-out set actually ran (`npm run eval:full`, 1h43m wall,
+> avg ~6.0s/ex, EVAL PASS): completed 1000/1000, passed 705, failed 295,
+> errored 0, skipped 0; intentExactMatch 0.004, schemaValidity 0.705,
+> invalidJson 0.295, negation 0.049, repeatability 1.0; field accuracy weak
+> across the board (ingredients 0.109 best, most constrained fields 0.0) —
+> the small model emits schema-valid JSON most of the time but rarely the
+> exact gold intent, which is why the assistant validates output and falls
+> back to the heuristic parser (labeled honestly in the UI). Report
+> `models/flavora-lm/v0.1/eval.json` (gitignored) records the evaluated
+> commit (`d137af4`, dirty — docs edits uncommitted at launch).
+>
 > Update 2026-09-18 (sampled eval, production): full 1000-example eval remains
 > infeasible on laptop CPU (~9s/example → ~2.5h per 1000 on the production
 > checkpoint, not 55h as earlier estimated from debug settings). Ran a 5-example
@@ -106,7 +118,7 @@ npm run evaluate:llm -- --max-examples 150
 npm run verify:local-ai && npm run verify:llm:init
 ```
 
-## Resumable full evaluation (runner v1.1.0)
+## Resumable full evaluation (runner v1.2.0)
 
 `training/evaluate.py` assigns every example a stable ID
 (`ex-{index}-{sha8(input)}`) and appends each result to
@@ -117,8 +129,11 @@ reloads the checkpoint and skips recorded IDs; `--limit N` bounds the run;
 `--timeout-s S` guards hung extractions (`timeout` failure category);
 `--checkpoint <path>` / `--out <path>` relocate the checkpoint / final
 report. The final `eval.json` reports total/completed/passed/failed/errored/
-skipped, avg + median latency, 5 slowest examples, failure categories, and
-the dataset/model/config/runner record. CI runs the full set only on manual
+skipped, avg + median latency, 5 slowest examples, failure categories, the
+dataset/model/config/runner record, and `gitCommit` (HEAD SHA + dirty flag,
+`null` outside git). Resume trusts only checkpoint records stamped with the
+current `datasetId` (pre-v1.1.0 records without one are trusted; records from
+another dataset are recomputed). CI runs the full set only on manual
 dispatch or weekly schedule (`.github/workflows/eval.yml`, artifacts
 uploaded); PRs run the 25-example smoke plus unit suites (`ci.yml`).
 

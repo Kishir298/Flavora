@@ -233,7 +233,8 @@ skips recorded IDs. One bad example is recorded with its failure category
 (`invalid_json` / `timeout` / `model_error`) and never aborts the run.
 Final report lands in `models/flavora-lm/v0.1/eval.json` (gitignored):
 total/completed/passed/failed/errored/skipped, avg + median latency, 5
-slowest examples, failure categories, dataset/model/runner config.
+slowest examples, failure categories, dataset/model/runner config, and the
+evaluated git commit.
 
 Slow-spec evaluation (long browser chat loops, heuristic mode):
 
@@ -243,7 +244,8 @@ npm run eval:slow                          # flavoralm + journey + foodlog specs
 
 Expected runtime: minutes per spec (120–300s timeouts each). Results persist
 to `playwright-eval-results/slow.json` (gitignored) plus the standard
-Playwright report. Requires `npm run setup` once + `npx playwright install
+Playwright report, via `client/playwright.slow.config.ts` (serial workers).
+Requires `npm run setup` once + `npx playwright install
 chromium`; override the API base with `API_URL` if it is not `:4000`.
 
 **Troubleshooting model startup**

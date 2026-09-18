@@ -10,6 +10,7 @@ from training.evaluate import (
     dataset_id,
     example_id,
     filter_resume,
+    git_commit,
     load_checkpoint,
     summarize,
 )
@@ -64,6 +65,19 @@ class TestFilterResume(unittest.TestCase):
         kept, stale = filter_resume(recs, "ds:1")
         self.assertEqual(set(kept), {"a", "c"})
         self.assertEqual(stale, 1)
+
+
+class TestGitCommit(unittest.TestCase):
+    def test_returns_sha_and_dirty_flag_in_repo(self):
+        info = git_commit()
+        self.assertIsNotNone(info)
+        assert info is not None
+        self.assertRegex(info["sha"], r"^[0-9a-f]{40}$")
+        self.assertIsInstance(info["dirty"], bool)
+
+    def test_none_outside_git(self):
+        with tempfile.TemporaryDirectory() as td:
+            self.assertIsNone(git_commit(td))
 
 
 class TestSummarize(unittest.TestCase):

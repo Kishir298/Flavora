@@ -201,12 +201,13 @@ test("route-specific accessible contracts", async ({ page }) => {
 });
 
 test("form validation errors are announced", async ({ page }) => {
-  // Meals: submitting without a name surfaces a role=alert error (no backend needed).
+  // Meals: a whitespace-only name passes native `required` but fails the
+  // React trim() check, surfacing a role=alert error (no backend needed).
   await page.goto("/meals");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(/meals/i);
-  await page.getByLabel("meal name").fill("");
+  await page.getByLabel("meal name").fill("   ");
   await page.getByRole("button", { name: /^log meal$/i }).click();
   const alert = page.getByRole("alert").first();
   await expect(alert).toBeVisible({ timeout: 10_000 });
-  expect(((await alert.textContent()) ?? "").trim().length).toBeGreaterThan(0);
+  await expect(alert).toContainText(/meal name is required/i);
 });

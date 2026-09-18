@@ -46,7 +46,7 @@ test("complete journey: goals, meals, dashboard, plan, groceries, reload", async
   await expect(page.getByText(/average:/i)).toBeVisible({ timeout: 10_000 });
 
   // Meal plan → groceries chain (existing critical-path APIs via UI).
-  await nav.getByRole("link", { name: "Assistant" }).click();
+  await nav.getByRole("link", { name: "Ask Flavora" }).click();
   await chatUntilResults(page, "I want something with oats and milk");
   const first = page.getByLabel(/open /i).first();
   await expect(first).toBeVisible({ timeout: 15_000 });

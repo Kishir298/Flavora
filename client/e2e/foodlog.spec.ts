@@ -9,12 +9,14 @@ import { apiUrl } from "./apiBase";
 test("meal log flows into dashboard, statistics and assistant facts", async ({ page, request }) => {
   const mealName = `E2E Soup ${Date.now()}`;
 
-  // 1-2. Dashboard loads with working nav.
+  // 1-2. Home is the chat-first assistant; Dashboard lives at /dashboard.
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Dashboard");
-  for (const label of ["Dashboard", "Meals", "Insights", "Assistant", "Explorer", "Settings"]) {
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("FLAVORA");
+  for (const label of ["Ask Flavora", "Dashboard", "Meals", "Insights", "Explorer", "Settings"]) {
     await expect(page.getByRole("navigation", { name: "main" }).getByRole("link", { name: label })).toBeVisible();
   }
+  await page.getByRole("navigation", { name: "main" }).getByRole("link", { name: "Dashboard" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Dashboard");
 
   // 3-5. Log a meal via the UI.
   await page.getByRole("navigation", { name: "main" }).getByRole("link", { name: "Meals" }).click();

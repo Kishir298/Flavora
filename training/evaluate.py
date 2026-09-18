@@ -77,7 +77,31 @@ def _has_negation(text: str) -> bool:
     return any(w in t for w in ("no ", "not ", "don't", "do not", "without", "allergic", "avoid", "can't", "cannot"))
 
 
-RUNNER_VERSION = "1.1.0"
+RUNNER_VERSION = "1.2.0"
+
+
+def git_commit(repo: str | Path | None = None) -> dict | None:
+    """HEAD SHA + dirty flag for the evaluation report, or None outside git."""
+    import subprocess
+
+    root = Path(repo) if repo else ROOT
+    try:
+        sha = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=root, capture_output=True,
+            text=True, timeout=15,
+        )
+        if sha.returncode != 0:
+            return None
+        dirty = subprocess.run(
+            ["git", "status", "--porcelain=v1"], cwd=root, capture_output=True,
+            text=True, timeout=15,
+        )
+        return {
+            "sha": sha.stdout.strip(),
+            "dirty": bool(dirty.stdout.strip()) if dirty.returncode == 0 else None,
+        }
+    except (OSError, subprocess.SubprocessError):
+        return None
 
 
 def example_id(index: int, text: str) -> str:
@@ -376,6 +400,7 @@ def main() -> int:
             "checkpoint": str(ckpt_path),
         },
         "modelSpec": {"parameterCount": param_count},
+        "gitCommit": git_commit(),
         "runnerVersion": RUNNER_VERSION,
         "runStartedAt": run_started,
         "evaluatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

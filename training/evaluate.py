@@ -31,7 +31,6 @@ import argparse
 import concurrent.futures
 import hashlib
 import json
-import math
 import sys
 import time
 from pathlib import Path
@@ -123,6 +122,17 @@ def append_record(path: str | Path, rec: dict) -> None:
         f.flush()
 
 
+def filter_resume(records: dict[str, dict], ds_id: str) -> tuple[dict[str, dict], int]:
+    """Keep only checkpoint records belonging to this dataset run.
+
+    Records without a datasetId predate runner v1.1.0 and are trusted;
+    records stamped with another dataset are stale and must be recomputed.
+    Returns (kept, stale_count).
+    """
+    kept = {k: v for k, v in records.items() if v.get("datasetId") in (None, ds_id)}
+    return kept, len(records) - len(kept)
+
+
 def summarize(latencies: list[float]) -> dict:
     """avg/median latency plus the slowest examples (by parallel index list)."""
     if not latencies:
@@ -166,10 +176,16 @@ def main() -> int:
     print(f"  {len(examples)} held-out test examples ({skipped} skipped by cap)", flush=True)
 
     ckpt_path = Path(args.checkpoint) if args.checkpoint else art / "eval-checkpoint.jsonl"
-    done: dict[str, dict] = load_checkpoint(ckpt_path) if args.resume else {}
-    if args.resume:
-        print(f"  resume: {len(done)} already-completed examples in {ckpt_path}", flush=True)
     ds_id = dataset_id(args.test_file, dataset_total)
+    done: dict[str, dict] = {}
+    if args.resume:
+        raw = load_checkpoint(ckpt_path)
+        # Never trust records from a different dataset/run: only IDs that
+        # also carry this run's datasetId are skippable.
+        done, skipped_stale = filter_resume(raw, ds_id)
+        print(f"  resume: {len(done)} already-completed examples in {ckpt_path}"
+              + (f" ({skipped_stale} stale records from another dataset ignored)" if skipped_stale else ""),
+              flush=True)
     run_started = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
     n = len(examples)
@@ -293,6 +309,7 @@ def main() -> int:
                         neg = False
             rec = {
                 "id": eid,
+                "datasetId": ds_id,
                 "status": status,
                 "latencyMs": ms,
                 "timestamp": ts,

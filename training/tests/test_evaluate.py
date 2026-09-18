@@ -9,6 +9,7 @@ from training.evaluate import (
     append_record,
     dataset_id,
     example_id,
+    filter_resume,
     load_checkpoint,
     summarize,
 )
@@ -51,6 +52,18 @@ class TestCheckpoint(unittest.TestCase):
             ckpt.write_text('not json\n{"id": "ex-1"}\n\n{"no": "id"}\n', encoding="utf-8")
             done = load_checkpoint(ckpt)
             self.assertEqual(set(done), {"ex-1"})
+
+
+class TestFilterResume(unittest.TestCase):
+    def test_stale_dataset_records_ignored(self):
+        recs = {
+            "a": {"id": "a", "datasetId": "ds:1"},
+            "b": {"id": "b", "datasetId": "other:9"},
+            "c": {"id": "c"},  # pre-v1.1.0 record: trusted
+        }
+        kept, stale = filter_resume(recs, "ds:1")
+        self.assertEqual(set(kept), {"a", "c"})
+        self.assertEqual(stale, 1)
 
 
 class TestSummarize(unittest.TestCase):

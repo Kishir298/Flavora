@@ -38,6 +38,8 @@ build/
 .vite/
 .next/
 out/
+*.tsbuildinfo
+*.tsbuildinfo.*
 
 # Logs / OS
 logs/
@@ -65,4 +67,9 @@ server/src/engine/.venv/
 # FlavoraLM dev-model outputs (fast-test only; `npm run train:llm:dev` regenerates).
 # The v0.1/ production release IS committed — never ignore it.
 models/flavora-lm/dev/
+# Eval reports are machine-specific (ms timings) — regenerate via
+# `npm run evaluate:llm:sample` (25 ex, minutes) or `npm run evaluate:llm`
+# (full set, hours); never commit timing-laden reports.
+models/flavora-lm/v0.1/eval.json
+models/flavora-lm/dev/eval.json
 dev-dist/

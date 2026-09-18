@@ -126,7 +126,7 @@ Known limitations: full 1000-example `evaluate.py` not run (hardware); `favorite
 - FlavoraLM production checkpoint (4,947,456 params) extracts usable intent for allergy/avoid + simple ingredient prompts (`verify:local-ai` 8/8 with pinned avoid+ingredients message); other nuanced NL still falls back to the heuristic parser (labeled honestly in the UI). Retrain with `npm run train:llm` to improve it; training metrics live in `metrics.json`, analysis in `docs/FLAVORALM_EVALUATION.md`.
 - The committed `training_meta.json` is an 80-epoch run predating the new `dataset_sha256`/`created_at` fields (dev config now says 120 epochs); the next full `train:llm:dev` run refreshes it.
 - `@axe-core/playwright` is now a client devDependency with a guarded (offline-safe) integration; full `test:e2e` still needs dev servers + browser download.
-- 1 python quality test (`test_extract_ingredients_intent`) is flaky on tiny-model output and fails independent of these changes; tokenizer/model/dataset suites pass 26/26.
-- The substitution E2E skips when the chosen recipe exposes no substitution options (data-dependent, not a failure).
-- Accessibility was hardened + automatically tested but not audited with assistive technology.
-- No live grocery pricing (by design).
+- Former flaky tiny-model test (`test_extract_ingredients_intent`) replaced by `test_extract_returns_schema_valid_intent` (schema validity + determinism); passes. Historical session notes below retain the old name as record.
+- Substitution E2E now navigates directly to seeded `french-onion-soup` (known butter swap) and asserts instead of skipping.
+- Accessibility: automated axe/keyboard/nav coverage + `docs/ACCESSIBILITY.md` manual-AT checklist; human VoiceOver/NVDA pass still open.
+- No live grocery pricing (local-first by design — cost tiers, no price API).

@@ -24,8 +24,9 @@ re-initialized, never crashing the server. Override path for tests:
 Meal record: `{id, name, mealType: breakfast|lunch|dinner|snack|other, loggedAt,
 foods:[{name,quantity?,unit?}], servings?, nutrition?:{calories?,
 protein_g?,carbs_g?,fat_g?} (user- or recipe-provided, never LLM-computed),
-tags?, notes?}`. `favorites: string[]` is a reserved schema field with no UI
-yet (saved recipes live in Prisma interactions).
+tags?, notes?}`. `favorites: string[]` is a deprecated reserved schema field
+kept only for parsing old files — saved recipes canonically live in Prisma
+interactions (`GET /api/saved`); do not build UI on the JSON field.
 
 ## API (all local, all validated)
 

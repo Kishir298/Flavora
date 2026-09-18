@@ -21,6 +21,7 @@
     "train:llm": "node scripts/py.mjs -m training.train --config training/configs/flavora_lm_small.json --data-dir training/data-small",
     "train:llm:dev": "node scripts/py.mjs -m training.train --config training/configs/flavora_lm_dev.json --out-dir models/flavora-lm/dev",
     "evaluate:llm": "node scripts/py.mjs -m training.evaluate --artifacts models/flavora-lm/v0.1 --test-file training/data-small/test.jsonl",
+    "evaluate:llm:sample": "node scripts/py.mjs -m training.evaluate --artifacts models/flavora-lm/v0.1 --test-file training/data-small/test.jsonl --max-examples 25",
     "evaluate:llm:dev": "node scripts/py.mjs -m training.evaluate --artifacts models/flavora-lm/dev",
     "lm:serve": "node scripts/py.mjs -m training.flavora_lm.service",
     "db:push": "npx prisma db push --schema prisma/schema.prisma",

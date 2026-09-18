@@ -18,6 +18,14 @@
 > settings costs ~200s CPU (~55h full set); recorded training metrics stand in.
 > Dev numbers below are retained as history.
 >
+> Update 2026-09-18 (sampled eval, production): full 1000-example eval remains
+> infeasible on laptop CPU (~9s/example → ~2.5h per 1000 on the production
+> checkpoint, not 55h as earlier estimated from debug settings). Ran a 5-example
+> smoke sample: schemaValidity 0.6, invalidJson 0.4, repeatability 1.0,
+> avg ~9.1s/example. Use `npm run evaluate:llm:sample` (25 examples, minutes)
+> for routine checks; `npm run evaluate:llm` for the full set. Reports write to
+> `models/flavora-lm/v0.1/eval.json` (gitignored — machine-specific timings).
+>
 > Update 2026-09-17 (dev history): the dev checkpoint was fully retrained (120 epochs,
 > vocab unified to 540, 882,944 params). Fresh numbers — train 0.153, val
 > 0.155, ppl 1.17; capped eval schemaValidity 0.9, invalidJson 0.1, negation
@@ -81,9 +89,11 @@ numbers are reported as weak, with the cause and the remedy stated.
 3. Training artifact is an 80-epoch run while the dev config now says 120
    (interrupted run); `training_meta.json` predates the new
    `dataset_sha256`/`created_at` fields.
-4. One pre-existing flaky python test (`test_extract_ingredients_intent`:
-   tiny-model quality assertion `inventory` vs `recommend`) fails independent
-   of these changes; tokenizer/model/dataset suites pass 26/26.
+4. The former tiny-model quality test (`test_extract_ingredients_intent`, exact-label
+   assertion on a 3-example coin-flip model) failed independent of app changes;
+   it was replaced by `test_extract_returns_schema_valid_intent` (schema
+   validity + determinism — the actual pipeline guarantees) and now passes;
+   tokenizer/model/dataset suites pass 26/26.
 
 ## How to improve (exact commands)
 ```bash

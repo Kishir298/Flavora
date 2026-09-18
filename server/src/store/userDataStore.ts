@@ -4,9 +4,13 @@ import { randomUUID } from "node:crypto";
 
 /**
  * Local JSON user-data store — the authoritative home of the NEW
- * food-tracking domain (meals, goals, water, favorites). Existing
+ * food-tracking domain (meals, goals, water). Existing
  * Prisma/SQLite tables keep owning recipes, inventory, groceries,
  * meal plans, interactions and substitutions.
+ *
+ * NOTE: `favorites` remains in the schema only for forward-compat parsing
+ * of old files. Saved recipes canonically live in Prisma interactions
+ * (`GET /api/saved`) — do not build a second favorites source of truth.
  *
  * Atomic writes: tmp file → fsync → rename. A crash can leave a
  * stale tmp file behind, never a half-written user-data.json.
@@ -64,6 +68,7 @@ export interface UserData {
   meals: MealRecord[];
   nutritionLogs: unknown[];
   waterLogs: WaterRecord[];
+  /** @deprecated reserved for old files; canonical saved recipes live in Prisma interactions (`GET /api/saved`). */
   favorites: string[];
   feedback: unknown[];
   mealPlans: unknown[];

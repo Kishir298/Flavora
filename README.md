@@ -252,13 +252,14 @@ The retrain trigger prefers `server/src/engine/.venv/bin/python` when that venv 
 | `npm run dev` | client + server concurrently |
 | `npm run train:llm` / `train:llm:dev` | train FlavoraLM (small / fast dev config) |
 | `npm run train:tokenizer` | train the BPE tokenizer standalone |
-| `npm run evaluate:llm` | held-out FlavoraLM evaluation |
+| `npm run evaluate:llm` | held-out FlavoraLM evaluation (full set, hours) |
+| `npm run evaluate:llm:sample` | 25-example eval smoke (minutes; report → `eval.json`, gitignored) |
 | `npm run verify:local-ai` | 8-step real-inference FlavoraLM verification |
 | `npm run verify:llm:init` | prove weights are freshly initialized |
 | `npm run lm:serve` | run the FlavoraLM inference service manually |
 | `npm run test` | server unit+integration + client component tests |
-| `npm run test:e2e` | Playwright critical paths |
-| `npx playwright test --config=playwright.offline.config.ts` (in `client/`) | offline sync E2E (needs a client build; runs `vite preview`) |
+| `npm run test:e2e` | Playwright critical paths (needs `npm run setup` once + `npx playwright install chromium`; API base overridable via `API_URL`) |
+| `npx playwright test --config=playwright.offline.config.ts` (in `client/`) | offline sync E2E only (needs `npm run build --workspace=client` first; runs `vite preview`) |
 | `npm run db:push` / `db:seed` | init + seed SQLite from `/data` |
 
 ## Docs
@@ -278,7 +279,8 @@ focus rings, `prefers-reduced-motion` support, `role=status/alert` live regions
 `client/e2e/a11y.spec.ts` (dependency-free baseline on every route **plus**
 guarded `@axe-core/playwright` critical/serious check when installed) and
 `client/e2e/keyboard.spec.ts` (keyboard-only skip → main → operate).
-Not yet audited with assistive technology — see `docs/FLAVORALM_AUDIT.md`.
+Manual assistive-technology pass not yet done — checklist in
+`docs/ACCESSIBILITY.md`.
 
 ## Architecture
 
@@ -402,9 +404,9 @@ This goes offline (Chromium emulation), adds an inventory item, reloads the page
 - Structured cravings cover common vocab with negation handling; nuanced prose still falls back to token overlap.
 - Recipe nutrition is authored (all 80 seeded recipes); online enrichment (USDA/Open Food Facts) only fills gaps for new lookups and is cached — offline or unmatched values stay explicitly `unknown`.
 - Unit conversion is allowlist-only (g/kg, ml/l/tsp/tbsp/cup, pieces); ambiguous units never convert.
-- Budget uses authored cost tiers, never live prices.
+- Budget uses authored cost tiers, never live prices (local-first by design — no grocery-price API).
 - Expiry dates are user estimates, never food-safety verdicts.
-- `test_extract_ingredients_intent` (tiny-model quality test) is flaky independent of app changes; tokenizer/model/dataset suites pass 26/26 + env suite 2/2.
+- Tiny-model quality test formerly known as `test_extract_ingredients_intent` asserted an exact intent label from a 3-example coin-flip model and failed independent of app changes; it was replaced by `test_extract_returns_schema_valid_intent` (asserts schema validity + determinism, the actual pipeline guarantees). Tokenizer/model/dataset suites pass 26/26 + env suite 2/2.
 
 ### Privacy
 

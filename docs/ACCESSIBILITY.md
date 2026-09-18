@@ -22,6 +22,10 @@ AT pass must still verify.
 
 ## Manual AT checklist (not yet done — human pass required)
 
+Full 24-step NVDA + 24-step VoiceOver plans with result tables live in
+`docs/accessibility-screen-reader-checklist.md` — status there is
+**PENDING HUMAN VALIDATION**. Summary before claiming WCAG AA conformance:
+
 Run with at least VoiceOver (macOS/iOS Safari) + NVDA or JAWS (Windows
 Chrome/Firefox) before claiming WCAG AA conformance:
 

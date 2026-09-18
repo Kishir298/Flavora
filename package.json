@@ -23,6 +23,8 @@
     "evaluate:llm": "node scripts/py.mjs -m training.evaluate --artifacts models/flavora-lm/v0.1 --test-file training/data-small/test.jsonl",
     "evaluate:llm:sample": "node scripts/py.mjs -m training.evaluate --artifacts models/flavora-lm/v0.1 --test-file training/data-small/test.jsonl --max-examples 25",
     "evaluate:llm:dev": "node scripts/py.mjs -m training.evaluate --artifacts models/flavora-lm/dev",
+    "eval:full": "node scripts/py.mjs -m training.evaluate --artifacts models/flavora-lm/v0.1 --test-file training/data-small/test.jsonl",
+    "eval:slow": "npm run test:e2e --workspace=client -- e2e/flavoralm.spec.ts e2e/journey.spec.ts e2e/foodlog.spec.ts",
     "lm:serve": "node scripts/py.mjs -m training.flavora_lm.service",
     "db:push": "npx prisma db push --schema prisma/schema.prisma",
     "db:seed": "npm run seed --workspace=server",

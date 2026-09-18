@@ -32,6 +32,8 @@ const ROUTES = [
 async function auditPage(page: Page) {
   // Single top-level main landmark, labelled by the skip link target.
   expect(await page.locator("main").count()).toBe(1);
+  // Main is a focus target for skip-link / route-change focus management.
+  expect(await page.locator("main#main[tabindex='-1']").count()).toBe(1);
   // Semantic nav with an accessible name.
   const nav = page.locator("nav[aria-label], nav[aria-labelledby]");
   expect(await nav.count()).toBeGreaterThanOrEqual(1);
@@ -43,6 +45,16 @@ async function auditPage(page: Page) {
     if (!(await b.isVisible())) continue;
     const name = ((await b.textContent()) ?? "").trim() || (await b.getAttribute("aria-label")) || "";
     expect(name.length, `button #${i} has no accessible name`).toBeGreaterThan(0);
+  }
+
+  // Every visible link has an accessible name (recipe cards render as
+  // `Open <title>` links; generic "click here" links would fail here).
+  const links = page.locator("a[href]");
+  for (let i = 0; i < (await links.count()); i++) {
+    const a = links.nth(i);
+    if (!(await a.isVisible())) continue;
+    const name = ((await a.textContent()) ?? "").trim() || (await a.getAttribute("aria-label")) || "";
+    expect(name.length, `link #${i} has no accessible name`).toBeGreaterThan(0);
   }
 
   // Every form control has a label (explicit, wrapping, or aria-labelled).
@@ -147,4 +159,54 @@ test("assistant status regions are announced", async ({ page }) => {
   const status = page.getByTestId("ai-status");
   await expect(status).toBeVisible();
   await expect(status).toContainText(/AI: (FlavoraLM|Heuristic)/);
+});
+
+test("route-specific accessible contracts", async ({ page }) => {
+  // Assistant: named live log, labelled input, named submit, AI status.
+  await page.goto("/");
+  const log = page.getByRole("log", { name: /flavora conversation/i });
+  await expect(log).toBeVisible({ timeout: 10_000 });
+  await expect(log).toHaveAttribute("aria-live", "polite");
+  await expect(page.getByLabel(/tell flavora what you want/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /ask flavora/i })).toBeVisible();
+  await expect(page.getByTestId("ai-status")).toBeVisible();
+
+  // Dashboard + Insights: every chart exposes a text alternative.
+  for (const route of ["/dashboard", "/insights"]) {
+    await page.goto(route);
+    await expect(page.locator("main")).toBeVisible({ timeout: 10_000 });
+    const charts = page.locator("[role='img']");
+    for (let i = 0; i < (await charts.count()); i++) {
+      const label = ((await charts.nth(i).getAttribute("aria-label")) ?? "").trim();
+      expect(label.length, `chart #${i} on ${route} has no text alternative`).toBeGreaterThan(0);
+    }
+  }
+
+  // Explorer: recipe cards are named links.
+  await page.goto("/explorer");
+  await page.getByRole("button", { name: /^italian$/i }).click();
+  const first = page.getByLabel(/Open /).first();
+  await expect(first).toBeVisible({ timeout: 10_000 });
+  expect(((await first.textContent()) ?? "").trim().length).toBeGreaterThan(0);
+
+  // Pantry / groceries / meal plan / settings: key forms are labelled.
+  await page.goto("/inventory");
+  await expect(page.getByLabel(/ingredient name/i).first()).toBeVisible({ timeout: 10_000 });
+  await page.goto("/groceries");
+  await expect(page.getByLabel(/grocery item name/i).first()).toBeVisible({ timeout: 10_000 });
+  await page.goto("/meal-plan");
+  await expect(page.getByLabel(/^day$/i).first()).toBeVisible({ timeout: 10_000 });
+  await page.goto("/settings");
+  await expect(page.getByLabel(/meals per day goal/i).first()).toBeVisible({ timeout: 10_000 });
+});
+
+test("form validation errors are announced", async ({ page }) => {
+  // Meals: submitting without a name surfaces a role=alert error (no backend needed).
+  await page.goto("/meals");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(/meals/i);
+  await page.getByLabel("meal name").fill("");
+  await page.getByRole("button", { name: /^log meal$/i }).click();
+  const alert = page.getByRole("alert").first();
+  await expect(alert).toBeVisible({ timeout: 10_000 });
+  expect(((await alert.textContent()) ?? "").trim().length).toBeGreaterThan(0);
 });

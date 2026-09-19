@@ -59,15 +59,30 @@ test("substitution: apply then revert on a recipe detail page", async ({ page })
 
   const subSection = page.getByText("Substitutions");
   await expect(subSection.first()).toBeVisible({ timeout: 15_000 });
+  // The section is a collapsed <details>: expand it before touching controls.
+  await page.locator("summary", { hasText: "Substitutions" }).first().click();
 
-  const select = page.getByLabel(/Replace with/i).first();
+  const select = page.getByLabel(/Replace with|substitute for/i).first();
   await expect(select).toBeVisible({ timeout: 10_000 });
-  const optionText = (await select.locator("option").first().textContent())?.trim();
+  const optionText = ((await select.locator("option").first().textContent()) ?? "").trim();
   expect(optionText, "seeded french-onion-soup must expose a butter substitution").toBeTruthy();
 
   const applyButton = page.getByRole("button", { name: /^Apply$/i }).first();
-  await applyButton.click();
-  await expect(page.getByText(new RegExp(`Applied: .* → ${optionText}`, "i"))).toBeVisible({ timeout: 10_000 });
+  // Synchronize on the apply round-trip itself instead of blind-polling the
+  // toast: the message can only render after this response resolves.
+  const [applyRes] = await Promise.all([
+    page.waitForResponse((r) => r.url().includes("/api/substitutions") && r.request().method() === "POST", {
+      timeout: 15_000,
+    }),
+    applyButton.click(),
+  ]);
+  expect(applyRes.ok(), "substitution apply POST must succeed").toBe(true);
+  // Assert on the status node with plain-string containment: the option text
+  // contains regex metacharacters ("(3/4 …)") that must never be interpolated
+  // into a RegExp unescaped.
+  const toast = page.locator('[role="status"]', { hasText: "Applied:" });
+  await expect(toast).toBeVisible({ timeout: 10_000 });
+  await expect(toast).toContainText(optionText);
 
   // Applied state shows the replacement inline
   await expect(page.getByText(/→/i).first()).toBeVisible();

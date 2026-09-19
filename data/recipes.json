@@ -382,7 +382,7 @@
     "cook_time_minutes": 35,
     "difficulty": "easy",
     "spice_level": "mild",
-    "diet_tags": ["vegetarian", "vegan", "gluten_free"],
+    "diet_tags": ["vegetarian", "gluten_free"],
     "ingredients": [
       { "name": "yellow lentils", "quantity": 1, "unit": "cup" },
       { "name": "onion, diced", "quantity": 1, "unit": null },
@@ -632,7 +632,7 @@
     "cook_time_minutes": 15,
     "difficulty": "easy",
     "spice_level": "mild",
-    "diet_tags": ["vegetarian"],
+    "diet_tags": [],
     "ingredients": [
       { "name": "chicken stock", "quantity": 4, "unit": "cup" },
       { "name": "eggs, beaten", "quantity": 3, "unit": null },

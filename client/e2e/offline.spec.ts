@@ -92,3 +92,30 @@ test("substitution: apply then revert on a recipe detail page", async ({ page })
   await undo.click();
   await expect(page.getByText(/Reverted/i)).toBeVisible({ timeout: 10_000 });
 });
+
+/**
+ * §E2E-7b: Deep-link offline reload works from the app-shell precache
+ * (navigateFallback). Proves /meal-plan (not just /inventory) survives an
+ * offline reload on the production build (vite preview).
+ */
+test("offline: deep-link /meal-plan reloads offline via app-shell fallback", async ({ page }) => {
+  await page.goto("/meal-plan");
+  await expect(page.getByRole("heading", { level: 1, name: /meal plan/i })).toBeVisible({ timeout: 15_000 });
+
+  await page.evaluate(async () => {
+    if (!("serviceWorker" in navigator)) return;
+    await navigator.serviceWorker.ready;
+    if (!navigator.serviceWorker.controller) {
+      await new Promise<void>((resolve) => {
+        navigator.serviceWorker.addEventListener("controllerchange", () => resolve(), { once: true });
+        setTimeout(() => resolve(), 8_000);
+      });
+    }
+  });
+
+  await page.context().setOffline(true);
+  await page.reload();
+  // App shell must serve the deep link offline (not a browser ERR_INTERNET_DISCONNECTED).
+  await expect(page.getByRole("heading", { level: 1, name: /meal plan/i })).toBeVisible({ timeout: 15_000 });
+  await page.context().setOffline(false);
+});

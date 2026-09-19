@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api, type InventoryItem } from "../lib/api";
 import { useOnlineStatus } from "../lib/useOnlineStatus";
 import { enqueueMutation } from "../lib/mutationQueue";
@@ -39,6 +39,10 @@ export function Inventory() {
   const [editQty, setEditQty] = useState("");
   const [editUnit, setEditUnit] = useState("pieces");
   const [editExpiry, setEditExpiry] = useState("");
+  const editNameRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (editId != null) editNameRef.current?.focus();
+  }, [editId]);
   const { online, pending } = useOnlineStatus();
 
   const load = async () => {
@@ -193,7 +197,7 @@ export function Inventory() {
               {editId === i.id ? (
                 <form onSubmit={(ev) => { ev.preventDefault(); void saveEdit(i); }} className="flex flex-wrap items-end gap-2" aria-label={`edit ${i.name}`}>
                   <label className="text-sm">Ingredient
-                    <input aria-label={`edit ingredient name for ${i.name}`} className="ml-1 rounded border px-2 py-1" value={editName} onChange={(e) => setEditName(e.target.value)} required />
+                    <input ref={editNameRef} aria-label={`edit ingredient name for ${i.name}`} className="ml-1 rounded border px-2 py-1" value={editName} onChange={(e) => setEditName(e.target.value)} required />
                   </label>
                   <label className="text-sm">Qty
                     <input aria-label={`edit quantity for ${i.name}`} type="number" min={0} className="ml-1 w-20 rounded border px-2 py-1" value={editQty} onChange={(e) => setEditQty(e.target.value)} />

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, type GroceryItem } from "../lib/api";
 import { useOnlineStatus } from "../lib/useOnlineStatus";
 import { enqueueMutation } from "../lib/mutationQueue";
@@ -17,6 +17,10 @@ export function Groceries() {
   const [editQty, setEditQty] = useState("");
   const [editUnit, setEditUnit] = useState("pieces");
   const [removedItems, setRemovedItems] = useState<GroceryItem[]>([]);
+  const editNameRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (editId != null) editNameRef.current?.focus();
+  }, [editId]);
   const { online, pending } = useOnlineStatus();
 
   const load = async () => {
@@ -177,7 +181,7 @@ export function Groceries() {
                 {editId === it.id ? (
                   <form onSubmit={(ev) => { ev.preventDefault(); void saveEdit(it); }} className="flex flex-wrap items-end gap-2" aria-label={`edit ${it.name}`}>
                     <label className="text-sm">Name
-                      <input aria-label={`edit name for ${it.name}`} className="ml-1 rounded border px-2 py-1" value={editName} onChange={(e) => setEditName(e.target.value)} required />
+                      <input ref={editNameRef} aria-label={`edit name for ${it.name}`} className="ml-1 rounded border px-2 py-1" value={editName} onChange={(e) => setEditName(e.target.value)} required />
                     </label>
                     <label className="text-sm">Qty
                       <input aria-label={`edit quantity for ${it.name}`} type="number" min={0} className="ml-1 w-20 rounded border px-2 py-1" value={editQty} onChange={(e) => setEditQty(e.target.value)} />

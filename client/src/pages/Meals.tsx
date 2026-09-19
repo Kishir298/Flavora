@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, type MealLog } from "../lib/api";
 import { enqueueMealLog } from "../lib/mealQueue";
 import { enqueueMutation } from "../lib/mutationQueue";
@@ -27,6 +27,10 @@ export function Meals() {
   const [waterToday, setWaterToday] = useState<number | null>(null);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
+  const mealNameRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (editingId != null) mealNameRef.current?.focus();
+  }, [editingId]);
 
   const reload = async (opts?: { quiet?: boolean }) => {
     try {
@@ -143,7 +147,7 @@ export function Meals() {
       <form onSubmit={submit} className="rounded border border-neutral-200 dark:border-neutral-800 p-4 space-y-2 bg-white dark:bg-neutral-900">
         <h2 className="font-semibold">{editingId ? "Edit meal" : "Log a meal"}</h2>
         <label className="block text-sm">Meal name
-          <input aria-label="meal name" className={input} value={form.name} onChange={(e) => set("name", e.target.value)} required placeholder="Lentil soup" />
+          <input ref={mealNameRef} aria-label="meal name" className={input} value={form.name} onChange={(e) => set("name", e.target.value)} required placeholder="Lentil soup" />
         </label>
         <div className="grid gap-2 sm:grid-cols-2">
           <label className="block text-sm">Meal type

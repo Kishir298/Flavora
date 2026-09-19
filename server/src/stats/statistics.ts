@@ -66,7 +66,8 @@ export function computeStats(
   const from = startOfDay(now).getTime() - (days - 1) * DAY;
   const inRange = meals.filter((m) => {
     const t = new Date(m.loggedAt).getTime();
-    return Number.isFinite(t) && t >= from && t <= now.getTime() + DAY;
+    // 5min clock-skew tolerance — never include tomorrow's meals.
+    return Number.isFinite(t) && t >= from && t <= now.getTime() + 5 * 60 * 1000;
   });
 
   const buckets: DayBucket[] = [];

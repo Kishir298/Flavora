@@ -121,6 +121,10 @@ export function validateMealInput(b: unknown): Omit<MealRecord, "id"> {
   }
   const loggedAt = body.loggedAt ?? new Date().toISOString();
   if (!isIsoDate(loggedAt)) throw new ValidationError("loggedAt must be an ISO timestamp");
+  // Future meals leak into stats — reject beyond 5min clock skew.
+  if (new Date(loggedAt).getTime() > Date.now() + 5 * 60 * 1000) {
+    throw new ValidationError("loggedAt cannot be in the future");
+  }
   const rawFoods = Array.isArray(body.foods) ? body.foods : [];
   const foods: MealFood[] = rawFoods.slice(0, 50).map((f) => {
     const o = (f ?? {}) as Record<string, unknown>;
@@ -243,9 +247,11 @@ export class UserDataStore {
     return this.data;
   }
 
+  private static tmpCounter = 0;
   private flush(): void {
     const d = this.ensure();
-    const tmp = `${this.file}.tmp-${process.pid}`;
+    UserDataStore.tmpCounter += 1;
+    const tmp = `${this.file}.tmp-${process.pid}-${Date.now()}-${UserDataStore.tmpCounter}-${randomUUID().slice(0, 8)}`;
     const fd = fs.openSync(tmp, "w");
     try {
       fs.writeFileSync(fd, JSON.stringify(d, null, 2));
@@ -330,6 +336,9 @@ export class UserDataStore {
     if (!Number.isFinite(v) || v <= 0 || v > 10000) throw new ValidationError("ml out of range");
     const at = loggedAt ?? new Date().toISOString();
     if (!isIsoDate(at)) throw new ValidationError("loggedAt must be an ISO timestamp");
+    if (new Date(at).getTime() > Date.now() + 5 * 60 * 1000) {
+      throw new ValidationError("loggedAt cannot be in the future");
+    }
     const rec: WaterRecord = { id: randomUUID(), loggedAt: new Date(at).toISOString(), ml: v };
     this.ensure().waterLogs.push(rec);
     this.flush();
@@ -351,7 +360,7 @@ export function getStore(): UserDataStore {
   if (!shared || sharedKey !== override) {
     shared = new UserDataStore(override || undefined);
     sharedKey = override;
+    shared.init();
   }
-  shared.init();
   return shared;
 }

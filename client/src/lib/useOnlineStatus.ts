@@ -34,6 +34,7 @@ async function refreshShared() {
   } catch { /* indexeddb unavailable in tests */ }
 }
 
+let pollId: ReturnType<typeof setInterval> | null = null;
 function ensureStarted() {
   if (started || typeof window === "undefined") return;
   started = true;
@@ -47,7 +48,13 @@ function ensureStarted() {
     emit();
   });
   void refreshShared();
-  setInterval(() => void refreshShared(), 3000);
+  if (pollId == null) pollId = setInterval(() => void refreshShared(), 3000);
+}
+/** Test/HMR cleanup: stop the shared 3s poll. */
+export function stopOnlinePollForTests() {
+  if (pollId != null) clearInterval(pollId);
+  pollId = null;
+  started = false;
 }
 
 async function syncNowShared() {

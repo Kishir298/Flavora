@@ -111,6 +111,10 @@ export async function markFailed(id: string, error: string): Promise<void> {
   });
 }
 
+/** Shared offline detector: fetch TypeErrors differ per browser (Safari: "Load failed"). */
+export function isNetworkError(msg: string): boolean {
+  return /failed to fetch|network|offline|load failed|fetch failed|aborted/i.test(msg);
+}
 /**
  * Replay pending mutations in order using the provided executor.
  * Executor should throw on failure. Stops on first network-unavailable error.
@@ -126,7 +130,7 @@ export async function replayQueue(exec: (m: QueuedMutation) => Promise<void>): P
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       // offline/network errors: stop, keep pending for later
-      if (/failed to fetch|network|offline/i.test(msg)) break;
+      if (isNetworkError(msg)) break;
       await markFailed(m.id, msg);
       failed++;
     }

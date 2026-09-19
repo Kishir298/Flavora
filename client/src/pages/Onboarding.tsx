@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, type Profile } from "../lib/api";
+import { enqueueMutation, isNetworkError } from "../lib/mutationQueue";
 import { ProfileForm } from "../components/ProfileForm";
 
 export function Onboarding() {
@@ -34,6 +35,18 @@ export function Onboarding() {
               await api.saveProfile(p);
               nav("/");
             } catch (e) {
+              const msg = e instanceof Error ? e.message : String(e);
+              if (isNetworkError(msg)) {
+                await enqueueMutation({
+                  operation: "profile.save",
+                  entityType: "profile",
+                  entityId: "local",
+                  payload: p as Record<string, unknown>,
+                });
+                // Don't strand offline users on onboarding — profile syncs later.
+                nav("/");
+                return;
+              }
               setError(e instanceof Error ? e.message : "Could not save profile.");
             } finally {
               setSaving(false);

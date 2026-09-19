@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api, type Profile, type Goals } from "../lib/api";
 import { AiStatus } from "../components/AiStatus";
 import { ProfileForm } from "../components/ProfileForm";
-import { enqueueMutation } from "../lib/mutationQueue";
+import { enqueueMutation, isNetworkError } from "../lib/mutationQueue";
 
 export function Settings({ onTheme }: { onTheme: (t: string) => void }) {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -56,7 +56,7 @@ export function Settings({ onTheme }: { onTheme: (t: string) => void }) {
               setMsg("Profile saved.");
             } catch (e) {
               const msg = e instanceof Error ? e.message : String(e);
-              if (/failed to fetch|network|offline|load failed/i.test(msg)) {
+              if (isNetworkError(msg)) {
                 try {
                   await enqueueMutation({ operation: "profile.save", entityType: "profile", entityId: "local", payload: { ...p } });
                   setProfile({ ...profile, ...p });
@@ -105,7 +105,23 @@ export function Settings({ onTheme }: { onTheme: (t: string) => void }) {
                   onTheme(p.theme);
                   setMsg(`Theme set to ${p.theme}.`);
                 })
-                .catch(() => setError("Could not update theme."));
+                .catch((e) => {
+                  const msg = e instanceof Error ? e.message : String(e);
+                  if (isNetworkError(msg)) {
+                    void enqueueMutation({
+                      operation: "profile.save",
+                      entityType: "profile",
+                      entityId: "local",
+                      payload: { theme: next },
+                    }).then(() => {
+                      setProfile({ ...profile, theme: next });
+                      onTheme(next);
+                      setMsg("Theme saved locally — will sync when online.");
+                    });
+                    return;
+                  }
+                  setError("Could not update theme.");
+                });
             }}
           >
             Toggle dark / light (now: {profile.theme})

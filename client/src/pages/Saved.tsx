@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type RecipeResult } from "../lib/api";
+import { enqueueMutation, isNetworkError } from "../lib/mutationQueue";
 import { RecipeCard } from "../components/RecipeCard";
 
 export function Saved() {
@@ -26,7 +27,19 @@ export function Saved() {
       await api.interact(id, "unsaved");
       setMsg("Removed from Saved.");
       await load();
-    } catch {
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (isNetworkError(msg)) {
+        await enqueueMutation({
+          operation: "interact",
+          entityType: "recipe",
+          entityId: id,
+          payload: { recipeId: id, action: "unsaved" },
+        });
+        setItems((prev) => prev.filter((r) => r.id !== id));
+        setMsg("Saved locally — will sync when back online.");
+        return;
+      }
       setMsg("Could not unsave — try again.");
     }
   }

@@ -113,10 +113,15 @@ function NavItem({ to, label, end, className }: { to: string; label: string; end
 function RouteFocus() {
   const { pathname } = useLocation();
   useEffect(() => {
-    // Move focus to main on route change so keyboard/screen-reader users
-    // land in the new page (skip link already handles manual jumps).
+    // Move focus to main on every route change so keyboard/screen-reader
+    // users never stay stranded on a removed node (cards, quick actions,
+    // back-links — not just nav). Skip if focus is already inside main
+    // (e.g. same-page anchor / edit input) to avoid stealing it.
     const main = document.getElementById("main");
-    if (main && document.activeElement?.closest("nav")) main.focus({ preventScroll: true });
+    if (!main) return;
+    const active = document.activeElement as HTMLElement | null;
+    if (active && main.contains(active)) return;
+    main.focus({ preventScroll: true });
   }, [pathname]);
   return null;
 }

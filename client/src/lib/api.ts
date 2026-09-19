@@ -145,15 +145,27 @@ export interface AppliedSub {
   quantity?: number | null; unit?: string | null; safety?: "safe" | "unsafe" | "unknown";
 }
 
-const BASE = import.meta.env.VITE_API_URL ?? "";
+const RAW_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
+const BASE = RAW_BASE.replace(/\/$/, "");
 
-async function req<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...init,
-  });
+async function req<T>(path: string, init?: RequestInit & { timeoutMs?: number }): Promise<T> {
+  const { timeoutMs = 30_000, ...fetchInit } = init ?? {};
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      headers: { "Content-Type": "application/json" },
+      ...fetchInit,
+      signal: controller.signal,
+    });
+  } catch (e) {
+    clearTimeout(timer);
+    throw e instanceof Error ? e : new Error(String(e));
+  }
+  clearTimeout(timer);
   if (!res.ok) {
-    let detail = `${init?.method ?? "GET"} ${path} -> ${res.status}`;
+    let detail = `${fetchInit?.method ?? "GET"} ${path} -> ${res.status}`;
     try {
       const body = (await res.json()) as { error?: string };
       if (body?.error) detail = body.error;
@@ -162,7 +174,29 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw new Error(detail);
   }
-  return res.json() as Promise<T>;
+  // 204 No Content / empty body (DELETEs) — don't crash on res.json().
+  if (res.status === 204) return null as T;
+  // Prefer text() when available (handles empty bodies); fall back to json()
+  // for test mocks that only stub json().
+  const anyRes = res as Response & { text?: () => Promise<string>; json?: () => Promise<unknown> };
+  if (typeof anyRes.text === "function") {
+    try {
+      const text = await anyRes.text();
+      if (!text) return null as T;
+      return JSON.parse(text) as T;
+    } catch {
+      // Empty/unparseable body on success → null (DELETE-style).
+      return null as T;
+    }
+  }
+  if (typeof anyRes.json === "function") {
+    try {
+      return (await anyRes.json()) as T;
+    } catch {
+      return null as T;
+    }
+  }
+  return null as T;
 }
 
 export const api = {
@@ -215,7 +249,7 @@ export const api = {
       intent: AssistantIntent; source: AssistantResponse["source"];
       fallbackReason: NonNullable<AssistantResponse["fallbackReason"]>;
       notice: string | null; reply: string; recommendations: Recommendation[];
-    }>("/api/assistant/conversation", { method: "POST", body: JSON.stringify(body) }),
+    }>("/api/assistant/conversation", { method: "POST", body: JSON.stringify(body), timeoutMs: 90_000 }),
   explain: (recipeId: string, mode?: RecommendMode) =>
     req<{ recipeId: string; features: Record<string, number>; weights: Record<string, number>; score: number }>(
       `/api/debug/explain?recipeId=${encodeURIComponent(recipeId)}${mode ? `&mode=${mode}` : ""}`

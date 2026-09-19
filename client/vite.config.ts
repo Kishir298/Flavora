@@ -29,17 +29,28 @@ export default defineConfig({
         type: "module",
       },
       workbox: {
-        // Offline: app shell + previously viewed recipe payloads.
+        // Offline: app shell precache + previously viewed recipe payloads.
+        // navigateFallback ensures deep-link reloads (e.g. /meal-plan) work offline.
+        navigateFallback: "index.html",
+        // @ts-expect-error navigateFallbackDenylist is a valid workbox-build option
+        navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.startsWith("/api/recipes"),
             handler: "StaleWhileRevalidate",
-            options: { cacheName: "flavora-recipes", expiration: { maxEntries: 50 } },
+            options: {
+              cacheName: "flavora-recipes",
+              expiration: { maxEntries: 50, maxAgeSeconds: 7 * 24 * 3600 },
+            },
           },
           {
             urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
             handler: "NetworkFirst",
-            options: { cacheName: "flavora-api", networkTimeoutSeconds: 3 },
+            options: {
+              cacheName: "flavora-api",
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 100, maxAgeSeconds: 24 * 3600 },
+            },
           },
         ],
       },

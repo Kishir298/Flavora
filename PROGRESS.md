@@ -1,5 +1,21 @@
 # Flavora — Progress
 
+## Dietary eligibility enforcement (2026-09-19, this session)
+
+Vegan conversation returned Chicken Fajitas/Tacos. Root cause, three layers:
+routes dropped `dietaryPreference` at the engine boundary; the engine had no
+diet concept (`passesHardFilter` = allergies/avoid only); 37/80 seed recipes
+lack `diet_tags`. Fix: new `server/src/engine/diet.js` (ingredient-derived
+vegan/vegetarian via `filter.js` matching + lookalike exemptions +
+fail-closed unknowns; tags display-only), `filterEligible` single path run
+BEFORE ranking, constraints plumbed through both routes with per-turn
+`assistant-recommend` counters (80→20 eligible→5 served, all vegan PASS on
+clean reseed). Seed bugs fixed at source (`dal-tadka` ghee, `egg-drop-soup`
+chicken stock). Calorie folds into soft `maxCalories`; mealType plumbed
+(no recipe metadata to match — documented). E2E `eval:slow` 6/6 + JSON,
+offline 2/2, suites 246+40 green. NVDA/VoiceOver remain PENDING HUMAN
+VALIDATION.
+
 ## Context-first routing + pending-question parsing (2026-09-19, this session)
 
 Live logs showed constrained-pending turns calling FlavoraLM (836–2516 ms,

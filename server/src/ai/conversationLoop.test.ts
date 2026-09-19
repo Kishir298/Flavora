@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { advanceConversation, createSession } from "./conversationService.js";
+import {
+  advanceConversation,
+  createSession,
+  isBareSlotAnswer,
+  pendingSlot,
+} from "./conversationService.js";
 
 /**
  * Regression: live-UI conversational loop (prompt §2/§14).
@@ -134,5 +139,101 @@ describe("conversation loop regression — observed transcript", () => {
     // A fresh session (what New Chat creates server-side) carries no requirements.
     const fresh = createSession({});
     expect(fresh.request).toEqual({});
+  });
+
+  it("Test 3: 100000 rejected with guidance, pending stays calorieTarget", () => {
+    let r = advanceConversation(undefined, "I want turkey");
+    const sid = r.session.id;
+    r = advanceConversation(sid, "100000");
+    expect(r.done).toBe(false);
+    expect(r.session.request.calorieTarget).toBeUndefined();
+    expect(r.session.request.craving).toContain("turkey");
+    expect(r.question).toMatch(/calories/i);
+    expect(r.question).toMatch(/50.*5000/);
+    expect(pendingSlot(r.session.request)).toBe("calorieTarget");
+  });
+
+  it("Test 4: valid calorie after invalid calorie advances", () => {
+    let r = advanceConversation(undefined, "I want turkey");
+    const sid = r.session.id;
+    r = advanceConversation(sid, "100000");
+    r = advanceConversation(r.session.id, "500");
+    expect(r.session.request.calorieTarget).toBe(500);
+    expect(r.session.request.craving).toContain("turkey");
+    if (!r.done) expect(r.question).not.toMatch(/calories/i);
+  });
+
+  it("Test 5: chicken → 500 → non-veg retains everything", () => {
+    let r = advanceConversation(undefined, "I want chicken");
+    const sid = r.session.id;
+    r = advanceConversation(sid, "500");
+    r = advanceConversation(r.session.id, "non-veg");
+    expect(r.session.request.craving).toContain("chicken");
+    expect(r.session.request.calorieTarget).toBe(500);
+    expect(r.session.request.dietaryPreference).toBe("non-vegetarian");
+  });
+
+  it("Test 6: greeting while pending keeps slot; later answer fills it", () => {
+    let r = advanceConversation(undefined, "I want salmon");
+    expect(r.question).toMatch(/calories/i);
+    const sid = r.session.id;
+    r = advanceConversation(sid, "hi");
+    // Greeting neither satisfies nor corrupts: still pending calories.
+    expect(r.done).toBe(false);
+    expect(pendingSlot(r.session.request)).toBe("calorieTarget");
+    expect(r.session.request.craving).toContain("salmon");
+    expect(r.question).toMatch(/calories/i);
+    r = advanceConversation(r.session.id, "500");
+    expect(r.session.request.calorieTarget).toBe(500);
+  });
+
+  it("Test 7: unrelated text preserves state for the real answer", () => {
+    let r = advanceConversation(undefined, "I want salmon");
+    const sid = r.session.id;
+    r = advanceConversation(sid, "what");
+    expect(r.session.request.craving).toContain("salmon");
+    expect(r.session.request.calorieTarget).toBeUndefined();
+    r = advanceConversation(r.session.id, "500");
+    expect(r.session.request.calorieTarget).toBe(500);
+    expect(r.session.request.craving).toContain("salmon");
+  });
+
+  it("Test 8: vegetarian → actually non-veg ends non-veg", () => {
+    let r = advanceConversation(undefined, "I want lentils");
+    const sid = r.session.id;
+    r = advanceConversation(sid, "450");
+    r = advanceConversation(r.session.id, "vegetarian");
+    expect(r.session.request.dietaryPreference).toBe("vegetarian");
+    r = advanceConversation(r.session.id, "actually non-veg");
+    expect(r.session.request.dietaryPreference).toBe("non-vegetarian");
+    expect(r.session.request.craving).toContain("lentils");
+    expect(r.session.request.calorieTarget).toBe(450);
+  });
+
+  it("turn cap completes long junk sessions (the 'umm chicken' mechanism)", () => {
+    const s = createSession({});
+    let r = advanceConversation(s.id, "hello");
+    for (const msg of ["hi", "umm", "what", "hey", "yo"]) {
+      r = advanceConversation(r.session.id, msg);
+      if (r.done) break;
+    }
+    // Six turns without satisfiable answers force completion instead of an
+    // infinite question loop; junk never became a requirement.
+    expect(r.done).toBe(true);
+    expect(r.session.request.craving ?? "").not.toMatch(/^(hi|hey|yo|what|umm|hello)$/i);
+  });
+
+  it("pendingSlot + isBareSlotAnswer contract", () => {
+    expect(pendingSlot({})).toBe("craving");
+    expect(pendingSlot({ craving: "chicken" })).toBe("calorieTarget");
+    expect(isBareSlotAnswer("500", "calorieTarget")).toBe(true);
+    expect(isBareSlotAnswer("100000", "calorieTarget")).toBe(false);
+    expect(isBareSlotAnswer("non veg", "dietaryPreference")).toBe(true);
+    expect(isBareSlotAnswer("dinner", "mealType")).toBe(true);
+    expect(isBareSlotAnswer("italian", "cuisine")).toBe(true);
+    expect(isBareSlotAnswer("vegetarian dinner", "dietaryPreference")).toBe(false);
+    expect(isBareSlotAnswer("500", "craving")).toBe(false);
+    expect(isBareSlotAnswer("dinner", "calorieTarget")).toBe(false);
+    expect(isBareSlotAnswer("hi", undefined)).toBe(false);
   });
 });

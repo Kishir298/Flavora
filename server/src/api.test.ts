@@ -280,6 +280,36 @@ describe("assistant NL → engine (local-only, no remote required)", () => {
     expect(r.status).toBe(400);
   });
 
+  it("conversation: bare answers short-circuit deterministically (no model needed)", async () => {
+    let r = await request(app).post("/api/assistant/conversation").send({ message: "I want pork tacos" });
+    expect(r.status).toBe(200);
+    const sid = r.body.sessionId;
+    // Bare in-range number: answered straight from the pending question.
+    r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "700" });
+    expect(r.status).toBe(200);
+    expect(r.body.source).toBe("heuristic");
+    expect(r.body.fallbackReason).toBe("heuristic-mode");
+    expect(r.body.foodRequest.calorieTarget).toBe(700);
+    expect(JSON.stringify(r.body.foodRequest).toLowerCase()).toContain("pork");
+    // Out-of-range bare number: rejected with guidance, state intact.
+    r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "100000" });
+    expect(r.status).toBe(200);
+    expect(r.body.foodRequest.calorieTarget).toBe(700);
+    expect(r.body.question).toMatch(/vegetarian|vegan|non-veg|ingredients|breakfast|lunch|dinner|snack/i);
+  });
+
+  it("conversation: greeting while pending preserves slot for the real answer", async () => {
+    let r = await request(app).post("/api/assistant/conversation").send({ message: "I want salmon" });
+    const sid = r.body.sessionId;
+    r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "hello" });
+    expect(r.status).toBe(200);
+    expect(r.body.done).toBe(false);
+    expect(r.body.question).toMatch(/calories/i);
+    expect(JSON.stringify(r.body.foodRequest).toLowerCase()).toContain("salmon");
+    r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "520" });
+    expect(r.body.foodRequest.calorieTarget).toBe(520);
+  });
+
   it("conversation: bare-number + junk turns keep state and advance (no loop)", async () => {
     let r = await request(app).post("/api/assistant/conversation").send({ message: "I want beef tacos" });
     expect(r.status).toBe(200);

@@ -143,12 +143,19 @@ export function parseIntentHeuristic(message: string): RecommendationIntent {
   // ("dinner", "vegetarian" — the slot is captured, craving truly unknown).
   const hasFoodSignal = raw.craving || raw.availableIngredients;
   const safetyOnly = raw.allergies || raw.avoidFoods;
-  if (!hasFoodSignal && !safetyOnly && !SKIP_LIKE_RE.test(text)) {
-    const cleaned = stripLeadFiller(
-      text
-        .replace(/\b(under|over|below|around|about|roughly)\s+\d+.*$/, " ")
-        .replace(/\b\d+\s*(calories?|kcal|cals?|minutes?|mins?|min)\b.*$/, " ")
-        .replace(/^(i(\s+am|'m)?|we|you)\s+/i, "")
+  // Greetings, filler and bare numbers are never food requirements: the
+  // pending-slot filler downstream decides bare numbers; greetings get a
+  // greeting response. Storing them as craving ("hi", "20") trapped the
+  // conversation in a repeat loop.
+  const noSignal = GREETING_RE.test(text) || FILLER_RE.test(text) || BARE_NUMBER_RE.test(text);
+  if (!hasFoodSignal && !safetyOnly && !SKIP_LIKE_RE.test(text) && !noSignal) {
+    const cleaned = stripCorrectionPrefix(
+      stripLeadFiller(
+        text
+          .replace(/\b(under|over|below|around|about|roughly)\s+\d+.*$/, " ")
+          .replace(/\b\d+\s*(calories?|kcal|cals?|minutes?|mins?|min)\b.*$/, " ")
+          .replace(/^(i(\s+am|'m)?|we|you)\s+/i, "")
+      )
     )
       .replace(/\s+/g, " ")
       .trim()
@@ -178,6 +185,55 @@ export function parseIntentHeuristic(message: string): RecommendationIntent {
 /** Skip/unknown phrases — safe defaults apply, never stored as craving. */
 const SKIP_LIKE_RE =
   /\b(don'?t care|whatever|anything( is)? fine|i don'?t know|skip( that| this)?|no preference|doesn'?t matter|surprise me)\b/i;
+
+/** Pure greetings/smalltalk carry no food info — never become requirements. */
+const GREETING_RE =
+  /^(hi+|hello+|hey+|yo|sup|howdy|good\s+(morning|afternoon|evening)|how\s+are\s+you)[!?.\s]*$/i;
+
+/** Filler with no slot content ("what?", "huh", "ok", bare numbers). */
+const FILLER_RE =
+  /^(what|huh|hmm+|um+|uh+|er+|oh+|ah+|ok(ay)?|yes+|yeah+|yep|nope?|sure|thanks?|thx|please|sorry|test|testing)[!?.\s]*$/i;
+
+/** A bare number ("20", "500") — handled by pending-slot filling downstream. */
+const BARE_NUMBER_RE = /^(\d{1,4})[!?.\s]*$/;
+
+/** Explicit correction of earlier input ("actually beef", "make it spicy"). */
+const CORRECTION_RE =
+  /\b(actually|instead|rather|correction|i meant|make it|change (it|that|to)|no[,.]?\s+(i want|i meant))\b/i;
+
+/** True for pure greetings/smalltalk/filler carrying no slot content. */
+export function isNoSignal(text: string): boolean {
+  const t = String(text ?? "").toLowerCase().trim();
+  return GREETING_RE.test(t) || FILLER_RE.test(t) || BARE_NUMBER_RE.test(t) || SKIP_LIKE_RE.test(t);
+}
+
+/** True for greetings ("hi") as opposed to other filler. */
+export function isGreeting(text: string): boolean {
+  return GREETING_RE.test(String(text ?? "").toLowerCase().trim());
+}
+
+/** Bare-number answers ("20") for pending-slot filling; null otherwise. */
+export function bareNumber(text: string): number | null {
+  const m = String(text ?? "").toLowerCase().trim().match(BARE_NUMBER_RE);
+  return m ? Number(m[1]) : null;
+}
+
+/** True when the user explicitly corrects earlier input. */
+export function isCorrection(text: string): boolean {
+  return CORRECTION_RE.test(String(text ?? "").toLowerCase());
+}
+
+/** True when any token is a known (or near-miss) food word. */
+export function hasFoodWords(text: string): boolean {
+  const toks = String(text ?? "")
+    .toLowerCase()
+    .split(/[^a-z-]+/)
+    .filter((t) => t.length >= 2);
+  return toks.some((tok) => {
+    if (KNOWN_FOODS.has(tok) || KNOWN_FOODS.has(tok.replace(/s$/, ""))) return true;
+    return fuzzyFood(tok) !== null;
+  });
+}
 
 /** Bare slot words carry no food info — the slot is captured, craving stays unknown. */
 const BARE_SLOT_WORD_RE =
@@ -262,6 +318,22 @@ function stripLeadFiller(s: string): string {
     cur = cur.replace(LEAD_FILLER, "").trim();
   }
   return cur;
+}
+
+/**
+ * Strip explicit-correction framing so the corrected value — not the framing
+ * — is stored ("actually beef" → "beef"; "actually vegetarian" →
+ * "vegetarian", which then matches the bare-slot rule and leaves the craving
+ * for the diet slot to own). Applied to free-text craving captures only;
+ * slot extractors above already see the raw text.
+ */
+function stripCorrectionPrefix(s: string): string {
+  return s
+    .trim()
+    .replace(/^(no[,.\s]+)?(actually|instead|rather)[,.\s]+/i, "")
+    .replace(/^(make it|make that|change (it|that)( to)?|change to)\b\s*/i, "")
+    .replace(/^(it|that|this)\b\s+/i, "")
+    .trim();
 }
 
 /** "allergic to peanuts" / "allergy: dairy, eggs" → ["peanuts"] / ["dairy","eggs"]. */

@@ -6,7 +6,13 @@
  */
 import { randomUUID } from "node:crypto";
 import { normalizeIntent, toFoodRequest } from "./intentSchema.js";
-import { parseIntentHeuristic } from "./heuristicParser.js";
+import {
+  bareNumber,
+  hasFoodWords,
+  isCorrection,
+  isGreeting,
+  parseIntentHeuristic,
+} from "./heuristicParser.js";
 import type { FoodRequest, RecommendationIntent } from "./types.js";
 
 export interface ConversationState {
@@ -47,6 +53,12 @@ export function mergeRequest(prev: FoodRequest, intent: RecommendationIntent, ra
   const next: FoodRequest = { ...prev };
   const fr = toFoodRequest(intent);
   const text = String(rawText ?? "");
+  const correction = isCorrection(text);
+  // New food info = the turn names food (or corrects earlier input).
+  // Greetings/filler/bare numbers carry none, so they must never clobber an
+  // established craving ("hi" after chicken must not replace it with "hi").
+  const newFoodSignal =
+    (intent.availableIngredients?.length ?? 0) > 0 || hasFoodWords(text) || correction;
 
   // Corrections: explicit diet/meal mentions overwrite; skip-phrases never clear.
   if (SKIP_RE.test(text)) {
@@ -55,7 +67,11 @@ export function mergeRequest(prev: FoodRequest, intent: RecommendationIntent, ra
     if (fr.dietaryPreference) next.dietaryPreference = fr.dietaryPreference;
     if (fr.mealType) next.mealType = fr.mealType;
   }
-  if (fr.craving && !SKIP_RE.test(text)) next.craving = fr.craving;
+  // Craving: monotonic unless corrected. Junk turns ("what", "20", "hi")
+  // leave a food-grounded craving untouched.
+  if (fr.craving && !SKIP_RE.test(text)) {
+    if (!next.craving || newFoodSignal) next.craving = fr.craving;
+  }
   if (fr.calorieTarget !== undefined) next.calorieTarget = fr.calorieTarget;
   if (fr.maxCookingTime !== undefined) next.maxCookingTime = fr.maxCookingTime;
   if (intent.timeLimit !== undefined) next.maxCookingTime = intent.timeLimit;
@@ -67,12 +83,20 @@ export function mergeRequest(prev: FoodRequest, intent: RecommendationIntent, ra
   if (fr.cuisine !== undefined && fr.cuisine !== null) next.cuisine = fr.cuisine;
   else if (intent.cuisine) next.cuisine = intent.cuisine;
   if (intent.availableIngredients?.length) {
-    const seen = new Set((next.availableIngredients ?? []).map((s) => s.toLowerCase()));
-    next.availableIngredients = [...(next.availableIngredients ?? [])];
-    for (const ing of intent.availableIngredients) {
-      if (!seen.has(ing.toLowerCase())) {
-        seen.add(ing.toLowerCase());
-        next.availableIngredients.push(ing);
+    // Corrections name the new reality ("actually beef" replaces chicken);
+    // additive phrasing ("also have rice", "plus garlic") unions instead.
+    // Safety exclusions are handled separately below and always union.
+    const additive = /\b(also|plus|add|as well|too|another|more)\b/i.test(text);
+    if (isCorrection(text) && !additive) {
+      next.availableIngredients = [...intent.availableIngredients];
+    } else {
+      const seen = new Set((next.availableIngredients ?? []).map((s) => s.toLowerCase()));
+      next.availableIngredients = [...(next.availableIngredients ?? [])];
+      for (const ing of intent.availableIngredients) {
+        if (!seen.has(ing.toLowerCase())) {
+          seen.add(ing.toLowerCase());
+          next.availableIngredients.push(ing);
+        }
       }
     }
   }
@@ -184,11 +208,45 @@ export function advanceConversation(
     session = createSession({ ...(opts?.profile ?? {}) });
     sessions.set(session.id, session);
   }
+  const withoutProfileKnown = (r: FoodRequest): Slot[] =>
+    missingSlots(r).filter((s) => {
+      // Don't ask for what the profile already supplied.
+      const p = opts?.profile as Record<string, unknown> | undefined;
+      if (!p) return true;
+      const v = p[s as string];
+      return v === undefined || v === null || (Array.isArray(v) && v.length === 0);
+    });
+  // The question the user is answering: highest-priority missing slot BEFORE
+  // this turn's merge. Bare numbers ("600") only make sense against it.
+  const pendingBefore = withoutProfileKnown(session.request)[0];
   // Deterministic parse first (explicit user text wins); validated FlavoraLM
   // output only gap-fills (grounded) when the caller has it. Same merge
   // path either way; safety stays additive-only.
   const heuristic = parseTurn(message);
   session.request = mergeRequest(session.request, heuristic, message);
+  // Context-aware numeric fill: a bare number answers the pending numeric
+  // question ("600" after the calorie question). In-range values land in the
+  // slot; out-of-range values get guidance instead of becoming junk craving.
+  let guidance: string | null = null;
+  const n = bareNumber(message);
+  if (n !== null && pendingBefore !== undefined) {
+    const bounds: Partial<Record<Slot, { min: number; max: number; label: string }>> = {
+      calorieTarget: { min: 50, max: 5000, label: "calorie target" },
+      servings: { min: 1, max: 20, label: "servings" },
+      maxCookingTime: { min: 5, max: 180, label: "cooking time" },
+    };
+    const b = bounds[pendingBefore];
+    const current = session.request[pendingBefore];
+    if (b && current === undefined) {
+      if (n >= b.min && n <= b.max) {
+        (session.request as Record<string, unknown>)[pendingBefore] = n;
+      } else {
+        guidance =
+          `${n} seems ${n < b.min ? "low" : "high"} for a ${b.label} — ` +
+          `aim for ${b.min}–${b.max}.`;
+      }
+    }
+  }
   if (opts?.parsedIntent) {
     session.request = mergeModelGapFill(session.request, opts.parsedIntent, message);
     // Safety union from the model too — but grounded: only words actually
@@ -205,20 +263,20 @@ export function advanceConversation(
   session.turns += 1;
   session.updatedAt = Date.now();
 
-  const missing = missingSlots(session.request).filter((s) => {
-    // Don't ask for what the profile already supplied.
-    const p = opts?.profile as Record<string, unknown> | undefined;
-    if (!p) return true;
-    const v = p[s as string];
-    return v === undefined || v === null || (Array.isArray(v) && v.length === 0);
-  });
+  const missing = withoutProfileKnown(session.request);
   if (missing.length === 0 || session.turns >= 6) {
     session.done = true;
     return { session, question: null, done: true };
   }
   // One question at a time: the highest-priority missing slot.
   const slot = missing[0];
-  return { session, question: QUESTIONS[slot](session.request), done: false };
+  const base = QUESTIONS[slot](session.request);
+  // Greetings carry no requirements — greet back, then repeat the pending
+  // question instead of storing "hi" as a craving.
+  if (isGreeting(message)) {
+    return { session, question: guidance ? `Hi there! ${guidance} ${base}` : `Hi there! ${base}`, done: false };
+  }
+  return { session, question: guidance ? `${guidance} ${base}` : base, done: false };
 }
 
 /** Engine-ready intent from a completed FoodRequest (deterministic mapping). */

@@ -280,6 +280,27 @@ describe("assistant NL → engine (local-only, no remote required)", () => {
     expect(r.status).toBe(400);
   });
 
+  it("conversation: bare-number + junk turns keep state and advance (no loop)", async () => {
+    let r = await request(app).post("/api/assistant/conversation").send({ message: "I want beef tacos" });
+    expect(r.status).toBe(200);
+    const sid = r.body.sessionId;
+    expect(JSON.stringify(r.body.foodRequest).toLowerCase()).toContain("beef");
+
+    // Bare in-range number answers the pending calorie question.
+    r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "650" });
+    expect(r.status).toBe(200);
+    expect(r.body.sessionId).toBe(sid);
+    expect(r.body.foodRequest.calorieTarget).toBe(650);
+    expect(JSON.stringify(r.body.foodRequest).toLowerCase()).toContain("beef");
+    if (!r.body.done) expect(r.body.question).not.toMatch(/calories/i);
+
+    // Junk never clobbers: same session id, state monotonic.
+    r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "what" });
+    expect(r.status).toBe(200);
+    expect(JSON.stringify(r.body.foodRequest).toLowerCase()).toContain("beef");
+    expect(r.body.foodRequest.calorieTarget).toBe(650);
+  });
+
   it("unsaved removes a recipe from /api/saved", async () => {
     await request(app).post("/api/interactions").send({ recipeId: SEED_ID, action: "saved" });
     let saved = await request(app).get("/api/saved");

@@ -1,7 +1,6 @@
 # FlavoraLM training/inference dependencies (CPU-only, local venv only).
 # Installed into .flavoralm-venv/ by scripts/setup.mjs — never into global Python.
-# Pinned loosely for cross-platform (macOS arm64/x64, Linux, Windows) CPU wheels.
-torch>=2.2,<2.9
+# Pinned exactly for reproducibility; Python 3.11 only (torch 2.2.x targets numpy 1.x ABI).
+torch==2.2.2
 # Required by torch (tensor↔numpy bridge) and dataset/eval numeric work.
-# Pinned <2 because torch 2.2.x wheels target the numpy 1.x ABI.
-numpy>=1.26,<2
+numpy==1.26.4

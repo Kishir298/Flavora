@@ -108,6 +108,9 @@ def main() -> int:
     seed = int(tcfg.get("seed", 42))
 
     print(f"Training {mcfg.model_name} v{mcfg.version} (seed {seed})")
+    # Reproducibility: seed global RNGs for init/dropout/shuffle (batch order
+    # uses a dedicated Generator below, but model init + dropout need this).
+    set_seed(seed)
     data_dir = Path(args.data_dir)
     train_raw = read_jsonl(data_dir / "train.jsonl")
     val_raw = read_jsonl(data_dir / "validation.jsonl")

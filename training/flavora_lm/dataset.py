@@ -188,18 +188,21 @@ def generate_examples(count: int, seed: int = 42) -> Iterator[Tuple[str, Dict]]:
             if extra_ing:
                 parts.append(f"with {extra_ing[0]}")
             yield _compose_text(rng, parts), _mk_intent(
-                ingredients=extra_ing, craving=craving.split(" and ")[0], craving_signals=signals,
+                ingredients=extra_ing, craving=craving, craving_signals=signals,
             )
         elif kind < 0.68:
             # Allergy / avoid-food extraction (safety-critical data).
+            # Every labeled ingredient must appear verbatim in the text —
+            # otherwise the model learns to hallucinate unmentioned items.
             allergen = rng.choice(ALLERGENS)
             avoid = rng.choice(AVOID_FOODS)
             items = rng.sample(INGREDIENTS, 2)
+            phrase = _mk_ingredient_phrase(rng, items)
             styles = [
-                f"i am allergic to {allergen} give me something with {_mk_ingredient_phrase(rng, items)}",
-                f"allergic to {allergen} here what can i eat with {items[0]}",
-                f"no {allergen} for me i have {items[0]}",
-                f"i can not eat {allergen} want {items[0]} quick",
+                f"i am allergic to {allergen} give me something with {phrase}",
+                f"allergic to {allergen} here what can i eat with {phrase}",
+                f"no {allergen} for me i have {phrase}",
+                f"i can not eat {allergen} want {phrase} quick",
             ]
             text = rng.choice(styles)
             if rng.random() < 0.5:
@@ -234,7 +237,7 @@ def generate_examples(count: int, seed: int = 42) -> Iterator[Tuple[str, Dict]]:
                 ]), _mk_intent(ingredients=items, mode="food_waste")
             else:
                 items = rng.sample(INGREDIENTS, 2)
-                yield _compose_text(rng, ["cheap budget meal", f"with {items[0]}"]), _mk_intent(
+                yield _compose_text(rng, ["cheap budget meal", f"with {_mk_ingredient_phrase(rng, items)}"]), _mk_intent(
                     ingredients=items, mode="budget",
                 )
         made += 1

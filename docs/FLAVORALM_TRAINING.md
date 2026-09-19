@@ -82,8 +82,8 @@ textbook fresh random init, zero pretrained content.
 ## Training command
 
 ```bash
-npm run train:llm:dev   # fast dev model → models/flavora-lm/v0.1/ (minutes, CI-sized)
-npm run train:llm       # full small model (longer; 5.9M params)
+npm run train:llm:dev   # fast dev model → models/flavora-lm/dev/ (minutes, CI-sized, untracked)
+npm run train:llm       # full small model → models/flavora-lm/v0.1/ (1–3h CPU, 4,947,456 params measured)
 ```
 
 `training/train.py` pipeline: load + validate splits → train tokenizer on train

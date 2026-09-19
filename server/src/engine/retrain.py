@@ -79,16 +79,17 @@ def load_training_rows(conn):
                 latest_features[recipe_id] = [float(vec.get(k, 0.5)) for k in FEATURE_NAMES]
 
     outcomes = cur.execute(
-        "SELECT recipe_id, action FROM interactions WHERE action != 'shown'"
+        "SELECT recipe_id, action FROM interactions WHERE action != 'shown' ORDER BY rowid"
     ).fetchall()
     label = {}
     for recipe_id, action in outcomes:
+        # Latest outcome per recipe wins (same rule as /api/saved).
         if action in POSITIVE:
             label[recipe_id] = 1
-        elif action in NEGATIVE and recipe_id not in label:
-            # A later positive overrides an earlier negative (same rule as
-            # the /saved endpoint: latest outcome per recipe wins).
+        elif action in NEGATIVE:
             label[recipe_id] = 0
+        elif action == "unsaved":
+            label.pop(recipe_id, None)
 
     X, y = [], []
     for recipe_id, lab in label.items():

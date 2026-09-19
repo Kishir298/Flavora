@@ -268,10 +268,14 @@ ingredients → meal), then get deterministic allergy-safe recommendations you
 can log as eaten. Multi-field answers ("Around 600 calories, non-veg, chicken
 rice onions, for dinner") are extracted at once; "Actually, make it
 vegetarian" corrects; "don't care / whatever / skip" falls back to profile
-prefs and safe defaults. Sessions are in-memory — only the resulting
+prefs and safe defaults. Bare answers to the pending question ("500" to the
+calorie question, `non veg`, `dinner`) are accepted deterministically without
+a model call; unrecognized answers get a contextual clarification with an
+example instead of a bare repeat. Sessions are in-memory — only the resulting
 `FoodRequest` persists. Contract: `server/src/ai/types.ts` (`FoodRequest`),
 machine: `server/src/ai/conversationService.ts`, endpoint:
-`POST /api/assistant/conversation`.
+`POST /api/assistant/conversation` (logs `parserRoute` + `modelCalled` per
+turn; `FLAVORA_DEBUG_CONVERSATION=1` enables full turn diagnostics).
 
 ## Heuristic parser (always available, not an LLM)
 

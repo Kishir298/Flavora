@@ -1,5 +1,22 @@
 # Flavora — Progress
 
+## Context-first routing + pending-question parsing (2026-09-19, this session)
+
+Live logs showed constrained-pending turns calling FlavoraLM (836–2516 ms,
+always `valid:false`) while bare answers already advanced in 0–1 ms. The
+pipeline now routes on the pending requirement: constrained pendings go
+fully deterministic (no model call), free-form craving keeps model +
+honest fallback. Proven: `hi→chicken→1000→non veg→chicken,rice,vegetables`
+advances craving→calories→diet→ingredients with `modelCalled:false` after
+the craving turn (~11 ms/turn vs ~2500 ms). Ingredient extraction repaired
+(`veggies/vegetables/veggie/greens` aliases, typo normalization in `I have`
+lists, junk-attempt craving suppress, example-led clarifications);
+diet accepts `veggie`/`meat`. FlavoraLM still `valid:false` on open
+phrasings (truncated fragments — checkpoint likelihood, documented in
+`FLAVORALM_EVALUATION.md`; no fake quality). E2E `eval:slow` 6/6 + JSON,
+offline 2/2 (1 flaky-pass), a11y/kb/nav/critical 25/25, server 226/226,
+client 40/40. NVDA/VoiceOver remain PENDING HUMAN VALIDATION.
+
 ## Conversational loop, round 2: bare-number/junk turns + stale-backend guard (2026-09-19, this session)
 
 Live transcript replay proved turns 1–2 (`i want chicken` → craving question)

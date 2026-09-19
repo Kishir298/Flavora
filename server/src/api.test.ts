@@ -280,6 +280,49 @@ describe("assistant NL → engine (local-only, no remote required)", () => {
     expect(r.status).toBe(400);
   });
 
+  it("conversation: vegan flow never returns animal-product recipes (semantic)", async () => {
+    // Exact observed regression: hi → who are you → 200 → vegan →
+    // tomatoes/onion/lettuce → snack must not yield Chicken Fajitas/Tacos.
+    // Assertion is semantic (every recipe passes the vegan checker), so it
+    // holds for any library contents — no recipe names are hard-coded.
+    const { passesDietaryFilter } = await import("./engine/diet.js");
+    const turns = ["hi", "who are you", "200", "vegan", "tomatoes, onion and lettuce", "snack"];
+    let sid;
+    let r;
+    for (const message of turns) {
+      r = await request(app)
+        .post("/api/assistant/conversation")
+        .send(sid ? { sessionId: sid, message } : { message });
+      expect(r.status).toBe(200);
+      sid = r.body.sessionId;
+    }
+    expect(r.body.done).toBe(true);
+    expect(r.body.foodRequest.dietaryPreference).toBe("vegan");
+    expect(r.body.foodRequest.calorieTarget).toBe(200);
+    expect(r.body.foodRequest.mealType).toBe("snack");
+    expect(r.body.recommendations.length).toBeGreaterThan(0);
+    for (const rec of r.body.recommendations) {
+      expect(
+        passesDietaryFilter({ ingredients: rec.ingredients ?? [] }, "vegan"),
+        `non-vegan recipe served: ${rec.title}`
+      ).toBe(true);
+    }
+  });
+
+  it("recommendations endpoint enforces dietaryPreference directly", async () => {
+    const { passesDietaryFilter } = await import("./engine/diet.js");
+    const r = await request(app)
+      .post("/api/recommendations")
+      .send({ availableIngredients: [], dietaryPreference: "vegan" });
+    expect(r.status).toBe(200);
+    for (const rec of r.body.recommendations) {
+      expect(
+        passesDietaryFilter({ ingredients: rec.ingredients ?? [] }, "vegan"),
+        `non-vegan recipe served: ${rec.title}`
+      ).toBe(true);
+    }
+  });
+
   it("conversation: bare answers short-circuit deterministically (no model needed)", async () => {
     let r = await request(app).post("/api/assistant/conversation").send({ message: "I want pork tacos" });
     expect(r.status).toBe(200);
@@ -298,7 +341,8 @@ describe("assistant NL → engine (local-only, no remote required)", () => {
     expect(r.body.question).toMatch(/vegetarian|vegan|non-veg|ingredients|breakfast|lunch|dinner|snack/i);
   });
 
-  it("conversation: greeting while pending preserves slot for the real answer", async () => {    let r = await request(app).post("/api/assistant/conversation").send({ message: "I want salmon" });
+  it("conversation: greeting while pending preserves slot for the real answer", async () => {
+    let r = await request(app).post("/api/assistant/conversation").send({ message: "I want salmon" });
     const sid = r.body.sessionId;
     r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "hello" });
     expect(r.status).toBe(200);

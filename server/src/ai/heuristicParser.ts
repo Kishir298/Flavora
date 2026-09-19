@@ -100,7 +100,7 @@ export function parseIntentHeuristic(message: string): RecommendationIntent {
       // kept verbatim so nothing the user typed is silently dropped.
       .map((s) => {
         const low = s.toLowerCase();
-        if (KNOWN_FOODS.has(low) || KNOWN_FOODS.has(low.replace(/s$/, ""))) return s;
+        if (stemFoodWord(low)) return s;
         if (/^[a-z-]{4,30}$/.test(low)) return fuzzyFood(low) ?? s;
         return s;
       });
@@ -116,7 +116,7 @@ export function parseIntentHeuristic(message: string): RecommendationIntent {
       .split(/[,;.!?]+/)
       .flatMap((s) => s.trim().split(/\s+/))
       .map((w) => w.toLowerCase().trim())
-      .map((w) => (KNOWN_FOODS.has(w) || KNOWN_FOODS.has(w.replace(/s$/, "")) ? w : (fuzzyFood(w) ?? "")))
+      .map((w) => (stemFoodWord(w) ?? fuzzyFood(w) ?? ""))
       .filter((w) => w.length > 0);
     const unique = [...new Set(words)];
     if (unique.length >= 2) raw.availableIngredients = unique.slice(0, 8);
@@ -180,8 +180,7 @@ export function parseIntentHeuristic(message: string): RecommendationIntent {
         .map((tok) => {
           const t = tok.toLowerCase().replace(/[^a-z-]/g, "");
           if (t.length < 2) return null;
-          if (KNOWN_FOODS.has(t) || KNOWN_FOODS.has(t.replace(/s$/, ""))) return t;
-          return fuzzyFood(t);
+          return stemFoodWord(t) ?? fuzzyFood(t);
         })
         .filter((t): t is string => t !== null);
       const unique = [...new Set(resolved)];
@@ -240,7 +239,7 @@ export function hasFoodWords(text: string): boolean {
     .split(/[^a-z-]+/)
     .filter((t) => t.length >= 2);
   return toks.some((tok) => {
-    if (KNOWN_FOODS.has(tok) || KNOWN_FOODS.has(tok.replace(/s$/, ""))) return true;
+    if (stemFoodWord(tok)) return true;
     return fuzzyFood(tok) !== null;
   });
 }
@@ -276,9 +275,25 @@ const KNOWN_FOODS = new Set(
     "noodles beans lentils chickpeas spinach broccoli corn peas zucchini eggplant okra " +
     "olives cilantro coconut lemon lime apple banana nuts almond walnut sesame mustard " +
     "celery bell pepper chili chocolate honey avocado kale cabbage cauliflower " +
-    "veggies vegetables veggie greens"
+    "veggies vegetables veggie greens lettuce arugula"
   ).split(/\s+/)
 );
+
+/**
+ * Canonical known-food match with ordinary plural stemming ("tomatoes" →
+ * "tomato", "potatoes" → "potato", "berries" → only if in vocabulary).
+ * Returns the vocabulary entry or null. Used by craving/ingredient harvest
+ * AND the avoid-food extractor (so "no tomatoes" excludes tomatoes).
+ */
+function stemFoodWord(w: string): string | null {
+  const t = w.toLowerCase().trim();
+  if (KNOWN_FOODS.has(t)) return t;
+  const candidates = [t.replace(/s$/, ""), t.replace(/es$/, ""), t.replace(/ies$/, "y")];
+  for (const c of candidates) {
+    if (c.length > 1 && KNOWN_FOODS.has(c)) return c;
+  }
+  return null;
+}
 
 /** Taste/texture words that must never become food exclusions. */
 const NON_FOOD_WORDS = new Set(
@@ -399,7 +414,7 @@ export function extractAvoidFoods(text: string): string[] {
     if (
       c.length > 1 &&
       c.length < 30 &&
-      (KNOWN_FOODS.has(c) || KNOWN_FOODS.has(c.replace(/s$/, ""))) &&
+      stemFoodWord(c) &&
       !NON_FOOD_WORDS.has(c) &&
       !out.includes(c)
     ) {

@@ -238,8 +238,7 @@ describe("conversation loop regression — observed transcript", () => {
     expect(isBareSlotAnswer("hi", undefined)).toBe(false);
   });
 
-  it("selectParserRoute: constrained pendings skip the model, craving keeps it", () => {
-    expect(selectParserRoute("craving")).toBe("flavoralm");
+  it("selectParserRoute: constrained pendings skip the model, craving keeps it", () => {    expect(selectParserRoute("craving")).toBe("flavoralm");
     expect(selectParserRoute(undefined)).toBe("flavoralm");
     for (const slot of ["calorieTarget", "dietaryPreference", "availableIngredients", "mealType"] as const) {
       expect(selectParserRoute(slot)).toBe("pending-deterministic");
@@ -314,5 +313,16 @@ describe("conversation loop regression — observed transcript", () => {
       expect(r.question).toMatch(/ingredients/i);
       expect(r.question).not.toBe("What ingredients do you have on hand?");
     }
+  });
+
+  it("plural/collective ingredient recall (tomatoes, lettuce, potatoes)", () => {
+    let r = advanceConversation(undefined, "I want stew");
+    r = advanceConversation(r.session.id, "450");
+    r = advanceConversation(r.session.id, "non-veg");
+    r = advanceConversation(r.session.id, "tomatoes, onion and lettuce");
+    expect(r.session.request.availableIngredients).toEqual(
+      expect.arrayContaining(["tomato", "onion", "lettuce"])
+    );
+    expect(r.session.request.craving).toContain("stew");
   });
 });

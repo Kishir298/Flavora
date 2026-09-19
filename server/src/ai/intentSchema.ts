@@ -95,9 +95,10 @@ function asCalories(v: unknown): number | undefined {
 function asDiet(v: unknown): DietaryPreference | undefined {
   if (typeof v !== "string") return undefined;
   const d = v.toLowerCase().trim().replace(/[_\s]+/g, "-");
-  if (d === "vegetarian" || d === "veg") return "vegetarian";
+  if (d === "vegetarian" || d === "veg" || d === "veggie" || d === "veggies") return "vegetarian";
   if (d === "vegan") return "vegan";
   if (d === "non-vegetarian" || d === "nonvegetarian" || d === "non-veg" || d === "nonveg") return "non-vegetarian";
+  if (d === "meat") return "non-vegetarian";
   if (d === "any" || d === "anything" || d === "no-preference") return "any";
   return undefined;
 }

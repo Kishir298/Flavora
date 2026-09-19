@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { normalizeIntent, extractJsonObject } from "./intentSchema.js";
 import { parseIntentHeuristic } from "./heuristicParser.js";
+import { parseTurn } from "./conversationService.js";
 import { parseUserIntent, buildAssistantReply } from "./assistantService.js";
 import type { AIProvider } from "./types.js";
 
@@ -123,5 +124,39 @@ describe("ai/buildAssistantReply", () => {
     const reply = buildAssistantReply("x", { mode: "normal" }, []);
     expect(reply.toLowerCase()).toMatch(/allergy/);
     expect(reply.toLowerCase()).not.toMatch(/ignore your allerg/);
+  });
+});
+
+describe("ai/dietary normalization (single canonical vocabulary)", () => {
+  it("every accepted vegan variant normalizes to canonical 'vegan'", () => {
+    for (const v of ["vegan", "VEGAN", "Vegan"]) {
+      expect(normalizeIntent({ dietaryPreference: v }).dietaryPreference).toBe("vegan");
+    }
+  });
+
+  it("vegetarian family normalizes canonically", () => {
+    expect(normalizeIntent({ dietaryPreference: "vegetarian" }).dietaryPreference).toBe("vegetarian");
+    expect(normalizeIntent({ dietaryPreference: "veg" }).dietaryPreference).toBe("vegetarian");
+    expect(normalizeIntent({ dietaryPreference: "veggie" }).dietaryPreference).toBe("vegetarian");
+  });
+
+  it("non-veg family normalizes canonically", () => {
+    for (const v of ["non-vegetarian", "non-veg", "nonveg", "non veg"]) {
+      expect(normalizeIntent({ dietaryPreference: v }).dietaryPreference).toBe("non-vegetarian");
+    }
+    expect(normalizeIntent({ dietaryPreference: "meat" }).dietaryPreference).toBe("non-vegetarian");
+  });
+
+  it("ambiguous plant-based is not silently mapped (asks clarification instead)", () => {
+    // Deliberately unmapped: inventing vegan-vs-vegetarian semantics for an
+    // ambiguous phrase would be guessing, not normalizing.
+    expect(normalizeIntent({ dietaryPreference: "plant-based" }).dietaryPreference).toBeUndefined();
+    expect(normalizeIntent({ dietaryPreference: "plant based" }).dietaryPreference).toBeUndefined();
+  });
+
+  it("heuristic diet extraction agrees with the canonical schema", () => {
+    expect(parseTurn("vegan").dietaryPreference).toBe("vegan");
+    expect(parseTurn("I am veggie").dietaryPreference).toBe("vegetarian");
+    expect(parseTurn("non veg please").dietaryPreference).toBe("non-vegetarian");
   });
 });

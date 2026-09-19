@@ -1,9 +1,15 @@
 import type { Request, Response, NextFunction } from "express";
 import { randomUUID } from "node:crypto";
 
+const REQ_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+export function sanitizeReqId(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const t = v.trim();
+  return REQ_ID_RE.test(t) ? t : null;
+}
 export function requestIdMiddleware(req: Request, _res: Response, next: NextFunction) {
   (req as unknown as { reqId: string }).reqId =
-    (req.headers["x-request-id"] as string) ?? randomUUID();
+    sanitizeReqId(req.headers["x-request-id"]) ?? randomUUID();
   next();
 }
 

@@ -9,6 +9,9 @@ const VALID_CATEGORIES = new Set(["produce", "protein", "dairy", "grains", "pant
 function isNotFound(e) {
   return e?.code === "P2025";
 }
+function isConflict(e) {
+  return e?.code === "P2002";
+}
 
 function daysRemaining(expiryDate, now = new Date()) {
   if (!expiryDate) return null;
@@ -112,6 +115,7 @@ inventoryRouter.put("/:id", async (req, res, next) => {
     res.json(shape(updated));
   } catch (e) {
     if (isNotFound(e)) return res.status(404).json({ error: "NOT_FOUND", message: "inventory item not found" });
+    if (isConflict(e)) return res.status(409).json({ error: "CONFLICT", message: "an inventory item with that name already exists" });
     next(e);
   }
 });

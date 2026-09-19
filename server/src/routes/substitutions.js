@@ -4,13 +4,21 @@ import { substitutionSafety, validateSubstitutionInput } from "../engine/substit
 
 export const substitutionsRouter = Router();
 
+function safeArr(raw) {
+  try {
+    const v = JSON.parse(raw);
+    return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
 async function loadProfile() {
   await ensureProfileRow();
   const row = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
   return {
-    allergies: JSON.parse(row.allergies),
-    avoid_foods: JSON.parse(row.avoidFoods),
-    avoidFoods: JSON.parse(row.avoidFoods),
+    allergies: safeArr(row.allergies),
+    avoid_foods: safeArr(row.avoidFoods),
+    avoidFoods: safeArr(row.avoidFoods),
   };
 }
 

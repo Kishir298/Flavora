@@ -62,13 +62,29 @@ function ingredientDisplay(ing) {
   return `${qty} ${unit} ${ing.name}`.trim();
 }
 
+function safeArrJ(raw) {
+  try {
+    const v = JSON.parse(raw);
+    return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+function safeObjJ(raw) {
+  try {
+    const v = JSON.parse(raw);
+    return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+  } catch {
+    return {};
+  }
+}
 function loadProfile(row) {
-  const favs = JSON.parse(row.favoriteCuisines);
-  const goals = JSON.parse(row.nutritionGoals);
+  const favs = safeArrJ(row.favoriteCuisines);
+  const goals = safeObjJ(row.nutritionGoals);
   return {
-    allergies: JSON.parse(row.allergies),
-    avoid_foods: JSON.parse(row.avoidFoods),
-    avoidFoods: JSON.parse(row.avoidFoods),
+    allergies: safeArrJ(row.allergies),
+    avoid_foods: safeArrJ(row.avoidFoods),
+    avoidFoods: safeArrJ(row.avoidFoods),
     favoriteCuisines: favs,
     favorite_cuisines: favs,
     cuisines: favs,

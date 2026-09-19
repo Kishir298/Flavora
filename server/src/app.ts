@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { requestIdMiddleware, requestLogger } from "./logger.js";
 import { profileRouter } from "./routes/profile.js";
 import { recipesRouter } from "./routes/recipes.js";
@@ -23,6 +25,17 @@ import { prisma } from "./db.js";
 
 export function createApp() {
   const app = express();
+  // Localhost-only single-user app: helmet + rate-limit are defense-in-depth
+  // in case the port is ever forwarded. CORS stays open for Vite dev (:5173).
+  app.use(helmet({ contentSecurityPolicy: false }));
+  app.use(
+    rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 1000,
+      standardHeaders: true,
+      legacyHeaders: false,
+    })
+  );
   app.use(cors());
   app.use(express.json({ limit: "256kb" }));
   app.use(requestIdMiddleware);
@@ -33,9 +46,10 @@ export function createApp() {
     let dbError: string | undefined;
     try {
       await prisma.$queryRaw`SELECT 1`;
-    } catch (e) {
+    } catch {
       dbOk = false;
-      dbError = e instanceof Error ? e.message : String(e);
+      // Redacted: never leak SQLite path / driver message to clients.
+      dbError = "database unavailable";
     }
     const { provider, resolvedMode } = createAIProvider();
     const probed = provider as { probeStatus?: () => Promise<LocalLlmStatus> };
@@ -78,14 +92,19 @@ export function createApp() {
   app.use("/api/assistant", assistantRouter);
   app.use("/api/recipes", recipesRouter);
   app.use("/api/interactions", interactionsRouter);
-  app.get("/api/saved", async (_req, res, next) => {
+  app.get("/api/saved", async (req, res, next) => {
     try {
-      const all = await prisma.interaction.findMany({ orderBy: { createdAt: "desc" } });
+      const limit = Math.min(200, Math.max(1, Number(req.query.limit ?? 100) || 100));
+      const all = await prisma.interaction.findMany({
+        orderBy: { createdAt: "desc" },
+        take: limit * 4, // over-fetch then collapse to latest-per-recipe
+      });
       const latest = new Map<string, (typeof all)[number]>();
       for (const i of all) if (!latest.has(i.recipeId)) latest.set(i.recipeId, i);
       const ids = [...latest.entries()]
         .filter(([, i]) => ["saved", "cooked", "rated_positive", "rated"].includes(i.action))
-        .map(([id]) => id);
+        .map(([id]) => id)
+        .slice(0, limit);
       if (ids.length === 0) return res.json([]);
       const rows = await prisma.recipe.findMany({ where: { id: { in: ids } } });
       // Current profile for honest safety flags: a saved recipe that now

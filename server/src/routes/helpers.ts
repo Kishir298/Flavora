@@ -1,16 +1,32 @@
 /** Shared route helpers — profile loading, expiry status, ingredient parsing. */
 import { prisma, ensureProfileRow } from "../db.js";
 
+function safeArr(raw: string): string[] {
+  try {
+    const v = JSON.parse(raw);
+    return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+function safeObj(raw: string): Record<string, unknown> {
+  try {
+    const v = JSON.parse(raw);
+    return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
 /** Load the single-user profile in the dual snake/camel shape the engine accepts. */
 export async function loadEngineProfile(_userId = "local") {
   await ensureProfileRow();
   const row = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
-  const favs = JSON.parse(row.favoriteCuisines);
-  const goals = JSON.parse(row.nutritionGoals);
+  const favs = safeArr(row.favoriteCuisines);
+  const goals = safeObj(row.nutritionGoals);
   return {
-    allergies: JSON.parse(row.allergies),
-    avoid_foods: JSON.parse(row.avoidFoods),
-    avoidFoods: JSON.parse(row.avoidFoods),
+    allergies: safeArr(row.allergies),
+    avoid_foods: safeArr(row.avoidFoods),
+    avoidFoods: safeArr(row.avoidFoods),
     favoriteCuisines: favs,
     favorite_cuisines: favs,
     cuisines: favs,

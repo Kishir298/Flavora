@@ -11,6 +11,17 @@ const VALID_MEALS = new Set(["breakfast", "lunch", "dinner", "snack"]);
 function isNotFound(e) {
   return e?.code === "P2025";
 }
+function isConflict(e) {
+  return e?.code === "P2002";
+}
+function safeArr(raw) {
+  try {
+    const v = JSON.parse(raw);
+    return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function shape(r) {
@@ -25,9 +36,9 @@ function shape(r) {
 async function loadProfile() {
   const row = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
   return {
-    allergies: JSON.parse(row.allergies),
-    avoid_foods: JSON.parse(row.avoidFoods),
-    avoidFoods: JSON.parse(row.avoidFoods),
+    allergies: safeArr(row.allergies),
+    avoid_foods: safeArr(row.avoidFoods),
+    avoidFoods: safeArr(row.avoidFoods),
   };
 }
 
@@ -113,6 +124,7 @@ mealPlansRouter.put("/:id", async (req, res, next) => {
     res.json(shape(row));
   } catch (e) {
     if (isNotFound(e)) return res.status(404).json({ error: "NOT_FOUND", message: "meal plan slot not found" });
+    if (isConflict(e)) return res.status(409).json({ error: "CONFLICT", message: "a meal plan slot already occupies that day+meal" });
     next(e);
   }
 });

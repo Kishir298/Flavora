@@ -24,11 +24,27 @@ debugRouter.get("/explain", async (req, res, next) => {
 
     await ensureProfileRow();
     const row = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
-    const favs = JSON.parse(row.favoriteCuisines);
-    const goals = JSON.parse(row.nutritionGoals);
+    const safeA = (raw) => {
+      try {
+        const v = JSON.parse(raw);
+        return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+      } catch {
+        return [];
+      }
+    };
+    const safeO = (raw) => {
+      try {
+        const v = JSON.parse(raw);
+        return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+      } catch {
+        return {};
+      }
+    };
+    const favs = safeA(row.favoriteCuisines);
+    const goals = safeO(row.nutritionGoals);
     const profile = {
-      allergies: JSON.parse(row.allergies),
-      avoidFoods: JSON.parse(row.avoidFoods),
+      allergies: safeA(row.allergies),
+      avoidFoods: safeA(row.avoidFoods),
       favoriteCuisines: favs,
       cuisines: favs,
       spicePreference: row.spicePreference,

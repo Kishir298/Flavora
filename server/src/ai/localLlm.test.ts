@@ -10,9 +10,18 @@ import type { AIProvider } from "./types.js";
 describe("ai/localLlmProvider — local-only enforcement", () => {
   it("accepts loopback/localhost hosts", () => {
     expect(isLocalHost("http://127.0.0.1:5000")).toBe(true);
+    expect(isLocalHost("http://127.0.0.2:5000")).toBe(true);
     expect(isLocalHost("http://localhost:5000")).toBe(true);
+    expect(isLocalHost("http://app.localhost:5000")).toBe(true);
     expect(isLocalHost("http://[::1]:5000")).toBe(true);
-    expect(isLocalHost("http://box.local:5000")).toBe(true);
+  });
+
+  it("refuses 0.0.0.0 and *.local (not loopback)", () => {
+    expect(isLocalHost("http://0.0.0.0:5000")).toBe(false);
+    expect(isLocalHost("http://box.local:5000")).toBe(false);
+    expect(isLocalHost("http://printer.local:5000")).toBe(false);
+    expect(() => new LocalLlmProvider({ host: "http://0.0.0.0:5000" })).toThrow(LocalLlmError);
+    expect(() => new LocalLlmProvider({ host: "http://box.local:5000" })).toThrow(LocalLlmError);
   });
 
   it("refuses remote hosts — local mode can never contact a remote service", () => {

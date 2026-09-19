@@ -39,7 +39,12 @@ function pickNutrients(nutrients: { nutrientName?: string; value?: number }[]): 
   const find = (...names: string[]): number | null => {
     for (const n of nutrients) {
       const name = String(n.nutrientName ?? "").toLowerCase();
-      if (names.some((w) => name.includes(w)) && typeof n.value === "number" && Number.isFinite(n.value)) {
+      // Exact-ish match: avoid "fatty acid" matching a "fat" query.
+      if (
+        names.some((w) => name === w || name.startsWith(w + " ") || name.startsWith(w + ",")) &&
+        typeof n.value === "number" &&
+        Number.isFinite(n.value)
+      ) {
         return n.value;
       }
     }
@@ -49,7 +54,7 @@ function pickNutrients(nutrients: { nutrientName?: string; value?: number }[]): 
     calories: find("energy"),
     protein_g: find("protein"),
     carbs_g: find("carbohydrate"),
-    fat_g: find("total lipid", "fat"),
+    fat_g: find("total lipid (fat)", "total lipid", "fat"),
   };
 }
 
@@ -71,12 +76,14 @@ async function fetchJson(url: string, timeoutMs: number, init?: RequestInit): Pr
 async function lookupUsda(ingredient: string, timeoutMs: number): Promise<SourcedNutrition | null> {
   const key = process.env.USDA_FDC_API_KEY?.trim();
   if (!key) return null;
+  if (!/^[A-Za-z0-9_-]{8,128}$/.test(key)) return null;
   const data = (await fetchJson(
-    `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${encodeURIComponent(key)}`,
+    `https://api.nal.usda.gov/fdc/v1/foods/search`,
     timeoutMs,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // Key via header (not URL query) so it never leaks to logs/proxies.
+      headers: { "Content-Type": "application/json", "X-Api-Key": key },
       body: JSON.stringify({ query: ingredient, pageSize: 5, dataType: ["Foundation", "SR Legacy"] }),
     }
   )) as { foods?: { foodNutrients?: { nutrientName?: string; value?: number }[] }[] } | null;

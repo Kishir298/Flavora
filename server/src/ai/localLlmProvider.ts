@@ -18,21 +18,23 @@ const DEFAULT_HOST = "http://127.0.0.1:5000";
 const DEFAULT_MODEL = "FlavoraLM";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-/** Only loopback/localhost hosts qualify as "local". IPv4/IPv6 loopback + localhost names. */
+/** Only loopback/localhost hosts qualify as "local". Strict: localhost, 127/8, ::1. */
 export function isLocalHost(host: string): boolean {
   try {
     const url = new URL(host);
-    const h = url.hostname.toLowerCase();
+    const h = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
     if (url.protocol !== "http:" && url.protocol !== "https:") return false;
-    return (
-      h === "localhost" ||
-      h === "127.0.0.1" ||
-      h === "::1" ||
-      h === "[::1]" ||
-      h === "0.0.0.0" ||
-      h.endsWith(".localhost") ||
-      h.endsWith(".local")
-    );
+    if (h === "localhost" || h.endsWith(".localhost")) return true;
+    if (h === "::1") return true;
+    // 127.0.0.0/8 loopback range (127.0.0.1, 127.0.0.2, ...).
+    // 0.0.0.0 (all interfaces) and *.local (mDNS LAN) are NOT loopback — refuse.
+    if (/^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h)) {
+      return h.split(".").every((oct) => {
+        const n = Number(oct);
+        return Number.isInteger(n) && n >= 0 && n <= 255;
+      });
+    }
+    return false;
   } catch {
     return false;
   }

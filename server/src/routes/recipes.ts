@@ -55,10 +55,18 @@ recipesRouter.get("/:id", async (req, res, next) => {
 
     await ensureProfileRow();
     const profileRow = await prisma.userProfile.findUnique({ where: { id: 1 } });
+    const safeArr = (raw: string): string[] => {
+      try {
+        const v = JSON.parse(raw);
+        return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+      } catch {
+        return [];
+      }
+    };
     const profile = profileRow
       ? {
-          allergies: JSON.parse(profileRow.allergies) as string[],
-          avoidFoods: JSON.parse(profileRow.avoidFoods) as string[],
+          allergies: safeArr(profileRow.allergies),
+          avoidFoods: safeArr(profileRow.avoidFoods),
         }
       : undefined;
 
@@ -68,7 +76,15 @@ recipesRouter.get("/:id", async (req, res, next) => {
         ? req.query.have.split(",").map((s) => s.trim()).filter(Boolean)
         : undefined;
 
-    await prisma.interaction.create({ data: { recipeId: id, action: "viewed" } });
+    // Dedupe viewed spam (bots/refresh): at most one viewed per recipe per hour.
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recent = await prisma.interaction.findFirst({
+      where: { recipeId: id, action: "viewed", createdAt: { gte: hourAgo } },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!recent) {
+      await prisma.interaction.create({ data: { recipeId: id, action: "viewed" } });
+    }
     res.json(toDetail(recipe, substitutionsDetailed, have));
   } catch (e) {
     next(e);

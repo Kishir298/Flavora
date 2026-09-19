@@ -15,14 +15,30 @@ type ProfileRow = {
   theme: string;
 };
 
+function safeParseArray(raw: string): string[] {
+  try {
+    const v = JSON.parse(raw);
+    return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+function safeParseObject(raw: string): Record<string, unknown> {
+  try {
+    const v = JSON.parse(raw);
+    return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
 export function rowToProfile(row: ProfileRow): UserProfileInput & { theme: string } {
   return {
-    allergies: JSON.parse(row.allergies),
-    avoidFoods: JSON.parse(row.avoidFoods),
-    favoriteCuisines: JSON.parse(row.favoriteCuisines),
+    allergies: safeParseArray(row.allergies),
+    avoidFoods: safeParseArray(row.avoidFoods),
+    favoriteCuisines: safeParseArray(row.favoriteCuisines),
     spicePreference: row.spicePreference as UserProfileInput["spicePreference"],
     skillLevel: row.skillLevel as UserProfileInput["skillLevel"],
-    nutritionGoals: JSON.parse(row.nutritionGoals),
+    nutritionGoals: safeParseObject(row.nutritionGoals) as UserProfileInput["nutritionGoals"],
     preferredCookTimeMinutes: row.preferredCookTimeMinutes,
     theme: row.theme,
   };

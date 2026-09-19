@@ -9,6 +9,12 @@ export const groceriesRouter = Router();
 function isNotFound(e) {
   return e?.code === "P2025";
 }
+function isConflict(e) {
+  return e?.code === "P2002";
+}
+const VALID_GROCERY_CATEGORIES = new Set([
+  "produce", "protein", "dairy", "grains", "pantry", "spices", "frozen", "other",
+]);
 
 function shape(r) {
   let recipeIds = [];
@@ -70,12 +76,19 @@ groceriesRouter.put("/:id", async (req, res, next) => {
     }
     if (unit !== undefined) data.unit = unit != null ? String(unit).slice(0, 24) : null;
     if (note !== undefined) data.note = String(note).slice(0, 200);
-    if (category !== undefined) data.category = String(category).slice(0, 24);
+    if (category !== undefined) {
+      const cat = String(category).toLowerCase().slice(0, 24);
+      if (!VALID_GROCERY_CATEGORIES.has(cat)) {
+        return res.status(400).json({ error: "VALIDATION_ERROR", message: "invalid category" });
+      }
+      data.category = cat;
+    }
     if (checked !== undefined) data.checked = Boolean(checked);
     const row = await prisma.groceryItem.update({ where: { id }, data });
     res.json(shape(row));
   } catch (e) {
     if (isNotFound(e)) return res.status(404).json({ error: "NOT_FOUND", message: "grocery item not found" });
+    if (isConflict(e)) return res.status(409).json({ error: "CONFLICT", message: "a grocery item with that name+note already exists" });
     next(e);
   }
 });
@@ -148,11 +161,12 @@ groceriesRouter.post("/generate", async (req, res, next) => {
     let toBuy = merged;
     if (useInventory) {
       const inv = await prisma.inventoryItem.findMany({ where: { userId: "local" } });
+      const byKey = new Map(merged.map((m) => [ingredientKey(m.name), m]));
       toBuy = subtractInventory(
         merged.map((m) => ({ name: m.name, quantity: m.hasQty ? m.quantity : null, unit: m.unit })),
         inv.map((i) => ({ name: i.name, quantity: i.quantity, unit: i.unit }))
       ).map((r) => {
-        const orig = merged.find((m) => ingredientKey(m.name) === ingredientKey(r.name));
+        const orig = byKey.get(ingredientKey(r.name));
         return { ...orig, quantity: r.quantity, unit: r.unit };
       });
     }

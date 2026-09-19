@@ -122,3 +122,103 @@ describe("hardening: conversation regression (§27)", () => {
     expect(req.craving ?? req.availableIngredients).toBeTruthy();
   });
 });
+
+describe("hardening: corrupt profile columns never 500", () => {
+  it("GET /api/profile survives corrupt JSON columns with safe defaults", async () => {
+    await prisma.userProfile.update({
+      where: { id: 1 },
+      data: { allergies: "{corrupt", avoidFoods: "[oops", favoriteCuisines: "nope", nutritionGoals: "{bad" },
+    });
+    try {
+      const r = await request(app).get("/api/profile");
+      expect(r.status).toBe(200);
+      expect(r.body.allergies).toEqual([]);
+      expect(r.body.avoidFoods).toEqual([]);
+      expect(r.body.favoriteCuisines).toEqual([]);
+      expect(r.body.nutritionGoals).toEqual({});
+    } finally {
+      await prisma.userProfile.update({
+        where: { id: 1 },
+        data: { allergies: "[]", avoidFoods: "[]", favoriteCuisines: "[]", nutritionGoals: "{}" },
+      });
+    }
+  });
+  it("GET /api/recipes/:id survives corrupt profile columns", async () => {
+    await prisma.userProfile.update({ where: { id: 1 }, data: { allergies: "{corrupt" } });
+    try {
+      const r = await request(app).get("/api/recipes/italian-minestrone-soup");
+      expect(r.status).toBe(200);
+      expect(r.body.id).toBe("italian-minestrone-soup");
+    } finally {
+      await prisma.userProfile.update({ where: { id: 1 }, data: { allergies: "[]" } });
+    }
+  });
+});
+
+describe("hardening: unique collisions map to 409", () => {
+  it("inventory rename onto an existing name is 409", async () => {
+    await request(app).post("/api/inventory").send({ name: "conflict-apple" });
+    const b = await request(app).post("/api/inventory").send({ name: "conflict-orange" });
+    const idB = b.body.id;
+    const r = await request(app).put(`/api/inventory/${idB}`).send({ name: "conflict-apple" });
+    expect(r.status).toBe(409);
+    expect(r.body.error).toBe("CONFLICT");
+  });
+  it("grocery rename onto an existing name+note is 409", async () => {
+    await request(app).post("/api/groceries").send({ name: "conflict-milk", note: "same-note" });
+    const b = await request(app).post("/api/groceries").send({ name: "conflict-bread", note: "same-note" });
+    const r = await request(app).put(`/api/groceries/${b.body.id}`).send({ name: "conflict-milk" });
+    expect(r.status).toBe(409);
+    expect(r.body.error).toBe("CONFLICT");
+  });
+  it("grocery update rejects unknown category", async () => {
+    const b = await request(app).post("/api/groceries").send({ name: "conflict-cat-check" });
+    const r = await request(app).put(`/api/groceries/${b.body.id}`).send({ category: "not-a-category" });
+    expect(r.status).toBe(400);
+    expect(r.body.error).toBe("VALIDATION_ERROR");
+  });
+  it("meal-plan move onto an occupied day+meal is 409", async () => {
+    await request(app).post("/api/meal-plans").send({ day: "monday", meal: "lunch", recipeId: "italian-minestrone-soup" });
+    const d = await request(app).post("/api/meal-plans").send({ day: "monday", meal: "dinner", recipeId: "italian-minestrone-soup" });
+    const r = await request(app).put(`/api/meal-plans/${d.body.id}`).send({ meal: "lunch" });
+    expect(r.status).toBe(409);
+    expect(r.body.error).toBe("CONFLICT");
+  });
+});
+
+describe("hardening: interaction rating + recipe validation", () => {
+  const valid = { recipeId: "italian-minestrone-soup", action: "rated_positive" };
+  it.each([0, 6, 1.5, "high"])("rejects rating %s with 400", async (rating) => {
+    const r = await request(app).post("/api/interactions").send({ ...valid, rating });
+    expect(r.status).toBe(400);
+    expect(r.body.error).toBe("VALIDATION_ERROR");
+  });
+  it("accepts rating 5 and rejects unknown recipeId", async () => {
+    const ok = await request(app).post("/api/interactions").send({ ...valid, rating: 5 });
+    expect(ok.status).toBe(201);
+    const bad = await request(app).post("/api/interactions").send({ recipeId: "no-such-recipe", action: "saved" });
+    expect(bad.status).toBe(400);
+    expect(bad.body.error).toBe("VALIDATION_ERROR");
+  });
+});
+
+describe("hardening: inventory consume + health redaction", () => {
+  it("over-consume clamps to 0; negative amount is 400", async () => {
+    const c = await request(app).post("/api/inventory").send({ name: "consume-clamp-beans", quantity: 2, unit: "pieces" });
+    const over = await request(app).patch(`/api/inventory/${c.body.id}/consume`).send({ amount: 10 });
+    expect(over.status).toBe(200);
+    expect(over.body.quantity).toBe(0);
+    const neg = await request(app).patch(`/api/inventory/${c.body.id}/consume`).send({ amount: -1 });
+    expect(neg.status).toBe(400);
+  });
+  it("health never leaks DB paths", async () => {
+    const r = await request(app).get("/api/health");
+    expect(r.status).toBe(200);
+    const err = r.body?.db?.error;
+    if (err !== undefined) {
+      expect(err).toBe("database unavailable");
+      expect(String(err)).not.toContain("/");
+      expect(String(err)).not.toContain(".db");
+    }
+  });
+});

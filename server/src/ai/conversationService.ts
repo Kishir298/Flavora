@@ -26,6 +26,10 @@ export interface ConversationState {
 
 const sessions = new Map<string, ConversationState>();
 const TTL_MS = 30 * 60 * 1000;
+/** Bound the in-memory map: evict expired first, then oldest. */
+const MAX_SESSIONS = 2000;
+/** Amortized cleanup threshold — sweep when the map grows past this. */
+const SWEEP_AT = 500;
 
 function fresh(request: FoodRequest = {}): ConversationState {
   return { id: randomUUID(), request: { ...request }, turns: 0, updatedAt: Date.now(), done: false };
@@ -44,7 +48,27 @@ export function getSession(id?: string): ConversationState | undefined {
 export function createSession(initial: FoodRequest = {}): ConversationState {
   const s = fresh(initial);
   sessions.set(s.id, s);
+  if (sessions.size > MAX_SESSIONS) sweepExpiredSessions();
   return s;
+}
+
+/** Delete expired sessions; if still over capacity, evict oldest. Returns removals. */
+export function sweepExpiredSessions(now = Date.now()): number {
+  let removed = 0;
+  for (const [id, s] of sessions) {
+    if (now - s.updatedAt > TTL_MS) {
+      sessions.delete(id);
+      removed++;
+    }
+  }
+  if (sessions.size > MAX_SESSIONS) {
+    const ordered = [...sessions.values()].sort((a, b) => a.updatedAt - b.updatedAt);
+    for (const s of ordered.slice(0, sessions.size - MAX_SESSIONS)) {
+      sessions.delete(s.id);
+      removed++;
+    }
+  }
+  return removed;
 }
 
 const SKIP_RE = /\b(don'?t care|whatever|anything( is)? fine|i don'?t know|skip( that| this)?|no preference|doesn'?t matter)\b/i;
@@ -283,16 +307,27 @@ export function selectParserRoute(pendingBefore: Slot | undefined): ParserRoute 
   return "pending-deterministic";
 }
 
-/** Advance a session one turn. Returns the follow-up question or done. */
+/** Advance a session one turn. Returns the follow-up question or done.
+ * `reset` is true when the requested id was missing/unknown/expired — or the
+ * previous session was already done — so the UI can tell a fresh start apart
+ * from a continuation instead of silently losing history. */
 export function advanceConversation(
   sessionId: string | undefined,
   message: string,
   opts?: { profile?: Partial<FoodRequest>; parsedIntent?: RecommendationIntent }
-): { session: ConversationState; question: string | null; done: boolean } {
+): { session: ConversationState; question: string | null; done: boolean; reset: boolean } {
+  if (sessions.size >= SWEEP_AT) sweepExpiredSessions();
   let session = getSession(sessionId);
+  let reset = false;
   if (!session) {
+    // Unknown/expired id (or first turn): explicit fresh start, never silent.
+    reset = sessionId !== undefined;
     session = createSession({ ...(opts?.profile ?? {}) });
-    sessions.set(session.id, session);
+  } else if (session.done) {
+    // Done is terminal: a new message starts a new conversation rather than
+    // appending turns onto a completed request.
+    reset = true;
+    session = createSession({ ...(opts?.profile ?? {}) });
   }
   // The question the user is answering: highest-priority missing slot BEFORE
   // this turn's merge. Bare numbers ("600") only make sense against it.
@@ -344,7 +379,7 @@ export function advanceConversation(
   const missing = missingMinusProfile(session.request, opts?.profile);
   if (missing.length === 0 || session.turns >= 6) {
     session.done = true;
-    return { session, question: null, done: true };
+    return { session, question: null, done: true, reset };
   }
   // One question at a time: the highest-priority missing slot.
   const slot = missing[0];
@@ -352,7 +387,7 @@ export function advanceConversation(
   // Greetings carry no requirements — greet back, then repeat the pending
   // question instead of storing "hi" as a craving.
   if (isGreeting(message)) {
-    return { session, question: guidance ? `Hi there! ${guidance} ${base}` : `Hi there! ${base}`, done: false };
+    return { session, question: guidance ? `Hi there! ${guidance} ${base}` : `Hi there! ${base}`, done: false, reset };
   }
   // Stalled on the same slot with nothing newly understood: clarify with a
   // concrete example instead of repeating the identical question. Greetings
@@ -363,6 +398,7 @@ export function advanceConversation(
       session,
       question: `I need the ingredients you currently have available. For example: chicken, rice, onions. ${base}`,
       done: false,
+      reset,
     };
   }
   if (stalled && slot === "calorieTarget") {
@@ -370,9 +406,10 @@ export function advanceConversation(
       session,
       question: `I need a calorie number, like 500. ${base}`,
       done: false,
+      reset,
     };
   }
-  return { session, question: guidance ? `${guidance} ${base}` : base, done: false };
+  return { session, question: guidance ? `${guidance} ${base}` : base, done: false, reset };
 }
 
 /** Engine-ready intent from a completed FoodRequest (deterministic mapping). */

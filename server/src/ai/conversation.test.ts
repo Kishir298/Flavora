@@ -3,6 +3,7 @@ import {
   advanceConversation,
   createSession,
   foodRequestToIntent,
+  getSession,
   mergeModelGapFill,
   mergeRequest,
   missingSlots,
@@ -222,5 +223,23 @@ describe("conservative typo tolerance (craving/ingredients only, safety exact)",
     // …but the allergy path does not use it (assert via no silent mapping):
     const out2 = parseIntentHeuristic("allergic to peanuts");
     expect(out2.allergies).toContain("peanuts");
+  });
+});
+
+describe("conversation — session TTL expiry", () => {
+  it("expired sessions read as undefined and resuming starts fresh", () => {
+    const s = createSession({ craving: "chicken" });
+    expect(getSession(s.id)?.id).toBe(s.id);
+    // Force expiry by backdating updatedAt past the 30min TTL.
+    s.updatedAt = Date.now() - 31 * 60 * 1000;
+    expect(getSession(s.id)).toBeUndefined();
+    const r = advanceConversation(s.id, "600 calories");
+    expect(r.session.id).not.toBe(s.id);
+    expect(r.reset).toBe(true);
+  });
+  it("unknown session ids start a fresh session with reset flag", () => {
+    const r = advanceConversation("does-not-exist", "hi");
+    expect(r.reset).toBe(true);
+    expect(getSession(r.session.id)).toBeDefined();
   });
 });

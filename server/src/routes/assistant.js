@@ -155,7 +155,7 @@ assistantRouter.post("/conversation", async (req, res, next) => {
       msParse = Date.now() - tParse0;
     }
     const tAdv0 = Date.now();
-    const { session, question, done } = advanceConversation(
+    const { session, question, done, reset } = advanceConversation(
       existing?.id,
       message,
       { profile: profileFood, parsedIntent: parsed.intent }
@@ -291,6 +291,7 @@ assistantRouter.post("/conversation", async (req, res, next) => {
       sessionId: session.id,
       question,
       done,
+      reset: reset ?? false,
       foodRequest: session.request,
       intent,
       source: parsed.source,

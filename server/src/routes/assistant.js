@@ -14,10 +14,10 @@ import {
   advanceConversation,
   foodRequestToIntent,
   getSession,
-  isBareSlotAnswer,
   missingMinusProfile,
   parseTurn,
   pendingSlot,
+  selectParserRoute,
 } from "../ai/conversationService.js";
 import { getStore } from "../store/userDataStore.js";
 import { computeStats } from "../stats/statistics.js";
@@ -110,26 +110,27 @@ assistantRouter.post("/conversation", async (req, res, next) => {
         : {}),
     };
 
-    // Natural-language understanding via FlavoraLM when reachable (honest
-    // source/fallbackReason), deterministic parser otherwise. The merged
-    // conversation state — not any single turn — drives the engine.
-    // Short-circuit: an unambiguous bare answer to the pending question
-    // ("500" to the calorie question) needs no model call — answer it
-    // deterministically (faster and immune to model failure). Anything
-    // richer takes the full parse path so no information is lost.
+    // Context-first routing: a pending constrained requirement is answered
+    // deterministically (heuristic parse + pending-slot fills + monotonic
+    // merge) with NO model call — faster and immune to model failure. Only
+    // free-form craving turns (or a fresh/complete state) route to FlavoraLM,
+    // which degrades honestly to the heuristic fallback when invalid.
+    // The merged conversation state — not any single turn — drives the engine.
     const existing = getSession(req.body?.sessionId);
     const prevReq = { ...(existing?.request ?? {}) };
     const pendingBefore = pendingSlot(existing?.request ?? {}, profileFood);
     const heuristic = parseTurn(message);
+    const parserRoute = selectParserRoute(pendingBefore);
+    const modelCalled = parserRoute !== "pending-deterministic";
     let parsed;
     let msParse = 0;
-    if (isBareSlotAnswer(message, pendingBefore)) {
+    if (!modelCalled) {
       const tParse0 = Date.now();
       parsed = {
         intent: heuristic,
         source: "heuristic",
         fallbackReason: "heuristic-mode",
-        notice: "Answered straight from your last question — no model call needed.",
+        notice: "Answered from your last question — no model call needed.",
       };
       msParse = Date.now() - tParse0;
     } else {
@@ -221,6 +222,8 @@ assistantRouter.post("/conversation", async (req, res, next) => {
       msTotal: msParse + msAdvance + msEngine,
       pendingBefore: pendingBefore ?? null,
       pendingAfter,
+      parserRoute,
+      modelCalled,
     });
     // Development-only turn diagnostics (never in production unless
     // explicitly enabled): full pending/merge trace for debugging loops.

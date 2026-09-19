@@ -92,6 +92,19 @@ numbers are reported as weak, with the cause and the remedy stated.
   (not a crash) when generation is unusable — the assistant then falls back.
 - Generation sanity: temperature/top-k/top-p/repetition-penalty/EOS/context
   truncation all implemented and unit-tested (`test_model.py`).
+- `valid:false` mechanism, proven by per-input stage capture (2026-09-19,
+  committed v0.1 checkpoint): the beam emits truncated fragments such as
+  `{"intent":"recommend","timelimit":11,"` for every probed phrasing
+  (`chicken`, `I want chicken`, `I want something healthy`, `100`,
+  `500 calories`, `vegetarian`, `non-veg`) — generation runs (~1–3.5s) but
+  stalls before a balanced object, so `extract_json_object` returns None and
+  the empty-intent rule never even fires. Classification: malformed
+  structured output from weak checkpoint likelihood (C+E) — not empty output,
+  not a tokenizer/vocabulary incompatibility, not an over-strict validator
+  (which correctly rejects the fragments). No parser patch can fix likelihood;
+  the honest remedies are the deterministic fallback (authoritative for
+  required fields) and, for model quality itself, retraining with broader
+  phrasing coverage (`npm run train:llm`, then `npm run evaluate:llm`).
 
 ## Known weaknesses (brutally honest)
 1. The committed dev checkpoint does not yet extract usable intent on its own;

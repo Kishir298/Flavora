@@ -31,7 +31,8 @@ export function parseIntentHeuristic(message: string): RecommendationIntent {
   // Latest explicit wins at merge time; the parser just extracts.
   if (/\bnon[- ]?veg\b|\bnon[- ]?vegetarian\b/.test(text)) raw.dietaryPreference = "non-vegetarian";
   else if (/\bvegan\b/.test(text)) raw.dietaryPreference = "vegan";
-  else if (/\bvegetarian\b|\bveg\b|\bno meat\b|\bmeatless\b/.test(text)) raw.dietaryPreference = "vegetarian";
+  else if (/\bvegetarian\b|\bveggies?\b|\bveg\b|\bno meat\b|\bmeatless\b/.test(text)) raw.dietaryPreference = "vegetarian";
+  else if (/\bmeat\b/.test(text)) raw.dietaryPreference = "non-vegetarian";
   else if (/\bchicken is fine\b|\bmeat is fine\b/.test(text)) {
     raw.dietaryPreference = "non-vegetarian";
   }
@@ -93,7 +94,16 @@ export function parseIntentHeuristic(message: string): RecommendationIntent {
     const parts = chunk
       .split(/,|\/|&/)
       .map((s) => s.trim())
-      .filter((s) => s.length > 1 && s.length < 40 && !/^\d+$/.test(s));
+      .filter((s) => s.length > 1 && s.length < 40 && !/^\d+$/.test(s))
+      // Resolve ordinary minor typos via the same conservative matcher the
+      // bare-list path uses ("chickken" → "chicken"); unresolvable words are
+      // kept verbatim so nothing the user typed is silently dropped.
+      .map((s) => {
+        const low = s.toLowerCase();
+        if (KNOWN_FOODS.has(low) || KNOWN_FOODS.has(low.replace(/s$/, ""))) return s;
+        if (/^[a-z-]{4,30}$/.test(low)) return fuzzyFood(low) ?? s;
+        return s;
+      });
     if (parts.length) raw.availableIngredients = parts;
   }
   // Bare ingredient lists without "I have/with/using" ("chicken rice onions
@@ -239,6 +249,24 @@ export function hasFoodWords(text: string): boolean {
 const BARE_SLOT_WORD_RE =
   /^(breakfast|lunch|dinner|snack|vegetarian|vegan|non[\s-]?veg(etarian)?|veg)$/i;
 
+/** Diet-statement words: own the diet slot, never the craving slot. */
+const DIET_WORD_RE =
+  /\b(non[- ]?veg(etarian)?|vegetarian|vegan|veg(gie)?s?|plant[- ]?based|meatless|no meat|meat)\b/i;
+
+/**
+ * True when the message says nothing beyond diet preference (plus framing
+ * verbs/corrections): "veggie", "actually vegetarian", "no, I want veg".
+ * Such turns must flip the diet slot without touching an established craving.
+ */
+export function isDietOnly(text: string): boolean {
+  const rest = String(text ?? "")
+    .toLowerCase()
+    .replace(DIET_WORD_RE, " ")
+    .replace(/\b(actually|instead|rather|correction|i meant|make it|make that|change|want|wants|need|needs|like|prefer|i|me|my|a|an|the|no|yes|please|,|\.|!|\?)\b/g, " ")
+    .replace(/[^a-z]/g, "");
+  return rest.length === 0;
+}
+
 /** Foods the parser is allowed to treat as exclusions (conservative allowlist). */
 const KNOWN_FOODS = new Set(
   (
@@ -247,7 +275,8 @@ const KNOWN_FOODS = new Set(
     "fish salmon tuna mushrooms mushroom onion garlic tomato potato carrot rice pasta " +
     "noodles beans lentils chickpeas spinach broccoli corn peas zucchini eggplant okra " +
     "olives cilantro coconut lemon lime apple banana nuts almond walnut sesame mustard " +
-    "celery bell pepper chili chocolate honey avocado kale cabbage cauliflower"
+    "celery bell pepper chili chocolate honey avocado kale cabbage cauliflower " +
+    "veggies vegetables veggie greens"
   ).split(/\s+/)
 );
 

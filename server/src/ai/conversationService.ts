@@ -10,6 +10,7 @@ import {
   bareNumber,
   hasFoodWords,
   isCorrection,
+  isDietOnly,
   isGreeting,
   parseIntentHeuristic,
 } from "./heuristicParser.js";
@@ -49,7 +50,12 @@ export function createSession(initial: FoodRequest = {}): ConversationState {
 const SKIP_RE = /\b(don'?t care|whatever|anything( is)? fine|i don'?t know|skip( that| this)?|no preference|doesn'?t matter)\b/i;
 
 /** Merge new intent into request; latest explicit instruction wins. */
-export function mergeRequest(prev: FoodRequest, intent: RecommendationIntent, rawText: string): FoodRequest {
+export function mergeRequest(
+  prev: FoodRequest,
+  intent: RecommendationIntent,
+  rawText: string,
+  opts?: { suppressCraving?: boolean }
+): FoodRequest {
   const next: FoodRequest = { ...prev };
   const fr = toFoodRequest(intent);
   const text = String(rawText ?? "");
@@ -57,8 +63,14 @@ export function mergeRequest(prev: FoodRequest, intent: RecommendationIntent, ra
   // New food info = the turn names food (or corrects earlier input).
   // Greetings/filler/bare numbers carry none, so they must never clobber an
   // established craving ("hi" after chicken must not replace it with "hi").
+  // Pure diet statements ("veggie", "actually vegetarian") own the diet slot,
+  // never the craving — even when they seed an ingredient word as a side
+  // effect ("veggies" also harvests as an owned ingredient, which is fine).
+  const dietOnly = isDietOnly(text);
   const newFoodSignal =
-    (intent.availableIngredients?.length ?? 0) > 0 || hasFoodWords(text) || correction;
+    ((intent.availableIngredients?.length ?? 0) > 0 && !dietOnly) ||
+    (hasFoodWords(text) && !dietOnly) ||
+    correction;
 
   // Corrections: explicit diet/meal mentions overwrite; skip-phrases never clear.
   if (SKIP_RE.test(text)) {
@@ -68,8 +80,11 @@ export function mergeRequest(prev: FoodRequest, intent: RecommendationIntent, ra
     if (fr.mealType) next.mealType = fr.mealType;
   }
   // Craving: monotonic unless corrected. Junk turns ("what", "20", "hi")
-  // leave a food-grounded craving untouched.
-  if (fr.craving && !SKIP_RE.test(text)) {
+  // leave a food-grounded craving untouched. Unrecognized ingredient
+  // attempts ("my dih") must not become cravings either — the caller
+  // suppresses when the pending question is ingredients and nothing was
+  // extracted.
+  if (fr.craving && !SKIP_RE.test(text) && !opts?.suppressCraving) {
     if (!next.craving || newFoodSignal) next.craving = fr.craving;
   }
   if (fr.calorieTarget !== undefined) next.calorieTarget = fr.calorieTarget;
@@ -249,6 +264,25 @@ export function isBareSlotAnswer(message: string, slot: Slot | undefined): boole
   return values.includes(t) || values.includes(norm);
 }
 
+export type ParserRoute = "pending-deterministic" | "flavoralm";
+
+/**
+ * Context-first routing decision (pure, unit-tested).
+ *
+ * A pending constrained requirement is answered deterministically: the
+ * heuristic parser plus pending-slot fills extract everything a direct
+ * answer can carry, and the merge is monotonic — a model call adds latency
+ * but no information (proven: FlavoraLM returns valid:false on these
+ * phrasings, and gap-fill only accepts message-grounded values the
+ * heuristic already found). Free-form craving turns keep the model path
+ * with heuristic fallback. No pending slot (fresh/complete) also routes
+ * to the model path, which degrades honestly when the model is down.
+ */
+export function selectParserRoute(pendingBefore: Slot | undefined): ParserRoute {
+  if (pendingBefore === undefined || pendingBefore === "craving") return "flavoralm";
+  return "pending-deterministic";
+}
+
 /** Advance a session one turn. Returns the follow-up question or done. */
 export function advanceConversation(
   sessionId: string | undefined,
@@ -267,7 +301,12 @@ export function advanceConversation(
   // output only gap-fills (grounded) when the caller has it. Same merge
   // path either way; safety stays additive-only.
   const heuristic = parseTurn(message);
-  session.request = mergeRequest(session.request, heuristic, message);
+  // Unrecognized ingredient attempts ("my dih") must not become cravings:
+  // when ingredients are pending and nothing was extracted, the merge keeps
+  // hands off the craving slot so a clarification can be asked instead.
+  const suppressCraving =
+    pendingBefore === "availableIngredients" && !(heuristic.availableIngredients?.length ?? 0);
+  session.request = mergeRequest(session.request, heuristic, message, { suppressCraving });
   // Context-aware numeric fill: a bare number answers the pending numeric
   // question ("600" after the calorie question). In-range values land in the
   // slot; out-of-range values get guidance instead of becoming junk craving.
@@ -314,6 +353,24 @@ export function advanceConversation(
   // question instead of storing "hi" as a craving.
   if (isGreeting(message)) {
     return { session, question: guidance ? `Hi there! ${guidance} ${base}` : `Hi there! ${base}`, done: false };
+  }
+  // Stalled on the same slot with nothing newly understood: clarify with a
+  // concrete example instead of repeating the identical question. Greetings
+  // keep their own phrasing above (a bare repeat would hide the greeting).
+  const stalled = slot === pendingBefore && !isGreeting(message) && guidance === null;
+  if (stalled && slot === "availableIngredients") {
+    return {
+      session,
+      question: `I need the ingredients you currently have available. For example: chicken, rice, onions. ${base}`,
+      done: false,
+    };
+  }
+  if (stalled && slot === "calorieTarget") {
+    return {
+      session,
+      question: `I need a calorie number, like 500. ${base}`,
+      done: false,
+    };
   }
   return { session, question: guidance ? `${guidance} ${base}` : base, done: false };
 }

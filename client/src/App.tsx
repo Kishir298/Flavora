@@ -29,7 +29,9 @@ export function App() {
 
   return (
     <ErrorBoundary>
-      <BrowserRouter>
+      {/* v7 prep: opt into v6 future flags so the deferred react-router-dom@7
+          migration is a no-op for this declarative <Routes> app. */}
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <div className="min-h-screen bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
           <a
             href="#main"

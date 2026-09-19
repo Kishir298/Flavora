@@ -32,7 +32,6 @@ export default defineConfig({
         // Offline: app shell precache + previously viewed recipe payloads.
         // navigateFallback ensures deep-link reloads (e.g. /meal-plan) work offline.
         navigateFallback: "index.html",
-        // @ts-expect-error navigateFallbackDenylist is a valid workbox-build option
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {

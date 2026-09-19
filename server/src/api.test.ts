@@ -298,8 +298,7 @@ describe("assistant NL → engine (local-only, no remote required)", () => {
     expect(r.body.question).toMatch(/vegetarian|vegan|non-veg|ingredients|breakfast|lunch|dinner|snack/i);
   });
 
-  it("conversation: greeting while pending preserves slot for the real answer", async () => {
-    let r = await request(app).post("/api/assistant/conversation").send({ message: "I want salmon" });
+  it("conversation: greeting while pending preserves slot for the real answer", async () => {    let r = await request(app).post("/api/assistant/conversation").send({ message: "I want salmon" });
     const sid = r.body.sessionId;
     r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "hello" });
     expect(r.status).toBe(200);
@@ -308,6 +307,46 @@ describe("assistant NL → engine (local-only, no remote required)", () => {
     expect(JSON.stringify(r.body.foodRequest).toLowerCase()).toContain("salmon");
     r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "520" });
     expect(r.body.foodRequest.calorieTarget).toBe(520);
+  });
+
+  it("conversation: constrained pendings bypass the model; ingredients clarify", async () => {
+    let r = await request(app).post("/api/assistant/conversation").send({ message: "I want soup" });
+    const sid = r.body.sessionId;
+    r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "400" });
+    // Diet pending: deterministic, no model call, state merged.
+    r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "veggie" });
+    expect(r.status).toBe(200);
+    expect(r.body.source).toBe("heuristic");
+    expect(r.body.fallbackReason).toBe("heuristic-mode");
+    expect(r.body.foodRequest.dietaryPreference).toBe("vegetarian");
+    expect(JSON.stringify(r.body.foodRequest).toLowerCase()).toContain("soup");
+    // Ingredients pending: recognized list accepted without the model.
+    r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "chicken and rice" });
+    expect(r.body.foodRequest.availableIngredients).toEqual(
+      expect.arrayContaining(["chicken", "rice"])
+    );
+  });
+
+  it("conversation: §19 flows — healthy+chicken, invalid-then-valid calorie chain", async () => {
+    // Flow 1: free-form multi-field request takes the model path honestly.
+    let r = await request(app).post("/api/assistant/conversation").send({ message: "I want something healthy with chicken" });
+    expect(r.status).toBe(200);
+    expect(JSON.stringify(r.body.foodRequest).toLowerCase()).toContain("chicken");
+    // Flow 2: invalid calorie never corrupts; valid one advances; diet + ingredients complete.
+    r = await request(app).post("/api/assistant/conversation").send({ message: "chicken" });
+    const sid = r.body.sessionId;
+    r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "100000" });
+    expect(r.body.foodRequest.calorieTarget).toBeUndefined();
+    expect(JSON.stringify(r.body.foodRequest).toLowerCase()).toContain("chicken");
+    r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "500" });
+    expect(r.body.foodRequest.calorieTarget).toBe(500);
+    r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "non veg" });
+    expect(r.body.foodRequest.dietaryPreference).toBe("non-vegetarian");
+    r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "chicken and rice" });
+    const fr = r.body.foodRequest;
+    expect(fr.availableIngredients).toEqual(expect.arrayContaining(["chicken", "rice"]));
+    expect(fr.craving).toBeTruthy();
+    expect(fr.calorieTarget).toBe(500);
   });
 
   it("conversation: bare-number + junk turns keep state and advance (no loop)", async () => {

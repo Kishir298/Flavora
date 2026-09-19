@@ -4,6 +4,7 @@ import {
   createSession,
   isBareSlotAnswer,
   pendingSlot,
+  selectParserRoute,
 } from "./conversationService.js";
 
 /**
@@ -235,5 +236,83 @@ describe("conversation loop regression — observed transcript", () => {
     expect(isBareSlotAnswer("500", "craving")).toBe(false);
     expect(isBareSlotAnswer("dinner", "calorieTarget")).toBe(false);
     expect(isBareSlotAnswer("hi", undefined)).toBe(false);
+  });
+
+  it("selectParserRoute: constrained pendings skip the model, craving keeps it", () => {
+    expect(selectParserRoute("craving")).toBe("flavoralm");
+    expect(selectParserRoute(undefined)).toBe("flavoralm");
+    for (const slot of ["calorieTarget", "dietaryPreference", "availableIngredients", "mealType"] as const) {
+      expect(selectParserRoute(slot)).toBe("pending-deterministic");
+    }
+  });
+
+  it("§18: pending calorie accepts 1000 with prior state preserved", () => {
+    let r = advanceConversation(undefined, "I want chicken");
+    const sid = r.session.id;
+    r = advanceConversation(sid, "1000");
+    expect(r.session.request.calorieTarget).toBe(1000);
+    expect(r.session.request.craving).toContain("chicken");
+    if (!r.done) expect(r.question).not.toMatch(/calories/i);
+  });
+
+  it("§18: pending diet accepts bare variants (veggie, meat, vegan)", () => {
+    for (const [msg, expected] of [
+      ["veggie", "vegetarian"],
+      ["meat", "non-vegetarian"],
+      ["vegan", "vegan"],
+    ] as const) {
+      let r = advanceConversation(undefined, "I want soup");
+      r = advanceConversation(r.session.id, "400");
+      r = advanceConversation(r.session.id, msg);
+      expect(r.session.request.dietaryPreference).toBe(expected);
+      expect(JSON.stringify(r.session.request).toLowerCase()).toContain("soup");
+    }
+  });
+
+  it("§18: pending ingredients accepts lists, typos, and collective nouns", () => {
+    const drive = (first: string) => {
+      let r = advanceConversation(undefined, first);
+      r = advanceConversation(r.session.id, "550");
+      r = advanceConversation(r.session.id, "non-veg");
+      return r;
+    };
+    let r = drive("I want stir fry");
+    r = advanceConversation(r.session.id, "chicken and rice");
+    expect(r.session.request.availableIngredients).toEqual(
+      expect.arrayContaining(["chicken", "rice"])
+    );
+    r = drive("I want curry");
+    r = advanceConversation(r.session.id, "I have chickken, rice and onions");
+    expect(r.session.request.availableIngredients).toEqual(
+      expect.arrayContaining(["rice", "onions"])
+    );
+    expect(
+      (r.session.request.availableIngredients ?? []).some((s) => /chick?en/i.test(s))
+    ).toBe(true);
+    r = drive("I want salad");
+    r = advanceConversation(r.session.id, "veggies");
+    expect(r.session.request.availableIngredients).toEqual(
+      expect.arrayContaining(["veggies"])
+    );
+  });
+
+  it("§18: unrelated text while ingredients pending clarifies without corrupting", () => {
+    // Fresh session per junk turn: each assertion is independent (a single
+    // session would hit the 6-turn completion cap, which is covered above).
+    const driveToIngredients = () => {
+      let r = advanceConversation(undefined, "I want tacos");
+      r = advanceConversation(r.session.id, "450");
+      r = advanceConversation(r.session.id, "non-veg");
+      expect(pendingSlot(r.session.request)).toBe("availableIngredients");
+      return r.session.id;
+    };
+    for (const junk of ["hello", "what", "asdf", "my dih"]) {
+      const r = advanceConversation(driveToIngredients(), junk);
+      expect(r.done).toBe(false);
+      expect(r.session.request.availableIngredients ?? []).toEqual([]);
+      expect(r.session.request.craving).toContain("tacos");
+      expect(r.question).toMatch(/ingredients/i);
+      expect(r.question).not.toBe("What ingredients do you have on hand?");
+    }
   });
 });

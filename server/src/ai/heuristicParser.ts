@@ -194,8 +194,8 @@ const GREETING_RE =
 const FILLER_RE =
   /^(what|huh|hmm+|um+|uh+|er+|oh+|ah+|ok(ay)?|yes+|yeah+|yep|nope?|sure|thanks?|thx|please|sorry|test|testing)[!?.\s]*$/i;
 
-/** A bare number ("20", "500") — handled by pending-slot filling downstream. */
-const BARE_NUMBER_RE = /^(\d{1,4})[!?.\s]*$/;
+/** A bare number ("20", "500", "100000") — handled by pending-slot filling downstream. */
+const BARE_NUMBER_RE = /^(\d{1,6})[!?.\s]*$/;
 
 /** Explicit correction of earlier input ("actually beef", "make it spicy"). */
 const CORRECTION_RE =

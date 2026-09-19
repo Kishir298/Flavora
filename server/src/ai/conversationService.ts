@@ -197,6 +197,58 @@ const QUESTIONS: Record<Slot, (r: FoodRequest) => string> = {
   skillLevel: () => "How would you rate your cooking — beginner, intermediate, or advanced?",
 };
 
+/** Missing slots minus what the profile already supplies. */
+export function missingMinusProfile(request: FoodRequest, profile?: Partial<FoodRequest>): Slot[] {
+  return missingSlots(request).filter((s) => {
+    // Don't ask for what the profile already supplied.
+    const p = profile as Record<string, unknown> | undefined;
+    if (!p) return true;
+    const v = p[s as string];
+    return v === undefined || v === null || (Array.isArray(v) && v.length === 0);
+  });
+}
+
+/** Highest-priority missing slot, excluding what the profile already supplies. */
+export function pendingSlot(request: FoodRequest, profile?: Partial<FoodRequest>): Slot | undefined {
+  return missingMinusProfile(request, profile)[0];
+}
+
+const NUMERIC_BOUNDS: Partial<Record<Slot, { min: number; max: number; label: string }>> = {
+  calorieTarget: { min: 50, max: 5000, label: "calorie target" },
+  servings: { min: 1, max: 20, label: "servings" },
+  maxCookingTime: { min: 5, max: 180, label: "cooking time" },
+};
+
+const BARE_VALUES: Partial<Record<Slot, string[]>> = {
+  dietaryPreference: ["vegetarian", "veg", "vegan", "non-vegetarian", "nonveg", "non-veg", "any"],
+  mealType: ["breakfast", "lunch", "dinner", "snack"],
+  spiceLevel: ["mild", "medium", "hot"],
+  skillLevel: ["beginner", "intermediate", "advanced"],
+  cuisine: ["italian", "indian", "chinese", "japanese", "mexican", "french", "american", "mediterranean", "middle eastern", "african"],
+};
+
+/**
+ * True when the whole message is an unambiguous answer to the pending slot —
+ * a bare in-range number, or a bare enum word ("vegetarian", "dinner").
+ * Such turns never need the model; the deterministic path answers them.
+ * Anything else (extra words, other slots) returns false so the full
+ * parse+merge path runs and no information is lost.
+ */
+export function isBareSlotAnswer(message: string, slot: Slot | undefined): boolean {
+  if (slot === undefined) return false;
+  const t = String(message ?? "").toLowerCase().trim().replace(/[!?.\s]+$/, "");
+  const bounds = NUMERIC_BOUNDS[slot];
+  if (bounds) {
+    if (!/^\d{1,6}$/.test(t)) return false;
+    const n = Number(t);
+    return n >= bounds.min && n <= bounds.max;
+  }
+  const values = BARE_VALUES[slot];
+  if (!values) return false;
+  const norm = t.replace(/[\s_]+/g, "-");
+  return values.includes(t) || values.includes(norm);
+}
+
 /** Advance a session one turn. Returns the follow-up question or done. */
 export function advanceConversation(
   sessionId: string | undefined,
@@ -208,17 +260,9 @@ export function advanceConversation(
     session = createSession({ ...(opts?.profile ?? {}) });
     sessions.set(session.id, session);
   }
-  const withoutProfileKnown = (r: FoodRequest): Slot[] =>
-    missingSlots(r).filter((s) => {
-      // Don't ask for what the profile already supplied.
-      const p = opts?.profile as Record<string, unknown> | undefined;
-      if (!p) return true;
-      const v = p[s as string];
-      return v === undefined || v === null || (Array.isArray(v) && v.length === 0);
-    });
   // The question the user is answering: highest-priority missing slot BEFORE
   // this turn's merge. Bare numbers ("600") only make sense against it.
-  const pendingBefore = withoutProfileKnown(session.request)[0];
+  const pendingBefore = pendingSlot(session.request, opts?.profile);
   // Deterministic parse first (explicit user text wins); validated FlavoraLM
   // output only gap-fills (grounded) when the caller has it. Same merge
   // path either way; safety stays additive-only.
@@ -230,12 +274,7 @@ export function advanceConversation(
   let guidance: string | null = null;
   const n = bareNumber(message);
   if (n !== null && pendingBefore !== undefined) {
-    const bounds: Partial<Record<Slot, { min: number; max: number; label: string }>> = {
-      calorieTarget: { min: 50, max: 5000, label: "calorie target" },
-      servings: { min: 1, max: 20, label: "servings" },
-      maxCookingTime: { min: 5, max: 180, label: "cooking time" },
-    };
-    const b = bounds[pendingBefore];
+    const b = NUMERIC_BOUNDS[pendingBefore];
     const current = session.request[pendingBefore];
     if (b && current === undefined) {
       if (n >= b.min && n <= b.max) {
@@ -263,7 +302,7 @@ export function advanceConversation(
   session.turns += 1;
   session.updatedAt = Date.now();
 
-  const missing = withoutProfileKnown(session.request);
+  const missing = missingMinusProfile(session.request, opts?.profile);
   if (missing.length === 0 || session.turns >= 6) {
     session.done = true;
     return { session, question: null, done: true };

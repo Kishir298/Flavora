@@ -1,5 +1,32 @@
 # Flavora — Progress
 
+## Conversational loop, round 2: bare-number/junk turns + stale-backend guard (2026-09-19, this session)
+
+Live transcript replay proved turns 1–2 (`i want chicken` → craving question)
+do NOT reproduce on current source — the observed UI was talking to a stale
+backend. Root-cause class fixed instead: `npm run start` never checked
+API/WEB port occupancy, so a dead previous server kept answering on :4000
+while `waitForTcp` passed. `setup.mjs` now refuses shadow backends (stale-
+Flavora detection via `/api/health`), verified live against a dummy occupant.
+
+Genuine state defects reproduced (3 failing regression tests) and fixed:
+bare numbers never filled slots AND became junk cravings (`20` → craving,
+calorie question forever); greetings/smalltalk (`hi`, `what`) polluted the
+craving slot; later junk clobbered established food. Fixes: pending-slot
+numeric fill with range guidance, craving-overwrite guard (food/correction
+only), greeting + filler guards in the parser, correction-prefix stripping
+(`actually beef` → `beef`; diet-only corrections keep craving), replace-vs-
+union ingredient semantics for corrections. Safety union untouched.
+
+| Objective | Status | Implementation | Tests | Evidence |
+|---|---|---|---|---|
+| Repro | Done | `conversationLoop.test.ts` transcript replay; 4 pass / 3 fail pre-fix | 7 loop tests | turns 1–2 pass pre-fix (stale-backend verdict), bare/junk fail |
+| State fix | Fixed | parser guards + pending-slot fill + merge guards + corrections | loop 9/9, api 24/24, client 40/40, server 209/209 | `600`→calories kept+chicken; `what`/`20` no clobber; `actually beef` replaces |
+| Start guard | Fixed | `ensurePortFree` + live dummy-occupant refusal | `node --check`, live `npm run start` refusal | `API port 4099 … refusing to start a shadow server` |
+| E2E | Done | foodlog/journey chat-first routing fixes; offline sub regex-injection fix; full `eval:slow` 6/6 + JSON, offline 2/2, a11y/kb/nav/critical 25/25 | live runs | sub toast regex `.* → (3/4…)` never matches literal parens — plain-string assertion now |
+
+Known limitations: slow E2E timing-sensitive under CPU contention (serial/isolated green); model `valid:false` on open phrasing falls back to heuristic honestly (by design).
+
 ## Conversational broken loop: trace, repair, verify (2026-09-18, this session)
 
 Root cause: `parseIntentHeuristic` returned an EMPTY intent for single-food-word

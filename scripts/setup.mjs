@@ -106,6 +106,31 @@ async function waitForTcp(host, port, timeoutMs = 60_000) {
   return false;
 }
 
+/**
+ * Refuse to start a shadow backend: if API_PORT/WEB_PORT is already occupied,
+ * the new server would crash on EADDRINUSE while waitForTcp still passes
+ * against the OLD occupant — the user would unknowingly talk to stale code.
+ * Distinguish a stale Flavora backend (actionable kill/reuse message) from
+ * anything else. Returns true when free, false after printing the refusal.
+ */
+async function ensurePortFree(label, host, port, healthPath = "") {
+  if (!(await tcpReachable(host, port, 1500))) return true;
+  let occupant = "another process";
+  if (healthPath) {
+    const health = await httpGetJson(`http://${host}:${port}${healthPath}`, 3_000);
+    if (health && (health.service === "flavora" || typeof health.version !== "undefined" || health.ai)) {
+      occupant = "a stale Flavora backend from a previous run";
+    }
+  }
+  fail(
+    `${label} port ${port} is already occupied by ${occupant} — refusing to start a shadow server. ` +
+      `The old code would keep answering and your UI would talk to it. ` +
+      `Fix: find it (lsof -i :${port}), stop it, then re-run. ` +
+      `Or run on other ports (e.g. PORT=4001 for the API).`
+  );
+  return false;
+}
+
 /** HTTP GET JSON with timeout (for /health polling). */
 async function httpGetJson(url, timeoutMs = 5_000) {
   const controller = new AbortController();
@@ -421,7 +446,9 @@ async function launch() {
     }
   }
 
-  // 2 + 3. Express API + Vite website.
+  // 2 + 3. Express API + Vite website — but never shadow a live backend.
+  if (!(await ensurePortFree("API", "localhost", API_PORT, "/api/health"))) process.exit(1);
+  if (!(await ensurePortFree("Website", "localhost", WEB_PORT))) process.exit(1);
   spawnTracked("npm", ["run", "dev:server"], "api");
   spawnTracked("npm", ["run", "dev:client"], "web");
 

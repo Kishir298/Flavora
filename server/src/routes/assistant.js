@@ -14,6 +14,10 @@ import {
   advanceConversation,
   foodRequestToIntent,
   getSession,
+  isBareSlotAnswer,
+  missingMinusProfile,
+  parseTurn,
+  pendingSlot,
 } from "../ai/conversationService.js";
 import { getStore } from "../store/userDataStore.js";
 import { computeStats } from "../stats/statistics.js";
@@ -109,13 +113,37 @@ assistantRouter.post("/conversation", async (req, res, next) => {
     // Natural-language understanding via FlavoraLM when reachable (honest
     // source/fallbackReason), deterministic parser otherwise. The merged
     // conversation state — not any single turn — drives the engine.
-    const parsed = await parseUserIntent(message, undefined);
+    // Short-circuit: an unambiguous bare answer to the pending question
+    // ("500" to the calorie question) needs no model call — answer it
+    // deterministically (faster and immune to model failure). Anything
+    // richer takes the full parse path so no information is lost.
     const existing = getSession(req.body?.sessionId);
+    const prevReq = { ...(existing?.request ?? {}) };
+    const pendingBefore = pendingSlot(existing?.request ?? {}, profileFood);
+    const heuristic = parseTurn(message);
+    let parsed;
+    let msParse = 0;
+    if (isBareSlotAnswer(message, pendingBefore)) {
+      const tParse0 = Date.now();
+      parsed = {
+        intent: heuristic,
+        source: "heuristic",
+        fallbackReason: "heuristic-mode",
+        notice: "Answered straight from your last question — no model call needed.",
+      };
+      msParse = Date.now() - tParse0;
+    } else {
+      const tParse0 = Date.now();
+      parsed = await parseUserIntent(message, undefined);
+      msParse = Date.now() - tParse0;
+    }
+    const tAdv0 = Date.now();
     const { session, question, done } = advanceConversation(
       existing?.id,
       message,
       { profile: profileFood, parsedIntent: parsed.intent }
     );
+    const msAdvance = Date.now() - tAdv0;
 
     const intent = foodRequestToIntent(session.request, parsed.intent?.mode);
 
@@ -130,7 +158,9 @@ assistantRouter.post("/conversation", async (req, res, next) => {
 
     let recommendations = [];
     let reply = question ?? "";
+    let msEngine = 0;
     if (done) {
+      const tEng0 = Date.now();
       const userId = "local";
       const candidates = await listRecipes({ limit: 200 });
       const outcomeCount = await prisma.interaction.count({
@@ -172,8 +202,10 @@ assistantRouter.post("/conversation", async (req, res, next) => {
         nutritionSource: r.recipe.nutrition?.calories != null ? "authored" : "unknown",
       }));
       reply = buildAssistantReply(message, intent, recommendations, parsed.notice ?? undefined);
+      msEngine = Date.now() - tEng0;
     }
 
+    const pendingAfter = missingMinusProfile(session.request, profileFood)[0] ?? null;
     logEvent("assistant-conversation", {
       reqId: getReqId(req),
       sessionId: session.id,
@@ -183,7 +215,29 @@ assistantRouter.post("/conversation", async (req, res, next) => {
       fallbackReason: parsed.fallbackReason ?? "none",
       detail: parsed.detail ?? undefined,
       returned: recommendations.length,
+      msParse,
+      msAdvance,
+      msEngine,
+      msTotal: msParse + msAdvance + msEngine,
+      pendingBefore: pendingBefore ?? null,
+      pendingAfter,
     });
+    // Development-only turn diagnostics (never in production unless
+    // explicitly enabled): full pending/merge trace for debugging loops.
+    if (process.env.FLAVORA_DEBUG_CONVERSATION === "1") {
+      logEvent("assistant-conversation-debug", {
+        reqId: getReqId(req),
+        sessionId: session.id,
+        turn: session.turns,
+        userMessage: message,
+        pendingBefore: pendingBefore ?? null,
+        previousRequirements: prevReq,
+        flavoralm: { valid: parsed.source === "local", fallbackReason: parsed.fallbackReason ?? "none" },
+        heuristicExtraction: heuristic,
+        mergedRequirements: session.request,
+        pendingAfter,
+      });
+    }
 
     res.json({
       sessionId: session.id,

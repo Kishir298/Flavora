@@ -25,6 +25,23 @@ jobs:
       - run: npm run test --workspace=server
       - run: npm run test --workspace=client
 
+  # Dependency + secret hygiene (localhost-only still needs CVE signal).
+  # react-router v6 + vite/vitest breaking fixes deferred (see package.json overrides for qs pin).
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm audit --audit-level=high
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # Python runner unit tests (no model weights needed).
   python-unit:
     runs-on: ubuntu-latest
@@ -36,4 +53,5 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install --index-url https://download.pytorch.org/whl/cpu torch "numpy>=1.26,<2"
-      - run: python -m unittest training.tests.test_evaluate training.tests.test_env -v
+      - run: python -m unittest training.tests.test_dataset training.tests.test_tokenizer training.tests.test_model training.tests.test_evaluate training.tests.test_env -v
+      - run: python -m training.train_tokenizer --config training/configs/flavora_lm_dev.json --out /tmp/flavora-tokenizer-smoke.json

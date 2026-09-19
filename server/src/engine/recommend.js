@@ -4,6 +4,7 @@
  * external fetch. Learning never gets a vote on allergens: filter always runs first.
  */
 import { passesHardFilter } from "./filter.js";
+import { passesDietaryFilter } from "./diet.js";
 import { computeFeatures } from "./features.js";
 import { scoreWithFeatures, DEFAULT_WEIGHTS, weightsForMode } from "./scorer.js";
 
@@ -109,17 +110,30 @@ export function buildReasons(recipe, features, request = {}) {
 }
 
 /**
+ * Single authoritative eligibility path (§16): hard constraints only.
+ * Order: allergy/avoid-food safety first, then dietary eligibility.
+ * Ranking/scoring must only ever see this output — never raw candidates.
+ */
+export function filterEligible(candidates, profile, request = {}) {
+  const diet = request.dietaryPreference ?? profile.dietaryPreference ?? profile.diet;
+  return candidates.filter((r) => passesHardFilter(r, profile) && passesDietaryFilter(r, diet));
+}
+
+/**
  * @param {any[]} candidates rows from the local recipes table
  * @param {any} profile supports snake_case + legacy camelCase
- * @param {{availableIngredients?:string[],ingredients?:string[],timeLimit?:number,maxTime?:number,mode?:string,craving?:string}} [request]
+ * @param {{availableIngredients?:string[],ingredients?:string[],timeLimit?:number,maxTime?:number,mode?:string,craving?:string,dietaryPreference?:string}} [request]
  * @param {Record<string, number>} [weights] base (normal-mode) weights; request.mode re-weights
  * @param {number} [topN]
  */
 export function recommendWithEngine(candidates, profile, request = {}, weights = DEFAULT_WEIGHTS, topN = 5) {
   const mode = request.mode ?? "normal";
   const effective = weightsForMode(weights, mode);
-  const safe = candidates.filter((r) => passesHardFilter(r, profile));
-  return safe
+  // Hard eligibility BEFORE scoring: allergies/avoid-foods first, then diet.
+  // Scoring can never reintroduce a rejected recipe (slice happens below).
+  const safe = filterEligible(candidates, profile, request);
+  const eligibleCount = safe.length;
+  const ranked = safe
     .map((recipe) => {
       const features = computeFeatures(recipe, profile, request);
       const score = scoreWithFeatures(features, effective);
@@ -127,4 +141,6 @@ export function recommendWithEngine(candidates, profile, request = {}, weights =
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, topN);
+  ranked.eligibleCount = eligibleCount;
+  return ranked;
 }

@@ -98,6 +98,16 @@ recommendationsRouter.post("/", async (req, res, next) => {
     const weights = resolveWeights({ outcomeCount, rows: weightRows });
 
     const t0 = Date.now();
+    // Dietary preference is a HARD eligibility filter (same engine path as
+    // the conversation flow); conversational calorieTarget folds into the
+    // existing soft maxCalories goal. Validate lightly — the engine treats
+    // unknown diet strings as "any" rather than inventing restrictions.
+    const dietaryPreference =
+      typeof req.body?.dietaryPreference === "string" ? req.body.dietaryPreference.trim().slice(0, 32) : undefined;
+    const mealType =
+      typeof req.body?.mealType === "string" ? req.body.mealType.trim().slice(0, 32) : undefined;
+    const calorieTarget =
+      Number.isFinite(Number(req.body?.calorieTarget)) ? Number(req.body.calorieTarget) : undefined;
     const results = recommendWithEngine(
       candidates,
       scoringProfile,
@@ -109,6 +119,16 @@ recommendationsRouter.post("/", async (req, res, next) => {
         cravingSignals: req.body?.cravingSignals ?? undefined,
         expiringIngredients,
         nutritionGoals: profile.nutritionGoals,
+        dietaryPreference,
+        mealType,
+        ...(calorieTarget !== undefined
+          ? {
+              nutritionGoals: {
+                ...(profile.nutritionGoals ?? {}),
+                maxCalories: calorieTarget,
+              },
+            }
+          : {}),
       },
       weights,
       5
@@ -119,6 +139,7 @@ recommendationsRouter.post("/", async (req, res, next) => {
       reqId: getReqId(req),
       route: "recommendations",
       candidates: candidates.length,
+      eligible: results.eligibleCount ?? results.length,
       returned: results.length,
       ms,
       query: { userId, availableIngredients, timeLimit, mode },

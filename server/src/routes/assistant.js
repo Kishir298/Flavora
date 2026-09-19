@@ -176,8 +176,37 @@ assistantRouter.post("/conversation", async (req, res, next) => {
         craving: intent.craving ?? undefined,
         cravingSignals: intent.cravingSignals ?? undefined,
         nutritionGoals: profile.nutritionGoals,
+        // Collected conversational constraints reach the engine verbatim:
+        // diet is a HARD eligibility filter; calorieTarget folds into the
+        // existing soft maxCalories goal; mealType is plumbed for matching
+        // (recipes carry no meal slots, so it cannot filter — documented).
+        dietaryPreference: session.request.dietaryPreference ?? undefined,
+        mealType: session.request.mealType ?? undefined,
+        ...(session.request.calorieTarget !== undefined
+          ? {
+              nutritionGoals: {
+                ...(profile.nutritionGoals ?? {}),
+                maxCalories: session.request.calorieTarget,
+              },
+            }
+          : {}),
       };
       const results = recommendWithEngine(candidates, profile, request, weights, 5);
+      logEvent("assistant-recommend", {
+        reqId: getReqId(req),
+        sessionId: session.id,
+        constraints: {
+          dietaryPreference: session.request.dietaryPreference ?? null,
+          mealType: session.request.mealType ?? null,
+          calorieTarget: session.request.calorieTarget ?? null,
+          ingredients: (intent.availableIngredients ?? []).length,
+          allergies: (session.request.allergies ?? []).length,
+          avoidFoods: (session.request.avoidFoods ?? []).length,
+        },
+        candidates: candidates.length,
+        eligible: results.eligibleCount ?? results.length,
+        returned: results.length,
+      });
       if (results.length > 0) {
         await prisma.interaction.createMany({
           data: results.map((r) => ({
@@ -343,6 +372,19 @@ assistantRouter.post("/", async (req, res, next) => {
       cravingSignals: intent.cravingSignals ?? undefined,
       expiringIngredients: intent.expiringIngredients ?? undefined,
       nutritionGoals: profile.nutritionGoals,
+      // Same constraint plumbing as the conversation path: diet is a HARD
+      // eligibility filter; conversational calorieTarget folds into the
+      // existing soft maxCalories goal; mealType is plumbed for matching.
+      dietaryPreference: intent.dietaryPreference ?? undefined,
+      mealType: intent.mealType ?? undefined,
+      ...(intent.calorieTarget !== undefined
+        ? {
+            nutritionGoals: {
+              ...(profile.nutritionGoals ?? {}),
+              maxCalories: intent.calorieTarget,
+            },
+          }
+        : {}),
     };
 
     const t0 = Date.now();
@@ -357,6 +399,7 @@ assistantRouter.post("/", async (req, res, next) => {
       host: process.env.FLAVORA_LM_HOST ?? (process.env.FLAVORA_LM_PORT ? `http://127.0.0.1:${process.env.FLAVORA_LM_PORT}` : undefined),
       ms,
       returned: results.length,
+      eligible: results.eligibleCount ?? results.length,
       intent,
     });
 

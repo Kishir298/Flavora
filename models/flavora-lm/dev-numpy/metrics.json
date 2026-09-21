@@ -6,66 +6,66 @@
   "vocab_size": 369,
   "param_count": 51931,
   "dataset_version": "0.1",
-  "examples": 2000,
+  "examples": 8000,
   "seed": 42,
-  "epochs": 15,
+  "epochs": 25,
   "batch_size": 32,
   "lr": 0.003,
   "optimizer": "adam",
   "d_embed": 64,
   "hidden": 128,
-  "train_size": 1400,
-  "val_size": 242,
-  "test_size": 236,
-  "val_loss": 0.07768864259923403,
-  "val_macro_acc": 0.975206611570248,
-  "test_loss": 0.06870660506828767,
-  "test_macro_acc": 0.978813559322034,
+  "train_size": 5600,
+  "val_size": 888,
+  "test_size": 840,
+  "val_loss": 0.03962355470622646,
+  "val_macro_acc": 0.9853603603603605,
+  "test_loss": 0.046946856401004454,
+  "test_macro_acc": 0.9821428571428573,
   "test_per_head": {
-    "acc/diet": 0.9830508474576272,
-    "acc/meal": 0.9576271186440678,
-    "acc/cuisine": 0.9661016949152542,
-    "acc/spice": 0.9915254237288136,
-    "acc/mode": 0.9957627118644068
+    "acc/diet": 0.969047619047619,
+    "acc/meal": 0.9571428571428572,
+    "acc/cuisine": 0.9904761904761905,
+    "acc/spice": 0.9964285714285714,
+    "acc/mode": 0.9976190476190476
   },
   "class_balance_train": {
     "diet": {
-      "vegan": 90,
-      "none": 1112,
-      "vegetarian": 92,
-      "non-vegetarian": 106
+      "vegan": 406,
+      "none": 4370,
+      "vegetarian": 382,
+      "non-vegetarian": 442
     },
     "meal": {
-      "none": 1005,
-      "breakfast": 111,
-      "lunch": 97,
-      "dinner": 97,
-      "snack": 90
+      "none": 4052,
+      "breakfast": 385,
+      "lunch": 385,
+      "dinner": 402,
+      "snack": 376
     },
     "cuisine": {
-      "greek": 36,
-      "none": 1012,
-      "thai": 42,
-      "spanish": 36,
-      "indian": 33,
-      "american": 30,
-      "japanese": 50,
-      "chinese": 38,
-      "mexican": 38,
-      "french": 38,
-      "italian": 47
+      "greek": 142,
+      "none": 4057,
+      "thai": 150,
+      "spanish": 159,
+      "indian": 145,
+      "american": 164,
+      "japanese": 161,
+      "chinese": 143,
+      "mexican": 167,
+      "french": 153,
+      "italian": 159
     },
     "spice": {
-      "none": 979,
-      "medium": 156,
-      "mild": 130,
-      "hot": 135
+      "none": 4058,
+      "medium": 523,
+      "mild": 526,
+      "hot": 493
     },
     "mode": {
-      "normal": 1132,
-      "budget": 124,
-      "food_waste": 144
+      "normal": 4534,
+      "budget": 524,
+      "food_waste": 542
     }
   },
-  "elapsed_s": 6.0
+  "elapsed_s": 31.7
 }

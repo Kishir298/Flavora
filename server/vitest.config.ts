@@ -30,7 +30,10 @@ export default defineConfig({
     // one request at a time: run test FILES serially and allow slow
     // integration tests room. Parallel workers caused CPU contention
     // timeouts (fast unit tests still finish in ms).
-    poolOptions: { threads: { singleThread: true } },
+    // Vitest 4 removed test.poolOptions — seriality is now maxWorkers: 1.
+    pool: "forks",
+    maxWorkers: 1,
     testTimeout: 90000,
+    hookTimeout: 90000,
   },
 });

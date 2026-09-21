@@ -67,6 +67,8 @@ server/src/engine/.venv/
 # FlavoraLM dev-model outputs (fast-test only; `npm run train:llm:dev` regenerates).
 # The v0.1/ production release IS committed — never ignore it.
 models/flavora-lm/dev/
+# NumPy v0.2 sidecar checkpoint IS committed alongside v0.1 (412 KB);
+# regenerate via `npm run train:llm-numpy`.
 # Eval reports are machine-specific (ms timings) — regenerate via
 # `npm run evaluate:llm:sample` (25 ex, minutes) or `npm run evaluate:llm`
 # (full set, hours); never commit timing-laden reports.

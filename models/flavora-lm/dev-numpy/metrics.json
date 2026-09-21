@@ -1,0 +1,71 @@
+{
+  "model": "FlavoraLM-numpy",
+  "version": "0.2",
+  "architecture": "embed-mean-mlp-multihead",
+  "tokenizer_version": "0.2",
+  "vocab_size": 369,
+  "param_count": 51931,
+  "dataset_version": "0.1",
+  "examples": 2000,
+  "seed": 42,
+  "epochs": 15,
+  "batch_size": 32,
+  "lr": 0.003,
+  "optimizer": "adam",
+  "d_embed": 64,
+  "hidden": 128,
+  "train_size": 1400,
+  "val_size": 242,
+  "test_size": 236,
+  "val_loss": 0.07768864259923403,
+  "val_macro_acc": 0.975206611570248,
+  "test_loss": 0.06870660506828767,
+  "test_macro_acc": 0.978813559322034,
+  "test_per_head": {
+    "acc/diet": 0.9830508474576272,
+    "acc/meal": 0.9576271186440678,
+    "acc/cuisine": 0.9661016949152542,
+    "acc/spice": 0.9915254237288136,
+    "acc/mode": 0.9957627118644068
+  },
+  "class_balance_train": {
+    "diet": {
+      "vegan": 90,
+      "none": 1112,
+      "vegetarian": 92,
+      "non-vegetarian": 106
+    },
+    "meal": {
+      "none": 1005,
+      "breakfast": 111,
+      "lunch": 97,
+      "dinner": 97,
+      "snack": 90
+    },
+    "cuisine": {
+      "greek": 36,
+      "none": 1012,
+      "thai": 42,
+      "spanish": 36,
+      "indian": 33,
+      "american": 30,
+      "japanese": 50,
+      "chinese": 38,
+      "mexican": 38,
+      "french": 38,
+      "italian": 47
+    },
+    "spice": {
+      "none": 979,
+      "medium": 156,
+      "mild": 130,
+      "hot": 135
+    },
+    "mode": {
+      "normal": 1132,
+      "budget": 124,
+      "food_waste": 144
+    }
+  },
+  "elapsed_s": 6.0
+}

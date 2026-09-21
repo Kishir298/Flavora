@@ -53,5 +53,5 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install --index-url https://download.pytorch.org/whl/cpu torch "numpy>=1.26,<2"
-      - run: python -m unittest training.tests.test_dataset training.tests.test_tokenizer training.tests.test_model training.tests.test_evaluate training.tests.test_env -v
+      - run: python -m unittest training.tests.test_dataset training.tests.test_tokenizer training.tests.test_model training.tests.test_evaluate training.tests.test_env training.tests.test_numpy_core -v
       - run: python -m training.train_tokenizer --config training/configs/flavora_lm_dev.json --out /tmp/flavora-tokenizer-smoke.json

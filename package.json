@@ -20,6 +20,8 @@
     "train:tokenizer:dev": "node scripts/py.mjs -m training.train_tokenizer --config training/configs/flavora_lm_dev.json --out models/flavora-lm/dev/tokenizer.json",
     "train:llm": "node scripts/py.mjs -m training.train --config training/configs/flavora_lm_small.json --data-dir training/data-small",
     "train:llm:dev": "node scripts/py.mjs -m training.train --config training/configs/flavora_lm_dev.json --out-dir models/flavora-lm/dev",
+    "train:llm-numpy": "node scripts/py.mjs -m training.train_numpy --examples 2000 --epochs 15 --out-dir models/flavora-lm/dev-numpy",
+    "train:llm-numpy:full": "node scripts/py.mjs -m training.train_numpy --examples 8000 --epochs 25 --out-dir models/flavora-lm/dev-numpy",
     "evaluate:llm": "node scripts/py.mjs -m training.evaluate --artifacts models/flavora-lm/v0.1 --test-file training/data-small/test.jsonl",
     "evaluate:llm:sample": "node scripts/py.mjs -m training.evaluate --artifacts models/flavora-lm/v0.1 --test-file training/data-small/test.jsonl --max-examples 25",
     "evaluate:llm:dev": "node scripts/py.mjs -m training.evaluate --artifacts models/flavora-lm/dev",

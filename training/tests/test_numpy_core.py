@@ -90,12 +90,10 @@ class TestNumpyCore(unittest.TestCase):
         Y = {n: np.array([label_indices(l, cfg.heads)[n] for _, l in tr]) for n in names}
         tcfg = TrainConfig(lr=5e-3, batch_size=32, seed=11)
         opt = AdamState(core.parameters())
-        brng = np.random.default_rng(12)
         m0 = evaluate(core, X[:128], {n: Y[n][:128] for n in names})
         for _ in range(6):
             for i in range(0, len(tr), 32):
-                idx = brng.permutation(len(tr))[i: i + 32] if False else slice(i, min(i + 32, len(tr)))
-                # Simple sequential batches keep this test fast and deterministic.
+                # Sequential batches keep this test fast and deterministic.
                 rows = list(range(i, min(i + 32, len(tr))))
                 T = max(int(np.sum(X[j] != tok.pad_id)) for j in rows)
                 B = len(rows)

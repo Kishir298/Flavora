@@ -245,6 +245,7 @@ export const api = {
   conversation: (body: { sessionId?: string; message: string }) =>
     req<{
       sessionId: string; question: string | null; done: boolean;
+      reset: boolean;
       foodRequest: Record<string, unknown>;
       intent: AssistantIntent; source: AssistantResponse["source"];
       fallbackReason: NonNullable<AssistantResponse["fallbackReason"]>;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, type MealSlot } from "../lib/api";
 import { useOnlineStatus } from "../lib/useOnlineStatus";
 import { enqueueMutation } from "../lib/mutationQueue";
@@ -16,6 +16,12 @@ export function MealPlan() {
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [nutrition, setNutrition] = useState<Record<string, { calories: number | null; protein: number | null; carbs: number | null; fat: number | null; unknown: boolean }> | null>(null);
+  const msgRef = useRef<HTMLParagraphElement>(null);
+  // Grid remounts on every load(): move focus to the confirmation so
+  // keyboard/screen-reader users are never stranded on a removed control.
+  useEffect(() => {
+    if (msg) msgRef.current?.focus();
+  }, [msg]);
   const { online, pending } = useOnlineStatus();
 
   const load = async () => {
@@ -66,6 +72,7 @@ export function MealPlan() {
       setError(e instanceof Error ? e.message : "Remove failed.");
       return;
     }
+    setMsg("Meal removed.");
     try {
       await load();
     } catch {
@@ -78,6 +85,7 @@ export function MealPlan() {
     setMsg(null);
     try {
       await api.updateMeal(s.id, { day: targetDay, meal: targetMeal });
+      setMsg(`Moved to ${targetDay} ${targetMeal}.`);
       await load();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -171,7 +179,7 @@ export function MealPlan() {
       <h1 className="text-2xl font-bold">Meal plan</h1>
       {!online && <p role="status" className="mt-2 rounded bg-amber-100 px-3 py-2 text-sm">You&apos;re offline. Changes are saved locally and will sync when connection returns.{pending > 0 && ` (${pending} pending)`}</p>}
       {error && <p role="alert" className="mt-2 text-sm text-red-700">{error}</p>}
-      {msg && <p role="status" className="mt-2 text-sm text-green-700">{msg}</p>}
+      {msg && <p ref={msgRef} tabIndex={-1} role="status" className="mt-2 text-sm text-green-700">{msg}</p>}
       <form onSubmit={add} className="mt-4 flex flex-wrap gap-2" aria-label="add meal">
         <label className="text-sm">Day
           <select aria-label="day" className="ml-1 rounded border px-2 py-1" value={day} onChange={(e) => setDay(e.target.value)}>

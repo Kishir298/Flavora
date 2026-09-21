@@ -269,4 +269,73 @@ describe("Home conversational flow", () => {
     expect(screen.getAllByText("i want beef")).toHaveLength(1);
     vi.unstubAllGlobals();
   });
+
+  it("server reset flag announces a fresh start instead of silent continuation", async () => {
+    let calls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: unknown) => {
+        const u = String(url);
+        if (u.includes("/api/assistant/conversation")) {
+          calls += 1;
+          if (calls === 1) {
+            return {
+              ok: true,
+              json: async () => ({
+                sessionId: "s1",
+                question: "About how many calories are you aiming for?",
+                done: false,
+                reset: false,
+                foodRequest: { craving: "chicken" },
+                intent: {},
+                source: "heuristic",
+                fallbackReason: "local-unreachable",
+                notice: null,
+                reply: "",
+                recommendations: [],
+              }),
+            };
+          }
+          // Stale session id -> server starts fresh with reset:true.
+          return {
+            ok: true,
+            json: async () => ({
+              sessionId: "s2",
+              question: "What are you craving today?",
+              done: false,
+              reset: true,
+              foodRequest: {},
+              intent: {},
+              source: "heuristic",
+              fallbackReason: "heuristic-mode",
+              notice: null,
+              reply: "",
+              recommendations: [],
+            }),
+          };
+        }
+        return { ok: true, json: async () => ({}) };
+      }) as unknown as typeof fetch
+    );
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>
+    );
+    fireEvent.change(screen.getByLabelText(/Tell Flavora what you want/i), {
+      target: { value: "i want chicken" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Ask Flavora/i }));
+    await waitFor(() =>
+      expect(screen.getByText("About how many calories are you aiming for?")).toBeInTheDocument()
+    );
+    fireEvent.change(screen.getByLabelText(/Tell Flavora what you want/i), {
+      target: { value: "600" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Ask Flavora/i }));
+    await waitFor(() =>
+      expect(screen.getByText(/Starting fresh — my earlier context expired or completed\./)).toBeInTheDocument()
+    );
+    vi.unstubAllGlobals();
+  });
 });

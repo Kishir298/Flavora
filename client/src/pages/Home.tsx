@@ -83,6 +83,12 @@ export function Home() {
     setInput("");
     try {
       const res = await api.conversation({ sessionId, message: trimmed });
+      if (res.reset && sessionId !== undefined) {
+        // Server started a fresh session (TTL expiry, unknown id, or prior
+        // done): say so instead of silently continuing stale history.
+        push("flavora", "Starting fresh — my earlier context expired or completed.");
+        setResults([]);
+      }
       setSessionId(res.sessionId);
       setAiSource(res.source);
       setFallbackReason(res.fallbackReason ?? null);

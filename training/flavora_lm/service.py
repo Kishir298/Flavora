@@ -5,7 +5,9 @@ Endpoints:
     GET  /metadata  → training_meta.json sidecar (reproducibility record)
     GET  /metrics   → metrics.json sidecar (latest training loss/perplexity)
     POST /generate  → actual token generation with generation controls
-    POST /intent    → natural language → validated structured intent
+    POST /intent    → natural language → validated structured intent (torch path)
+    POST /intent-numpy → same contract via the NumPy v0.2 core (sidecar, A/B)
+    GET  /debug-numpy → dev-only raw model internals (FLAVORA_DEBUG=1 required)
 
 Binds to 127.0.0.1 by default (never 0.0.0.0). Standard library only —
 no web framework dependency.
@@ -15,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import threading
 import time
@@ -22,15 +25,28 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+import numpy as np
 import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from training.flavora_lm.intent import extract_intent  # noqa: E402
 from training.flavora_lm.model import FlavoraLM  # noqa: E402
+from training.flavora_lm.numpy_infer import (  # noqa: E402
+    CONFIDENCE_THRESHOLD,
+    decode_intent,
+    self_test,
+)
+from training.flavora_lm.numpy_model import (  # noqa: E402
+    MODEL_NAME as NUMPY_MODEL_NAME,
+    MODEL_VERSION as NUMPY_MODEL_VERSION,
+    FlavoraNeuralCore,
+)
 from training.flavora_lm.tokenizer import BPETokenizer  # noqa: E402
 
-STATE: dict = {"model": None, "tokenizer": None, "device": "cpu", "loaded": False, "error": None, "artifacts": None}
+STATE: dict = {"model": None, "tokenizer": None, "device": "cpu", "loaded": False, "error": None, "artifacts": None,
+               "numpy": None, "numpy_tokenizer": None, "numpy_loaded": False, "numpy_error": None,
+               "numpy_dir": None, "numpy_selftest": None}
 
 
 def load_model(artifacts_dir: str) -> None:
@@ -42,9 +58,30 @@ def load_model(artifacts_dir: str) -> None:
     STATE["loaded"] = True
 
 
+def load_numpy(numpy_dir: str | None) -> None:
+    """Sidecar load of the NumPy v0.2 core. Optional — never breaks the torch path."""
+    if not numpy_dir:
+        return
+    d = Path(numpy_dir)
+    STATE["numpy_dir"] = str(d)
+    try:
+        core = FlavoraNeuralCore.load_npz(d / "model.npz")
+        tok = BPETokenizer.load(d / "tokenizer.json")
+        STATE["numpy"] = core
+        STATE["numpy_tokenizer"] = tok
+        STATE["numpy_loaded"] = True
+        STATE["numpy_selftest"] = self_test(core, tok)
+    except Exception as e:  # honest failure state, surfaced in /health
+        STATE["numpy_error"] = str(e)
+        STATE["numpy_loaded"] = False
+
+
 def health_payload() -> dict:
     model: FlavoraLM | None = STATE["model"]
     tok: BPETokenizer | None = STATE["tokenizer"]
+    ncore: FlavoraNeuralCore | None = STATE["numpy"]
+    ntok: BPETokenizer | None = STATE["numpy_tokenizer"]
+    st = STATE["numpy_selftest"] or {}
     return {
         "status": "ok" if STATE["loaded"] else "error",
         "model": model.cfg.model_name if model else None,
@@ -57,6 +94,23 @@ def health_payload() -> dict:
         "device": STATE["device"],
         "artifacts": STATE["artifacts"],
         "error": STATE["error"],
+        # NumPy v0.2 sidecar: distinguishes "server exists" from "neural
+        # inference operational" (checkpoint valid + self-test shapes finite).
+        "engine": "torch+NumPy" if STATE["numpy_loaded"] else "torch",
+        "numpy": {
+            "model": NUMPY_MODEL_NAME if ncore else None,
+            "version": NUMPY_MODEL_VERSION if ncore else None,
+            "parameterCount": ncore.param_count() if ncore else None,
+            "tokenizerVersion": ntok.version if ntok else None,
+            "tokenizerVocab": ntok.vocab_size if ntok else None,
+            "loaded": bool(STATE["numpy_loaded"]),
+            "checkpointValid": bool(STATE["numpy_loaded"]),
+            "inferenceOperational": bool(st.get("ok", False)),
+            "selfTest": st,
+            "confidenceThreshold": CONFIDENCE_THRESHOLD,
+            "dir": STATE["numpy_dir"],
+            "error": STATE["numpy_error"],
+        },
     }
 
 
@@ -94,9 +148,24 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self._json(200, _artifact_payload(self.path.strip("/")))
             return
+        if self.path.startswith("/debug-numpy"):
+            # Development-only raw internals (tokens/ids/shapes/logits/probs).
+            if os.environ.get("FLAVORA_DEBUG") != "1":
+                self._json(403, {"error": "dev-only endpoint (set FLAVORA_DEBUG=1)"})
+                return
+            if not STATE["numpy_loaded"]:
+                self._json(503, {"error": "numpy core not loaded", "detail": STATE["numpy_error"]})
+                return
+            from urllib.parse import parse_qs, urlparse
+            text = parse_qs(urlparse(self.path).query).get("text", [""])[0][:500]
+            self._json(200, self._debug_numpy(text))
+            return
         self._json(404, {"error": "not found"})
 
     def do_POST(self) -> None:
+        if self.path == "/intent-numpy":
+            self._handle_intent_numpy()
+            return
         if not STATE["loaded"]:
             self._json(503, {"error": "model not loaded", "detail": STATE["error"]})
             return
@@ -163,6 +232,59 @@ class Handler(BaseHTTPRequestHandler):
             "ms": int((time.time() - t0) * 1000),
         })
 
+    def _handle_intent_numpy(self) -> None:
+        """Sidecar: NumPy v0.2 core -> decoded intent. Same honesty contract:
+        low-confidence/invalid -> valid:false so Node falls back (never fake)."""
+        if not STATE["numpy_loaded"]:
+            self._json(503, {"error": "numpy core not loaded", "detail": STATE["numpy_error"]})
+            return
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            payload = json.loads(self.rfile.read(length) or b"{}")
+        except json.JSONDecodeError:
+            self._json(400, {"error": "invalid JSON body"})
+            return
+        text = str(payload.get("text", ""))[:1000]
+        if not text.strip():
+            self._json(400, {"error": "text required"})
+            return
+        core: FlavoraNeuralCore = STATE["numpy"]
+        tok: BPETokenizer = STATE["numpy_tokenizer"]
+        t0 = time.time()
+        ids = np.array([tok.encode(text, add_special=False) or [tok.unk_id]], dtype=np.int64)
+        intent, conf, _ = decode_intent(core, ids, tok.pad_id)
+        self._json(200, {
+            "intent": intent,  # null on low confidence — honest fallback signal
+            "valid": intent is not None,
+            "confidence": round(conf, 4),
+            "engine": "numpy",
+            "ms": int((time.time() - t0) * 1000),
+        })
+
+    @staticmethod
+    def _debug_numpy(text: str) -> dict:
+        """Raw internals for proving the network executes (dev only)."""
+        core: FlavoraNeuralCore = STATE["numpy"]
+        tok: BPETokenizer = STATE["numpy_tokenizer"]
+        t0 = time.time()
+        tokens = tok.encode(text, add_special=False) or [tok.unk_id]
+        ids = np.array([tokens], dtype=np.int64)
+        probs = core.forward(ids, tok.pad_id)
+        pred = {n: core.config.heads[n][int(np.argmax(p[0]))] for n, p in probs.items()}
+        conf = float(np.mean([float(np.max(p[0])) for p in probs.values()]))
+        return {
+            "input": text,
+            "tokenIds": tokens,
+            "numTokens": len(tokens),
+            "embeddingShape": list(core.embeddings.shape),
+            "hiddenShape": [core.config.hidden, core.config.hidden],
+            "probabilities": {n: [round(float(x), 4) for x in p[0]] for n, p in probs.items()},
+            "prediction": pred,
+            "confidence": round(conf, 4),
+            "paramCount": core.param_count(),
+            "ms": int((time.time() - t0) * 1000),
+        }
+
 
 def verify_loopback_identity(host: str, port: int, attempts: int = 5) -> tuple[bool, str]:
     """Post-bind self-check: fetch our own /health over real HTTP.
@@ -189,6 +311,7 @@ def verify_loopback_identity(host: str, port: int, attempts: int = 5) -> tuple[b
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--artifacts", default=str(Path(__file__).resolve().parents[2] / "models" / "flavora-lm" / "v0.1"))
+    ap.add_argument("--numpy-dir", default=str(Path(__file__).resolve().parents[2] / "models" / "flavora-lm" / "dev-numpy"))
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=5000)
     args = ap.parse_args()
@@ -205,6 +328,20 @@ def main() -> int:
         STATE["error"] = str(e)
         print(f"[flavoralm] FATAL: failed to load model: {e}", file=sys.stderr, flush=True)
         return 1
+    # NumPy v0.2 sidecar is optional: absence never breaks the torch path.
+    load_numpy(args.numpy_dir if Path(args.numpy_dir, "model.npz").exists() else None)
+    nh = health_payload()["numpy"]
+    if nh["loaded"]:
+        st = nh["selfTest"] or {}
+        print(
+            f"[flavoralm] {nh['model']} v{nh['version']} sidecar "
+            f"({nh['parameterCount']:,} params, tokenizer v{nh['tokenizerVersion']}, "
+            f"self-test {'PASS' if st.get('ok') else 'FAIL'})",
+            flush=True,
+        )
+    else:
+        print(f"[flavoralm] numpy sidecar absent ({nh['error'] or args.numpy_dir} missing?) — torch path only",
+              flush=True)
 
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     # Serve in a background thread so the post-bind identity self-check below

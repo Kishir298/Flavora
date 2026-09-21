@@ -45,6 +45,7 @@ export function createAIProvider(overrides?: {
         host: overrides?.localHost ?? config.localLlmHost,
         model: overrides?.localModel ?? config.localLlmModel,
         timeoutMs: overrides?.localTimeoutMs ?? config.localLlmTimeoutMs,
+        engine: config.localLlmEngine,
       });
     } catch {
       localProvider = undefined; // refused non-local host — stays disabled

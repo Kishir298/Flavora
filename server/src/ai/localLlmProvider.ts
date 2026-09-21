@@ -82,15 +82,18 @@ export interface FlavoraHealth {
   device: string;
 }
 
+export type LocalEngine = "torch" | "numpy";
+
 export class LocalLlmProvider implements AIProvider {
   readonly name = "local";
   private readonly host: string;
   private readonly model: string;
   private readonly timeoutMs: number;
+  private readonly engine: LocalEngine;
   private availabilityCache: { ok: boolean; checkedAt: number } | null = null;
   private static readonly AVAILABILITY_TTL_MS = 30_000;
 
-  constructor(opts?: { host?: string; model?: string; timeoutMs?: number }) {
+  constructor(opts?: { host?: string; model?: string; timeoutMs?: number; engine?: LocalEngine }) {
     const host = opts?.host ?? DEFAULT_HOST;
     if (!isLocalHost(host)) {
       throw new LocalLlmError(`Refusing non-local AI host "${host}" — the local provider only talks to loopback/localhost.`);
@@ -98,6 +101,12 @@ export class LocalLlmProvider implements AIProvider {
     this.host = host.replace(/\/$/, "");
     this.model = opts?.model ?? DEFAULT_MODEL;
     this.timeoutMs = clampTimeout(opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+    const eng = opts?.engine ?? (process.env.FLAVORA_LM_ENGINE === "numpy" ? "numpy" : "torch");
+    this.engine = eng === "numpy" ? "numpy" : "torch";
+  }
+
+  get engineName(): LocalEngine {
+    return this.engine;
   }
 
   get hostUrl(): string {
@@ -215,16 +224,19 @@ export class LocalLlmProvider implements AIProvider {
 
   /**
    * Structured-intent completion via FlavoraLM.
-   * Primary path: POST /intent (model generates + validates server-side).
+   * Primary path: POST /intent (torch) or /intent-numpy (NumPy v0.2 sidecar,
+   * selected via engine opt or FLAVORA_LM_ENGINE=numpy). Both validate
+   * server-side; invalid responses fall back honestly via LocalLlmError.
    * Returns the intent as a JSON string so the standard
    * extractJsonObject → normalizeIntent pipeline applies unchanged.
    */
   async complete(systemPrompt: string, userMessage: string): Promise<string> {
     void systemPrompt;
+    const path = this.engine === "numpy" ? "/intent-numpy" : "/intent";
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
-      const res = await fetch(`${this.host}/intent`, {
+      const res = await fetch(`${this.host}${path}`, {
         method: "POST",
         signal: controller.signal,
         headers: { "Content-Type": "application/json" },
@@ -233,9 +245,9 @@ export class LocalLlmProvider implements AIProvider {
       if (!res.ok) {
         const body = await res.text().catch(() => "");
         if (res.status === 503) {
-          throw new LocalLlmError(`FlavoraLM model not loaded (weights starting, /intent HTTP 503): ${body.slice(0, 200)}`);
+          throw new LocalLlmError(`FlavoraLM model not loaded (weights starting, ${path} HTTP 503): ${body.slice(0, 200)}`);
         }
-        throw new LocalLlmError(`FlavoraLM /intent HTTP ${res.status}: ${body.slice(0, 200)}`);
+        throw new LocalLlmError(`FlavoraLM ${path} HTTP ${res.status}: ${body.slice(0, 200)}`);
       }
       const data = (await res.json()) as { intent?: unknown; valid?: boolean };
       if (!data.valid || data.intent == null || typeof data.intent !== "object") {

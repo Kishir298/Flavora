@@ -32,6 +32,12 @@ export const config = {
     Number(process.env.FLAVORA_LM_TIMEOUT_MS ?? process.env.LOCAL_LLM_TIMEOUT_MS ?? 30_000)
   ),
   /**
+   * Neural engine: "torch" (v0.1 transformer, POST /intent) | "numpy"
+   * (v0.2 NumPy core sidecar, POST /intent-numpy). A/B switch only —
+   * fallback + pending routing + safety are identical either way.
+   */
+  localLlmEngine: parseEngine(process.env.FLAVORA_LM_ENGINE),
+  /**
    * Provider selection: "local" | "heuristic".
    * "local" (default) = FlavoraLM only; unreachable/invalid → honest
    * deterministic fallback with an explicit fallbackReason (never a
@@ -49,6 +55,10 @@ function parseBool(v: string | undefined, dflt: boolean): boolean {
 function parseProvider(v: string | undefined): "local" | "heuristic" {
   const x = (v ?? "local").toLowerCase().trim();
   return x === "heuristic" ? "heuristic" : "local";
+}
+
+function parseEngine(v: string | undefined): "torch" | "numpy" {
+  return (v ?? "torch").toLowerCase().trim() === "numpy" ? "numpy" : "torch";
 }
 
 function clampTimeoutMs(n: number): number {

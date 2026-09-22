@@ -37,18 +37,39 @@ export default defineConfig({
           {
             urlPattern: ({ url }) => url.pathname.startsWith("/api/recipes"),
             handler: "StaleWhileRevalidate",
+            method: "GET",
             options: {
               cacheName: "flavora-recipes",
               expiration: { maxEntries: 50, maxAgeSeconds: 7 * 24 * 3600 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+          {
+            // Mutable lists (inventory/groceries/meal-plans/meals) go stale fast:
+            // 5-minute cap so offline queueing never visually un-does an
+            // optimistic update with a day-old list. Recipes stay long-lived above.
+            urlPattern: ({ url }) =>
+              ["/api/inventory", "/api/groceries", "/api/meal-plans", "/api/meals", "/api/goals", "/api/water"].some((p) =>
+                url.pathname.startsWith(p)
+              ),
+            handler: "NetworkFirst",
+            method: "GET",
+            options: {
+              cacheName: "flavora-mutable",
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 100, maxAgeSeconds: 5 * 60 },
+              cacheableResponse: { statuses: [200] },
             },
           },
           {
             urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
             handler: "NetworkFirst",
+            method: "GET",
             options: {
               cacheName: "flavora-api",
               networkTimeoutSeconds: 3,
               expiration: { maxEntries: 100, maxAgeSeconds: 24 * 3600 },
+              cacheableResponse: { statuses: [200] },
             },
           },
         ],

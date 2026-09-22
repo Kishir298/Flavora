@@ -155,20 +155,20 @@ export function Groceries() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
       <h1 className="text-2xl font-bold">Grocery list</h1>
-      {!online && <p role="status" className="mt-2 rounded bg-amber-100 px-3 py-2 text-sm">You&apos;re offline. Changes are saved locally and will sync when connection returns.{pending > 0 && ` (${pending} pending)`}</p>}
-      {msg && <p role="status" className="mt-2 text-sm text-green-700">{msg}</p>}
-      {error && <p role="alert" className="mt-2 text-sm text-red-700">{error}</p>}
+      {!online && <p role="status" className="mt-2 rounded bg-amber-100 dark:bg-amber-900 dark:text-amber-100 px-3 py-2 text-sm">You&apos;re offline. Changes are saved locally and will sync when connection returns.{pending > 0 && ` (${pending} pending)`}</p>}
+      {msg && <p role="status" className="mt-2 text-sm text-green-700 dark:text-green-400">{msg}</p>}
+      {error && <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-400">{error}</p>}
       <form onSubmit={add} className="mt-4 flex flex-wrap gap-2" aria-label="add grocery item">
-        <input aria-label="grocery item name" className="rounded border px-3 py-2" value={name} onChange={(e) => setName(e.target.value)} required placeholder="tomatoes" />
+        <input aria-label="grocery item name" className="rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2" value={name} onChange={(e) => setName(e.target.value)} required placeholder="tomatoes" />
         <label className="text-sm">Qty
-          <input aria-label="grocery quantity" type="number" min={0} className="ml-1 w-20 rounded border px-2 py-1" value={qty} onChange={(e) => setQty(e.target.value)} />
+          <input aria-label="grocery quantity" type="number" min={0} className="ml-1 w-20 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={qty} onChange={(e) => setQty(e.target.value)} />
         </label>
         <label className="text-sm">Unit
-          <select aria-label="grocery unit" className="ml-1 rounded border px-2 py-1" value={unit} onChange={(e) => setUnit(e.target.value)}>
+          <select aria-label="grocery unit" className="ml-1 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={unit} onChange={(e) => setUnit(e.target.value)}>
             {["g","kg","ml","l","pieces","cup","tbsp","tsp"].map((u) => <option key={u} value={u}>{u}</option>)}
           </select>
         </label>
-        <button className="rounded bg-green-700 px-3 py-2 text-white">Add</button>
+        <button type="submit" className="rounded bg-green-700 px-3 py-2 text-white">Add</button>
       </form>
       {loading ? <p role="status" className="mt-4">Loading groceries…</p>
       : items.length === 0 ? <p role="status" className="mt-4">Your grocery list is empty.</p>
@@ -177,17 +177,17 @@ export function Groceries() {
           <h2 className="font-semibold capitalize">{cat}</h2>
           <ul className="mt-1 space-y-1">
             {list.map((it) => (
-              <li key={it.id} className="rounded border px-3 py-2">
+              <li key={it.id} className="rounded border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2">
                 {editId === it.id ? (
                   <form onSubmit={(ev) => { ev.preventDefault(); void saveEdit(it); }} className="flex flex-wrap items-end gap-2" aria-label={`edit ${it.name}`}>
                     <label className="text-sm">Name
-                      <input ref={editNameRef} aria-label={`edit name for ${it.name}`} className="ml-1 rounded border px-2 py-1" value={editName} onChange={(e) => setEditName(e.target.value)} required />
+                      <input ref={editNameRef} aria-label={`edit name for ${it.name}`} className="ml-1 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={editName} onChange={(e) => setEditName(e.target.value)} required />
                     </label>
                     <label className="text-sm">Qty
-                      <input aria-label={`edit quantity for ${it.name}`} type="number" min={0} className="ml-1 w-20 rounded border px-2 py-1" value={editQty} onChange={(e) => setEditQty(e.target.value)} />
+                      <input aria-label={`edit quantity for ${it.name}`} type="number" min={0} className="ml-1 w-20 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={editQty} onChange={(e) => setEditQty(e.target.value)} />
                     </label>
                     <label className="text-sm">Unit
-                      <select aria-label={`edit unit for ${it.name}`} className="ml-1 rounded border px-2 py-1" value={editUnit} onChange={(e) => setEditUnit(e.target.value)}>
+                      <select aria-label={`edit unit for ${it.name}`} className="ml-1 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={editUnit} onChange={(e) => setEditUnit(e.target.value)}>
                         {["g","kg","ml","l","pieces","cup","tbsp","tsp"].map((u) => <option key={u} value={u}>{u}</option>)}
                       </select>
                     </label>
@@ -199,8 +199,8 @@ export function Groceries() {
                     <input type="checkbox" aria-label={`check ${it.name}`} checked={it.checked} onChange={() => void toggle(it)} />
                     <span className={it.checked ? "line-through opacity-60" : ""}>{it.name}{it.quantity != null && ` — ${it.quantity} ${it.unit ?? ""}`}{it.note && ` (${it.note})`}</span>
                     {it.recipeIds.length > 0 && <span className="ml-auto text-xs opacity-60">from {it.recipeIds.length} recipe(s)</span>}
-                    <button onClick={() => startEdit(it)} className="rounded border px-2 py-1 text-xs" aria-label={`edit ${it.name}`}>Edit</button>
-                    <button onClick={() => void remove(it)} className="rounded border px-2 py-1 text-xs" aria-label={`remove ${it.name}`}>Remove</button>
+                    <button type="button" onClick={() => startEdit(it)} className="rounded border px-2 py-1 text-xs" aria-label={`edit ${it.name}`}>Edit</button>
+                    <button type="button" onClick={() => void remove(it)} className="rounded border px-2 py-1 text-xs" aria-label={`remove ${it.name}`}>Remove</button>
                   </div>
                 )}
               </li>
@@ -210,6 +210,7 @@ export function Groceries() {
       ))}
       {items.some((i) => i.checked) && (
         <button
+          type="button"
           onClick={() => {
             if (!online) void enqueueMutation({ operation: "grocery.clearCompleted", entityType: "grocery", entityId: "all", payload: {} }).then(load).catch(() => {});
             else api.clearGroceryCompleted().then(load).catch(() => {});
@@ -226,7 +227,7 @@ export function Groceries() {
             {removedItems.map((it) => (
               <li key={it.id} className="flex items-center gap-2">
                 <span className="opacity-70">{it.name}</span>
-                <button onClick={() => void restore(it)} className="rounded border px-2 py-0.5 text-xs" aria-label={`restore ${it.name}`}>Restore</button>
+                <button type="button" onClick={() => void restore(it)} className="rounded border px-2 py-0.5 text-xs" aria-label={`restore ${it.name}`}>Restore</button>
               </li>
             ))}
           </ul>

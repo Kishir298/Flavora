@@ -177,27 +177,27 @@ export function MealPlan() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
       <h1 className="text-2xl font-bold">Meal plan</h1>
-      {!online && <p role="status" className="mt-2 rounded bg-amber-100 px-3 py-2 text-sm">You&apos;re offline. Changes are saved locally and will sync when connection returns.{pending > 0 && ` (${pending} pending)`}</p>}
-      {error && <p role="alert" className="mt-2 text-sm text-red-700">{error}</p>}
-      {msg && <p ref={msgRef} tabIndex={-1} role="status" className="mt-2 text-sm text-green-700">{msg}</p>}
+      {!online && <p role="status" className="mt-2 rounded bg-amber-100 dark:bg-amber-900 dark:text-amber-100 px-3 py-2 text-sm">You&apos;re offline. Changes are saved locally and will sync when connection returns.{pending > 0 && ` (${pending} pending)`}</p>}
+      {error && <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-400">{error}</p>}
+      {msg && <p ref={msgRef} tabIndex={-1} role="status" className="mt-2 text-sm text-green-700 dark:text-green-400">{msg}</p>}
       <form onSubmit={add} className="mt-4 flex flex-wrap gap-2" aria-label="add meal">
         <label className="text-sm">Day
-          <select aria-label="day" className="ml-1 rounded border px-2 py-1" value={day} onChange={(e) => setDay(e.target.value)}>
+          <select aria-label="day" className="ml-1 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={day} onChange={(e) => setDay(e.target.value)}>
             {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
         </label>
         <label className="text-sm">Meal
-          <select aria-label="meal" className="ml-1 rounded border px-2 py-1" value={meal} onChange={(e) => setMeal(e.target.value)}>
+          <select aria-label="meal" className="ml-1 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={meal} onChange={(e) => setMeal(e.target.value)}>
             {MEALS.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         </label>
         <label className="text-sm">Servings
-          <input aria-label="servings" type="number" min={1} max={12} className="ml-1 w-16 rounded border px-2 py-1" value={servings} onChange={(e) => setServings(Number(e.target.value) || 1)} />
+          <input aria-label="servings" type="number" min={1} max={12} className="ml-1 w-16 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={servings} onChange={(e) => setServings(Number(e.target.value) || 1)} />
         </label>
         <label className="text-sm">Recipe ID
-          <input aria-label="recipe id" className="ml-1 rounded border px-2 py-1" value={recipeId} onChange={(e) => setRecipeId(e.target.value)} required placeholder="italian-..." />
+          <input aria-label="recipe id" className="ml-1 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={recipeId} onChange={(e) => setRecipeId(e.target.value)} required placeholder="italian-..." />
         </label>
-        <button className="rounded bg-green-700 px-3 py-1 text-white">Add</button>
+        <button type="submit" className="rounded bg-green-700 px-3 py-1 text-white">Add</button>
         <button type="button" onClick={generate} className="rounded border px-3 py-1">Generate groceries</button>
       </form>
       {loading ? <p role="status" className="mt-4">Loading meal plan…</p>
@@ -207,14 +207,14 @@ export function MealPlan() {
           {DAYS.map((d) => {
             const daySlots = slots.filter((s) => s.day === d);
             return (
-              <section key={d} aria-label={d} className="rounded border p-3">
+              <section key={d} aria-label={d} className="rounded border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-3">
                 <div className="flex items-center justify-between">
                   <h2 className="font-semibold capitalize">{d}{dayNutrition(d)}</h2>
                   <div className="flex gap-1">
                     {daySlots.length > 0 && (
                       <>
-                        <button onClick={() => void duplicateDay(d)} className="rounded border px-1.5 py-0.5 text-xs" aria-label={`duplicate ${d} to next day`}>Copy →</button>
-                        <button onClick={() => void clearDay(d)} className="rounded border px-1.5 py-0.5 text-xs" aria-label={`clear ${d}`}>Clear</button>
+                        <button type="button" onClick={() => void duplicateDay(d)} className="rounded border px-1.5 py-0.5 text-xs" aria-label={`duplicate ${d} to next day`}>Copy →</button>
+                        <button type="button" onClick={() => void clearDay(d)} className="rounded border px-1.5 py-0.5 text-xs" aria-label={`clear ${d}`}>Clear</button>
                       </>
                     )}
                   </div>
@@ -226,7 +226,7 @@ export function MealPlan() {
                       <label className="text-xs opacity-80">Move
                         <select
                           aria-label={`move ${s.meal} on ${d}`}
-                          className="ml-1 rounded border px-1 py-0.5 text-xs"
+                          className="ml-1 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-1 py-0.5 text-xs"
                           value={`${s.day}:${s.meal}`}
                           onChange={(e) => {
                             const [td, tm] = e.target.value.split(":");
@@ -241,11 +241,11 @@ export function MealPlan() {
                         </select>
                       </label>
                       <span className="flex items-center gap-1" aria-label={`servings for ${s.meal} ${d}`}>
-                        <button onClick={() => void changeServings(s, -1)} className="rounded border px-1 text-xs" aria-label={`decrease servings ${s.meal} ${d}`}>−</button>
+                        <button type="button" onClick={() => void changeServings(s, -1)} className="rounded border px-1 text-xs" aria-label={`decrease servings ${s.meal} ${d}`}>−</button>
                         ×{s.servings}
-                        <button onClick={() => void changeServings(s, 1)} className="rounded border px-1 text-xs" aria-label={`increase servings ${s.meal} ${d}`}>+</button>
+                        <button type="button" onClick={() => void changeServings(s, 1)} className="rounded border px-1 text-xs" aria-label={`increase servings ${s.meal} ${d}`}>+</button>
                       </span>
-                      <button onClick={() => void remove(s)} className="ml-auto rounded border px-2 py-0.5 text-xs" aria-label={`remove ${s.meal} ${d}`}>Remove</button>
+                      <button type="button" onClick={() => void remove(s)} className="ml-auto rounded border px-2 py-0.5 text-xs" aria-label={`remove ${s.meal} ${d}`}>Remove</button>
                     </li>
                   ))}
                 </ul>

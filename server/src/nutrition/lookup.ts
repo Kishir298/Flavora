@@ -29,7 +29,19 @@ function loadCache(): Cache {
 function saveCache(cache: Cache): void {
   try {
     fs.mkdirSync(path.dirname(CACHE_FILE), { recursive: true });
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
+    // Atomic write: crash/kill mid-write must never leave a truncated JSON
+    // that wipes the whole cache on next load (loadCache self-heals to {}).
+    // Re-read + merge first so concurrent lookups don't last-writer-wins.
+    let merged = cache;
+    try {
+      const disk = JSON.parse(fs.readFileSync(CACHE_FILE, "utf8")) as Cache;
+      if (disk && typeof disk === "object" && !Array.isArray(disk)) merged = { ...disk, ...cache };
+    } catch {
+      /* corrupt/missing file — overwrite with in-memory cache */
+    }
+    const tmp = `${CACHE_FILE}.${process.pid}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(merged, null, 2));
+    fs.renameSync(tmp, CACHE_FILE);
   } catch {
     /* cache is best-effort; offline/read-only FS must not break lookup */
   }

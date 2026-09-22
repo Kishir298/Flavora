@@ -155,32 +155,32 @@ export function Inventory() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
       <h1 className="text-2xl font-bold">Inventory</h1>
-      {!online && <p role="status" className="mt-2 rounded bg-amber-100 px-3 py-2 text-sm">You&apos;re offline. Changes are saved locally and will sync when connection returns.{pending > 0 && ` (${pending} pending)`}</p>}
-      {msg && <p role="status" className="mt-2 text-sm text-green-700">{msg}</p>}
-      {error && <p role="alert" className="mt-2 text-sm text-red-700">{error}</p>}
+      {!online && <p role="status" className="mt-2 rounded bg-amber-100 dark:bg-amber-900 dark:text-amber-100 px-3 py-2 text-sm">You&apos;re offline. Changes are saved locally and will sync when connection returns.{pending > 0 && ` (${pending} pending)`}</p>}
+      {msg && <p role="status" className="mt-2 text-sm text-green-700 dark:text-green-400">{msg}</p>}
+      {error && <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-400">{error}</p>}
 
       <form onSubmit={add} className="mt-4 flex flex-wrap gap-2" aria-label="add inventory item">
         <label className="text-sm">Ingredient
-          <input aria-label="ingredient name" className="ml-1 rounded border px-2 py-1" value={name} onChange={(e) => setName(e.target.value)} required />
+          <input aria-label="ingredient name" className="ml-1 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={name} onChange={(e) => setName(e.target.value)} required />
         </label>
         <label className="text-sm">Qty
-          <input aria-label="quantity" type="number" min={0} className="ml-1 w-20 rounded border px-2 py-1" value={qty} onChange={(e) => setQty(e.target.value)} />
+          <input aria-label="quantity" type="number" min={0} className="ml-1 w-20 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={qty} onChange={(e) => setQty(e.target.value)} />
         </label>
         <label className="text-sm">Unit
-          <select aria-label="unit" className="ml-1 rounded border px-2 py-1" value={unit} onChange={(e) => setUnit(e.target.value)}>
+          <select aria-label="unit" className="ml-1 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={unit} onChange={(e) => setUnit(e.target.value)}>
             {["g","kg","ml","l","pieces","cup","tbsp","tsp"].map((u) => <option key={u} value={u}>{u}</option>)}
           </select>
         </label>
         <label className="text-sm">Expiry
-          <input aria-label="expiry date" type="date" className="ml-1 rounded border px-2 py-1" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+          <input aria-label="expiry date" type="date" className="ml-1 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
         </label>
         <button type="submit" className="rounded bg-green-700 px-3 py-1 text-white">Add</button>
       </form>
 
       <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-        <input aria-label="search inventory" placeholder="search or filter" className="rounded border px-2 py-1" value={filter} onChange={(e) => setFilter(e.target.value)} />
+        <input aria-label="search inventory" placeholder="search or filter" className="rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={filter} onChange={(e) => setFilter(e.target.value)} />
         <label>Sort
-          <select aria-label="sort inventory" className="ml-1 rounded border px-2 py-1" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+          <select aria-label="sort inventory" className="ml-1 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
             <option value="expiry">by expiry (soonest first)</option>
             <option value="status">by status (expired first)</option>
             <option value="name">by name</option>
@@ -193,22 +193,22 @@ export function Inventory() {
       : (
         <ul className="mt-4 space-y-2">
           {shown.map((i) => (
-            <li key={i.id} className="rounded border px-3 py-2">
+            <li key={i.id} className="rounded border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2">
               {editId === i.id ? (
                 <form onSubmit={(ev) => { ev.preventDefault(); void saveEdit(i); }} className="flex flex-wrap items-end gap-2" aria-label={`edit ${i.name}`}>
                   <label className="text-sm">Ingredient
-                    <input ref={editNameRef} aria-label={`edit ingredient name for ${i.name}`} className="ml-1 rounded border px-2 py-1" value={editName} onChange={(e) => setEditName(e.target.value)} required />
+                    <input ref={editNameRef} aria-label={`edit ingredient name for ${i.name}`} className="ml-1 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={editName} onChange={(e) => setEditName(e.target.value)} required />
                   </label>
                   <label className="text-sm">Qty
-                    <input aria-label={`edit quantity for ${i.name}`} type="number" min={0} className="ml-1 w-20 rounded border px-2 py-1" value={editQty} onChange={(e) => setEditQty(e.target.value)} />
+                    <input aria-label={`edit quantity for ${i.name}`} type="number" min={0} className="ml-1 w-20 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={editQty} onChange={(e) => setEditQty(e.target.value)} />
                   </label>
                   <label className="text-sm">Unit
-                    <select aria-label={`edit unit for ${i.name}`} className="ml-1 rounded border px-2 py-1" value={editUnit} onChange={(e) => setEditUnit(e.target.value)}>
+                    <select aria-label={`edit unit for ${i.name}`} className="ml-1 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={editUnit} onChange={(e) => setEditUnit(e.target.value)}>
                       {["g","kg","ml","l","pieces","cup","tbsp","tsp"].map((u) => <option key={u} value={u}>{u}</option>)}
                     </select>
                   </label>
                   <label className="text-sm">Expiry
-                    <input aria-label={`edit expiry date for ${i.name}`} type="date" className="ml-1 rounded border px-2 py-1" value={editExpiry} onChange={(e) => setEditExpiry(e.target.value)} />
+                    <input aria-label={`edit expiry date for ${i.name}`} type="date" className="ml-1 rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1" value={editExpiry} onChange={(e) => setEditExpiry(e.target.value)} />
                   </label>
                   <button type="submit" className="rounded bg-green-700 px-2 py-1 text-sm text-white">Save</button>
                   <button type="button" onClick={cancelEdit} className="rounded border px-2 py-1 text-sm">Cancel</button>
@@ -219,9 +219,9 @@ export function Inventory() {
                     <strong>{i.name}</strong>
                     <span className="ml-2 text-sm opacity-70">{i.quantity ?? "?"} {i.unit ?? ""} · {i.category} · {(i.status ?? "unknown").replace("_", " ")} · {daysLabel(i)}</span>
                   </div>
-                  <button onClick={() => startEdit(i)} className="rounded border px-2 py-1 text-sm" aria-label={`edit ${i.name}`}>Edit</button>
-                  <button onClick={() => void consume(i.id)} className="rounded border px-2 py-1 text-sm" aria-label={`consume one ${i.name}`}>Use 1</button>
-                  <button onClick={() => void remove(i.id)} className="rounded border px-2 py-1 text-sm" aria-label={`remove ${i.name}`}>Remove</button>
+                  <button type="button" onClick={() => startEdit(i)} className="rounded border px-2 py-1 text-sm" aria-label={`edit ${i.name}`}>Edit</button>
+                  <button type="button" onClick={() => void consume(i.id)} className="rounded border px-2 py-1 text-sm" aria-label={`consume one ${i.name}`}>Use 1</button>
+                  <button type="button" onClick={() => void remove(i.id)} className="rounded border px-2 py-1 text-sm" aria-label={`remove ${i.name}`}>Remove</button>
                 </div>
               )}
             </li>

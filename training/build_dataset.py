@@ -65,28 +65,59 @@ def main() -> int:
     n_train, n_val, n_test = ds["train_examples"], ds["validation_examples"], ds["test_examples"]
     total = n_train + n_val + n_test
 
-    # Draw one deterministic stream, then split by index. NOTE: contiguous
-    # slicing does NOT guarantee no exact-duplicate overlap when the generator
-    # can emit duplicates — dedupe below and fail on cross-split overlap.
-    stream = list(generate_examples(total, seed=seed))
-    splits = {
-        "train.jsonl": stream[:n_train],
-        "validation.jsonl": stream[n_train : n_train + n_val],
-        "test.jsonl": stream[n_train + n_val :],
-    }
-
-    # Dedupe + overlap guard: identical input text must not appear in two splits.
+    # Deterministic dedupe-aware split: draw from one seeded stream and fill
+    # train → val → test skipping exact (text,intent) duplicates already placed
+    # in an earlier split. Template space is small so contiguous slicing leaks
+    # (measured 253 cross-split overlaps at 14.2k); oversample up to 10x and
+    # fail loudly if splits still can't fill.
     def _key(t: str, i: dict) -> str:
         return f"{t.strip().lower()}||{json.dumps(i, sort_keys=True)}"
-    seen: dict[str, str] = {}
+    train_ex: list = []
+    val_ex: list = []
+    test_ex: list = []
+    seen: set[str] = set()
+    skipped_dupes = 0
+    draws = 0
+    gen = generate_examples(total * 10, seed=seed)
+    for t, i in gen:
+        draws += 1
+        k = _key(t, i)
+        if k in seen:
+            skipped_dupes += 1
+            continue
+        seen.add(k)
+        if len(train_ex) < n_train:
+            train_ex.append((t, i))
+        elif len(val_ex) < n_val:
+            val_ex.append((t, i))
+        elif len(test_ex) < n_test:
+            test_ex.append((t, i))
+        else:
+            break
+    splits = {
+        "train.jsonl": train_ex,
+        "validation.jsonl": val_ex,
+        "test.jsonl": test_ex,
+    }
+    if len(train_ex) < n_train or len(val_ex) < n_val or len(test_ex) < n_test:
+        print(
+            f"VALIDATION FAILED: could not fill disjoint splits after {draws} draws "
+            f"(got {len(train_ex)}/{len(val_ex)}/{len(test_ex)}, need {n_train}/{n_val}/{n_test})",
+            file=sys.stderr,
+        )
+        return 1
+    print(f"  dedupe: {skipped_dupes} exact-duplicate draws skipped over {draws} draws")
+
+    # Overlap guard (defense in depth — splitter above already guarantees it).
+    seen_owner: dict[str, str] = {}
     overlap = 0
     for name, examples in splits.items():
         for t, i in examples:
             k = _key(t, i)
-            if k in seen and seen[k] != name:
-                print(f"  OVERLAP: {name} duplicates {seen[k]}: {t[:80]!r}", file=sys.stderr)
+            if k in seen_owner and seen_owner[k] != name:
+                print(f"  OVERLAP: {name} duplicates {seen_owner[k]}: {t[:80]!r}", file=sys.stderr)
                 overlap += 1
-            seen.setdefault(k, name)
+            seen_owner.setdefault(k, name)
     if overlap:
         print(f"VALIDATION FAILED: {overlap} cross-split duplicates (train/eval leakage)", file=sys.stderr)
         return 1

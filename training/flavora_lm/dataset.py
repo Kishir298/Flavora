@@ -96,7 +96,13 @@ IRRELEVANT = [
 
 
 def _maybe_typo(rng: random.Random, word: str, words: List[str]) -> List[str]:
-    """Randomly apply a known typo (keeps the label intent unchanged)."""
+    """Randomly apply a known typo to a display copy (label stays canonical).
+
+    Typo robustness belongs in the TEXT only — the structured label must keep
+    canonical spelling, otherwise the model learns to output misspellings
+    (e.g. "chesse" instead of "cheese"). Never call this on ingredient lists
+    whose result becomes the label; it is kept for non-ingredient words only.
+    """
     if word in TYPOS and rng.random() < 0.12:
         words = list(words)
         words[words.index(word)] = rng.choice(TYPOS[word])
@@ -165,8 +171,10 @@ def generate_examples(count: int, seed: int = 42) -> Iterator[Tuple[str, Dict]]:
 
         if kind < 0.34:
             # Ingredients + optional time + optional cuisine.
+            # NOTE: no typo on ingredients — _maybe_typo would corrupt the
+            # label to a misspelling and teach hallucination. Typo robustness
+            # is covered by TYPOS on non-ingredient words (spicy/minutes/etc).
             items = rng.sample(INGREDIENTS, rng.randint(1, 4))
-            items = _maybe_typo(rng, items[0], items) if items else items
             time_phrase, t = (None, None)
             if rng.random() < 0.6:
                 time_phrase, t = rng.choice(TIME_PHRASES)

@@ -12,6 +12,14 @@ function isNotFound(e) {
 function isConflict(e) {
   return e?.code === "P2002";
 }
+function parseId(raw) {
+  const id = Number(raw);
+  if (!Number.isInteger(id) || id <= 0) return null;
+  return id;
+}
+function invalidId(res) {
+  return res.status(400).json({ error: "VALIDATION_ERROR", message: "invalid id (must be a positive integer)" });
+}
 
 function daysRemaining(expiryDate, now = new Date()) {
   if (!expiryDate) return null;
@@ -32,14 +40,14 @@ function shape(r) {
 
 inventoryRouter.get("/", async (_req, res, next) => {
   try {
-    const rows = await prisma.inventoryItem.findMany({ orderBy: { name: "asc" } });
+    const rows = await prisma.inventoryItem.findMany({ where: { userId: "local" }, orderBy: { name: "asc" } });
     res.json(rows.map(shape));
   } catch (e) { next(e); }
 });
 
 inventoryRouter.get("/expiring", async (_req, res, next) => {
   try {
-    const rows = await prisma.inventoryItem.findMany({});
+    const rows = await prisma.inventoryItem.findMany({ where: { userId: "local" } });
     res.json(rows.map(shape).filter((r) => r.status === "expiring_soon" || r.status === "expired"));
   } catch (e) { next(e); }
 });
@@ -78,8 +86,11 @@ inventoryRouter.post("/", async (req, res, next) => {
 
 inventoryRouter.patch("/:id/consume", async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
+    const id = parseId(req.params.id);
+    if (id == null) return invalidId(res);
     const { amount } = req.body ?? {};
+    // Require explicit amount — defaulting to full quantity silently zeroes stock.
+    if (amount == null) return res.status(400).json({ error: "VALIDATION_ERROR", message: "amount is required" });
     const row = await prisma.inventoryItem.findUnique({ where: { id } });
     if (!row) return res.status(404).json({ error: "NOT_FOUND", message: "inventory item not found" });
     const dec = amount != null ? Number(amount) : (row.quantity ?? 0);
@@ -92,7 +103,8 @@ inventoryRouter.patch("/:id/consume", async (req, res, next) => {
 
 inventoryRouter.put("/:id", async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
+    const id = parseId(req.params.id);
+    if (id == null) return invalidId(res);
     const { name, quantity, unit, category, expiryDate, notes } = req.body ?? {};
     const data = {};
     if (name != null) data.name = String(name).toLowerCase().trim();
@@ -122,7 +134,9 @@ inventoryRouter.put("/:id", async (req, res, next) => {
 
 inventoryRouter.delete("/:id", async (req, res, next) => {
   try {
-    await prisma.inventoryItem.delete({ where: { id: Number(req.params.id) } });
+    const id = parseId(req.params.id);
+    if (id == null) return invalidId(res);
+    await prisma.inventoryItem.delete({ where: { id } });
     res.json({ removed: true });
   } catch (e) {
     if (isNotFound(e)) return res.status(404).json({ error: "NOT_FOUND", message: "inventory item not found" });

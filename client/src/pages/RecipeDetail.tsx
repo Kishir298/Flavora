@@ -54,7 +54,7 @@ function SubRow({ ingredient, options, recipeId, applied, onApply, onRevert, onM
           onClick={() => onApply(ingredient, choice).then(() => onMsg(`Applied: ${ingredient} → ${choice}. Grocery lists and meal plans will use ${choice}.`)).catch((e) => onMsg(e instanceof Error ? e.message : "Apply failed."))}
         >Apply</button>
         {applied && (
-          <button className="rounded border px-2 py-1 text-xs" onClick={() => onRevert(ingredient).then(() => onMsg(`Reverted ${ingredient} to original.`))}>Undo</button>
+          <button className="rounded border px-2 py-1 text-xs" onClick={() => onRevert(ingredient).then(() => onMsg(`Reverted ${ingredient} to original.`)).catch((e) => onMsg(e instanceof Error ? e.message : "Revert failed."))}>Undo</button>
         )}
       </div>
       <p className="mt-1 text-xs opacity-60">Original stays recoverable. Preview: recipe will use {applied?.replacementName ?? choice} instead of {ingredient}.</p>

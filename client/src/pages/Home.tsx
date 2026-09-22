@@ -158,10 +158,10 @@ export function Home() {
       servings: 1,
       nutrition: r.nutrition
         ? {
-            calories: r.nutrition.calories ?? null,
-            protein_g: r.nutrition.protein_g ?? null,
-            carbs_g: r.nutrition.carbs_g ?? null,
-            fat_g: r.nutrition.fat_g ?? null,
+            calories: (r.nutrition.calories ?? null) as number | null,
+            protein_g: ((r.nutrition.protein_g ?? (r.nutrition as Record<string, unknown>).protein) ?? null) as number | null,
+            carbs_g: ((r.nutrition.carbs_g ?? (r.nutrition as Record<string, unknown>).carbs) ?? null) as number | null,
+            fat_g: ((r.nutrition.fat_g ?? (r.nutrition as Record<string, unknown>).fat) ?? null) as number | null,
           }
         : null,
     };

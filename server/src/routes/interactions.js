@@ -25,7 +25,8 @@ interactionsRouterNew.post("/", async (req, res, next) => {
     const { recipeId, action, rating } = req.body ?? {};
     if (!recipeId || !action || !ALLOWED_ACTIONS.has(action)) {
       return res.status(400).json({
-        error:
+        error: "VALIDATION_ERROR",
+        message:
           "recipeId + valid action required (shown|viewed|saved|unsaved|cooked|rated_positive|rated_negative|skipped)",
       });
     }
@@ -47,6 +48,7 @@ interactionsRouterNew.post("/", async (req, res, next) => {
     const storedAction = action === "rated" ? "rated_positive" : action;
     const row = await prisma.interaction.create({
       data: {
+        userId: "local",
         recipeId: String(recipeId),
         action: storedAction,
         rating: rating == null ? null : Number(rating),

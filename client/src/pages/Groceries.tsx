@@ -211,8 +211,8 @@ export function Groceries() {
       {items.some((i) => i.checked) && (
         <button
           onClick={() => {
-            if (!online) void enqueueMutation({ operation: "grocery.clearCompleted", entityType: "grocery", entityId: "all", payload: {} }).then(load);
-            else api.clearGroceryCompleted().then(load);
+            if (!online) void enqueueMutation({ operation: "grocery.clearCompleted", entityType: "grocery", entityId: "all", payload: {} }).then(load).catch(() => {});
+            else api.clearGroceryCompleted().then(load).catch(() => {});
           }}
           className="mt-4 rounded border px-3 py-1 text-sm"
         >

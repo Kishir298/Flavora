@@ -48,7 +48,22 @@ function ensureStarted() {
     emit();
   });
   void refreshShared();
-  if (pollId == null) pollId = setInterval(() => void refreshShared(), 3000);
+  if (pollId == null) {
+    const startPoll = () => {
+      if (pollId != null) return;
+      pollId = setInterval(() => {
+        // Pause churn when tab hidden; resume on visible.
+        if (typeof document !== "undefined" && document.hidden) return;
+        void refreshShared();
+      }, 3000);
+    };
+    startPoll();
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) void refreshShared();
+      });
+    }
+  }
 }
 /** Test/HMR cleanup: stop the shared 3s poll. */
 export function stopOnlinePollForTests() {

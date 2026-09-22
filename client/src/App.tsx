@@ -1,20 +1,22 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { Home } from "./pages/Home";
-import { Dashboard } from "./pages/Dashboard";
-import { Meals } from "./pages/Meals";
-import { Insights } from "./pages/Insights";
-import { Onboarding } from "./pages/Onboarding";
-import { RecipeDetail } from "./pages/RecipeDetail";
-import { Saved } from "./pages/Saved";
-import { Settings } from "./pages/Settings";
-import { Explorer } from "./pages/Explorer";
-import { Inventory } from "./pages/Inventory";
-import { Groceries } from "./pages/Groceries";
-import { MealPlan } from "./pages/MealPlan";
 import { api } from "./lib/api";
 import { useOnlineStatus } from "./lib/useOnlineStatus";
+
+// Code-split per route — previously a single 270kB bundle loaded all 11 pages.
+const Home = lazy(() => import("./pages/Home").then((m) => ({ default: m.Home })));
+const Dashboard = lazy(() => import("./pages/Dashboard").then((m) => ({ default: m.Dashboard })));
+const Meals = lazy(() => import("./pages/Meals").then((m) => ({ default: m.Meals })));
+const Insights = lazy(() => import("./pages/Insights").then((m) => ({ default: m.Insights })));
+const Onboarding = lazy(() => import("./pages/Onboarding").then((m) => ({ default: m.Onboarding })));
+const RecipeDetail = lazy(() => import("./pages/RecipeDetail").then((m) => ({ default: m.RecipeDetail })));
+const Saved = lazy(() => import("./pages/Saved").then((m) => ({ default: m.Saved })));
+const Settings = lazy(() => import("./pages/Settings").then((m) => ({ default: m.Settings })));
+const Explorer = lazy(() => import("./pages/Explorer").then((m) => ({ default: m.Explorer })));
+const Inventory = lazy(() => import("./pages/Inventory").then((m) => ({ default: m.Inventory })));
+const Groceries = lazy(() => import("./pages/Groceries").then((m) => ({ default: m.Groceries })));
+const MealPlan = lazy(() => import("./pages/MealPlan").then((m) => ({ default: m.MealPlan })));
 
 export function App() {
   const [theme, setTheme] = useState("light");
@@ -63,6 +65,8 @@ export function App() {
           <SyncBanner />
           <main id="main" tabIndex={-1}>
           <RouteFocus />
+          <ErrorBoundary>
+          <Suspense fallback={<p role="status" className="p-6">Loading…</p>}>
           <Routes>
             {/* Primary UX is conversational: / is the chat, Dashboard lives at /dashboard. */}
             <Route path="/" element={<Home />} />
@@ -91,6 +95,8 @@ export function App() {
               }
             />
           </Routes>
+          </Suspense>
+          </ErrorBoundary>
           </main>
         </div>
       </BrowserRouter>
@@ -130,7 +136,7 @@ function SyncBanner() {
   const { online, pending, syncState, syncNow } = useOnlineStatus();
   if (online && pending === 0 && syncState !== "syncing") return null;
   return (
-    <div role="status" aria-live="polite" className="bg-amber-100 px-4 py-1 text-xs text-amber-900">
+    <div role="status" aria-live="polite" className="bg-amber-100 dark:bg-amber-900 px-4 py-1 text-xs text-amber-900 dark:text-amber-100">
       {!online
         ? `Offline — ${pending} change(s) saved locally and will sync when connection returns.`
         : syncState === "syncing"
@@ -139,7 +145,7 @@ function SyncBanner() {
             ? "Some changes failed to sync. They stay saved locally — press Sync now to retry."
             : `${pending} change(s) pending sync.`}
       {online && pending > 0 && syncState !== "syncing" && (
-        <button onClick={() => void syncNow()} className="ml-2 underline">Sync now</button>
+        <button type="button" onClick={() => void syncNow()} className="ml-2 underline">Sync now</button>
       )}
     </div>
   );

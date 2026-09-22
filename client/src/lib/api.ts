@@ -146,7 +146,10 @@ export interface AppliedSub {
 }
 
 const RAW_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
-const BASE = RAW_BASE.replace(/\/$/, "");
+if (RAW_BASE && !/^https?:\/\//.test(RAW_BASE) && !RAW_BASE.startsWith("/")) {
+  console.warn(`VITE_API_URL looks malformed: ${RAW_BASE} (expected http(s):// or / prefix, falling back to same-origin)`);
+}
+const BASE = (/^https?:\/\//.test(RAW_BASE) || RAW_BASE.startsWith("/") ? RAW_BASE : "").replace(/\/$/, "");
 
 async function req<T>(path: string, init?: RequestInit & { timeoutMs?: number }): Promise<T> {
   const { timeoutMs = 30_000, ...fetchInit } = init ?? {};
@@ -161,6 +164,13 @@ async function req<T>(path: string, init?: RequestInit & { timeoutMs?: number })
     });
   } catch (e) {
     clearTimeout(timer);
+    // Normalize aborts/timeouts to network errors so offline queueing catches them.
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw new Error(`network timeout: ${fetchInit?.method ?? "GET"} ${path} aborted after ${timeoutMs}ms`);
+    }
+    if (e instanceof Error && /abort/i.test(e.message)) {
+      throw new Error(`network timeout: ${e.message}`);
+    }
     throw e instanceof Error ? e : new Error(String(e));
   }
   clearTimeout(timer);

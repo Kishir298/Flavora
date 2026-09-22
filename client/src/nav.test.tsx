@@ -44,7 +44,12 @@ describe("navigation — every item reaches a real page", () => {
       render(<App />);
       const nav = screen.getByRole("navigation", { name: "main" });
       fireEvent.click(within(nav).getByRole("link", { name: label }));
-      await waitFor(() => expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument());
+      // Lazy routes: wait for the *expected* heading, not just any heading
+      // (Home's FLAVORA heading renders first while the chunk loads).
+      await waitFor(
+        () => expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(heading),
+        { timeout: 5000 }
+      );
       expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(heading);
       // Active state: NavLink renders aria-current="page" when active.
       expect(within(nav).getByRole("link", { name: label }).getAttribute("aria-current")).toBe("page");

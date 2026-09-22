@@ -34,7 +34,7 @@ export function Insights() {
         ))}
       </div>
       {error && <p role="alert" className="text-red-700">{error}</p>}
-      {!stats ? <p>Loading…</p> : stats.status === "insufficient" ? (
+      {!stats ? <p role="status">Loading…</p> : stats.status === "insufficient" ? (
         <section className={card}>
           <h2 className="font-semibold">Not enough data yet</h2>
           <p className="text-sm mt-1">{stats.reason}</p>

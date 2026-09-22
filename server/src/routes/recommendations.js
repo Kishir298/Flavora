@@ -145,7 +145,8 @@ recommendationsRouter.post("/", async (req, res, next) => {
       eligible: results.eligibleCount ?? results.length,
       returned: results.length,
       ms,
-      query: { userId, availableIngredients, timeLimit, mode },
+      // Redacted: never log raw ingredients/PII (was availableIngredients verbatim).
+      query: { userId, ingredientCount: Array.isArray(availableIngredients) ? availableIngredients.length : 0, timeLimit, mode },
       scores: results.map((r) => ({ id: r.recipe.id, score: Number(r.score.toFixed(3)) })),
     });
 

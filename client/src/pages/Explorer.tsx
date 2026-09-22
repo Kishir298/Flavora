@@ -85,7 +85,7 @@ export function Explorer() {
           {error}
         </p>
       )}
-      {loading && <p className="mt-3 text-sm opacity-70">Loading…</p>}
+      {loading && <p role="status" className="mt-3 text-sm opacity-70">Loading…</p>}
       <div className="mt-4 grid gap-3" aria-live="polite">
         {results.map((r) => (
           <div key={r.recipeId}>

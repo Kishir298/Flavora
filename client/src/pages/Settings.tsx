@@ -29,7 +29,7 @@ export function Settings({ onTheme }: { onTheme: (t: string) => void }) {
       </p>
     );
   }
-  if (!profile) return <p className="p-6">Loading…</p>;
+  if (!profile) return <p role="status" className="p-6">Loading…</p>;
 
   return (
 <div className="p-6 max-w-xl mx-auto">

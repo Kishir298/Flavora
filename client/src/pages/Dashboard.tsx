@@ -41,7 +41,7 @@ export function Dashboard() {
       <h1 className="text-2xl font-bold">Dashboard</h1>
       {error && <p role="alert" className="text-red-700">{error}</p>}
       {!stats ? (
-        <p>Loading…</p>
+        <p role="status">Loading…</p>
       ) : stats.status === "insufficient" ? (
         <section className={card} aria-label="Getting started">
           <h2 className="font-semibold text-lg">Welcome to Flavora</h2>

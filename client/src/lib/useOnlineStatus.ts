@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { listAll, replayQueue, type QueuedMutation } from "./mutationQueue";
 import { api } from "./api";
 

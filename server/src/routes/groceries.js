@@ -194,20 +194,23 @@ groceriesRouter.post("/generate", async (req, res, next) => {
       });
     }
     const created = [];
-    for (const item of toBuy) {
-      if (item.quantity != null && Number(item.quantity) <= 0) continue; // fully stocked
-      const row = await prisma.groceryItem.upsert({
-        where: { userId_name_note: { userId: "local", name: item.name, note: item.note ?? "" } },
-        create: {
-          userId: "local", name: item.name,
-          quantity: item.hasQty ? Number(item.quantity) : (item.quantity ?? null),
-          unit: item.unit, note: item.note ?? "", category: categorizeIngredient(item.name),
-          source: "recipe", recipeIds: JSON.stringify(recipeIds),
-        },
-        update: { removed: false, source: "recipe", recipeIds: JSON.stringify(recipeIds) },
-      });
-      created.push(shape(row));
-    }
+    const pending = toBuy.filter((item) => !(item.quantity != null && Number(item.quantity) <= 0));
+    // Atomic: partial failure previously left a half-built list.
+    const rows = await prisma.$transaction(
+      pending.map((item) =>
+        prisma.groceryItem.upsert({
+          where: { userId_name_note: { userId: "local", name: item.name, note: item.note ?? "" } },
+          create: {
+            userId: "local", name: item.name,
+            quantity: item.hasQty ? Number(item.quantity) : (item.quantity ?? null),
+            unit: item.unit, note: item.note ?? "", category: categorizeIngredient(item.name),
+            source: "recipe", recipeIds: JSON.stringify(recipeIds),
+          },
+          update: { removed: false, source: "recipe", recipeIds: JSON.stringify(recipeIds) },
+        })
+      )
+    );
+    for (const row of rows) created.push(shape(row));
     res.json({ items: created, merged: merged.length, purchased: created.length });
   } catch (e) { next(e); }
 });

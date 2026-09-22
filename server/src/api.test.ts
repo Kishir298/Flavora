@@ -19,7 +19,7 @@ const SEED_ID = "italian-minestrone-soup"; // vegan, low cost — survives most 
 const DAIRY_ID = "italian-spaghetti-aglio-e-olio"; // contains parmesan (dairy synonym)
 
 beforeAll(async () => {
-  execSync("npx prisma db push --schema ../prisma/schema.prisma --skip-generate --force-reset", {
+  execSync("npx prisma migrate reset --force --skip-seed --schema ../prisma/schema.prisma", {
     env: { ...process.env, DATABASE_URL: `file:${TEST_DB_ABS}` },
     cwd: process.cwd().endsWith("/server") ? process.cwd() : process.cwd() + "/server",
     stdio: "pipe",

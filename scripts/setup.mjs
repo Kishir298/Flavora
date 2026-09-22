@@ -17,7 +17,7 @@
  *
  * Safety rules:
  * - never overwrites an existing .env (only creates it from .env.example when missing)
- * - never deletes the database; schema sync via `prisma db push` is non-destructive
+ * - never deletes the database; schema sync via `prisma migrate deploy` replays committed migrations (non-destructive)
  * - never installs software silently; Python packages go only into .flavoralm-venv/
  * - never downloads third-party model weights; FlavoraLM artifacts are trained locally
  * - everything binds to localhost/127.0.0.1; no secrets are printed
@@ -347,10 +347,10 @@ async function setup() {
 
   if (!(await ensurePythonEnv())) process.exit(1);
 
-  info("Syncing database schema (non-destructive)…");
-  const dbPush = await run("npx", ["prisma", "db", "push", "--schema", "prisma/schema.prisma", "--skip-generate"], { stdio: "pipe" });
+  info("Applying database migrations (non-destructive, replays prisma/migrations)…");
+  const dbPush = await run("npx", ["prisma", "migrate", "deploy", "--schema", "prisma/schema.prisma"], { stdio: "pipe" });
   if (dbPush.code !== 0) {
-    fail("prisma db push failed. Run `npx prisma db push --schema prisma/schema.prisma` to see the error.");
+    fail("prisma migrate deploy failed. Run `npx prisma migrate deploy --schema prisma/schema.prisma` to see the error.");
     process.exit(1);
   }
   ok("SQLite database ready");

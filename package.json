@@ -3,7 +3,10 @@
   "private": true,
   "version": "0.1.0",
   "description": "Flavora — local-first AI-assisted food companion",
-  "workspaces": ["server", "client"],
+  "workspaces": [
+    "server",
+    "client"
+  ],
   "scripts": {
     "setup": "node scripts/setup.mjs --setup-only",
     "start": "node scripts/setup.mjs",
@@ -12,6 +15,10 @@
     "dev:client": "npm run dev --workspace=client",
     "build": "npm run build --workspace=server && npm run build --workspace=client",
     "test": "npm run test --workspace=server && npm run test --workspace=client",
+    "test:coverage": "npm run test:coverage --workspace=server && npm run test:coverage --workspace=client",
+    "lint": "eslint .",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
     "test:e2e": "npm run test:e2e --workspace=client",
     "verify:local-ai": "npm run verify:local-ai --workspace=server",
     "verify:llm:init": "node scripts/py.mjs -m training.verify_init --config training/configs/flavora_lm_small.json",
@@ -29,12 +36,20 @@
     "eval:slow": "node -e \"fs.mkdirSync('playwright-eval-results',{recursive:true})\" && npm run test:e2e --workspace=client -- --config=playwright.slow.config.ts",
     "lm:serve": "node scripts/py.mjs -m training.flavora_lm.service",
     "db:push": "npx prisma db push --schema prisma/schema.prisma",
+    "db:migrate:dev": "npx prisma migrate dev --schema prisma/schema.prisma",
+    "db:migrate:deploy": "npx prisma migrate deploy --schema prisma/schema.prisma",
+    "db:migrate:status": "npx prisma migrate status --schema prisma/schema.prisma",
     "db:seed": "npm run seed --workspace=server",
     "db:studio": "npx prisma studio --schema prisma/schema.prisma"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "concurrently": "^9.0.1",
-    "prisma": "^5.22.0"
+    "eslint": "^10.11.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "prettier": "^3.9.8",
+    "prisma": "^5.22.0",
+    "typescript-eslint": "^8.70.1"
   },
   "overrides": {
     "qs": "^6.16.0"

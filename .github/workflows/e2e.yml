@@ -32,7 +32,7 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
         working-directory: client
-      - run: npx prisma db push --schema prisma/schema.prisma --skip-generate
+      - run: npx prisma migrate deploy --schema prisma/schema.prisma
       - run: npm run db:seed
       - run: npx playwright test e2e/a11y.spec.ts e2e/keyboard.spec.ts e2e/navbar.spec.ts e2e/mobile.spec.ts e2e/critical.spec.ts --reporter=list
         working-directory: client
@@ -62,7 +62,7 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
         working-directory: client
-      - run: npx prisma db push --schema prisma/schema.prisma --skip-generate
+      - run: npx prisma migrate deploy --schema prisma/schema.prisma
       - run: npm run db:seed
       - run: npm run build --workspace=client
       - run: npx playwright test --config=playwright.offline.config.ts --reporter=list
@@ -95,7 +95,7 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
         working-directory: client
-      - run: npx prisma db push --schema prisma/schema.prisma --skip-generate
+      - run: npx prisma migrate deploy --schema prisma/schema.prisma
       - run: npm run db:seed
       - run: npx playwright test --config=playwright.slow.config.ts
         working-directory: client

@@ -4,14 +4,36 @@ import type { Express } from "express";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { execSync, execFileSync } from "node:child_process";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Isolated DB (never ambient dev.db): dotenv does not reliably populate
+// DATABASE_URL inside vitest workers, so set it explicitly before importing
+// the app — same pattern as hardening/api/p0 tests.
+const TEST_DB_ABS = path.resolve(__dirname, "../../prisma/assistant-test.db");
+process.env.DATABASE_URL = `file:${TEST_DB_ABS}`;
 
 let app: Express;
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "flavora-assistant-"));
 process.env.FLAVORA_USER_DATA_FILE = path.join(dir, "user-data.json");
 
 beforeAll(async () => {
+  const cwd = process.cwd().endsWith("/server") ? process.cwd() : path.join(process.cwd(), "server");
+  execSync("npx prisma migrate reset --force --skip-seed --schema ../prisma/schema.prisma", {
+    env: { ...process.env, DATABASE_URL: `file:${TEST_DB_ABS}` },
+    cwd,
+    stdio: "pipe",
+  });
   const { createApp } = await import("../app.js");
   app = createApp();
+  const { prisma } = await import("../db.js");
+  await prisma.$connect();
+  execFileSync("npm", ["run", "seed", "--workspace=server"], {
+    env: { ...process.env, DATABASE_URL: `file:${TEST_DB_ABS}` },
+    cwd: path.resolve(__dirname, "../../.."),
+    stdio: "pipe",
+  });
   const { UserDataStore } = await import("../store/userDataStore.js");
   const s = new UserDataStore(process.env.FLAVORA_USER_DATA_FILE);
   const today = new Date().toISOString();
@@ -19,7 +41,9 @@ beforeAll(async () => {
   s.addMeal({ name: "Soup", mealType: "lunch", loggedAt: today, foods: [{ name: "lentils" }] });
   s.addMeal({ name: "Rice", mealType: "dinner", loggedAt: today, foods: [{ name: "rice" }] });
 });
-afterAll(() => {
+afterAll(async () => {
+  const { prisma } = await import("../db.js");
+  await prisma.$disconnect();
   fs.rmSync(dir, { recursive: true, force: true });
 });
 

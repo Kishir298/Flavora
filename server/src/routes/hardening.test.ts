@@ -14,7 +14,7 @@ const { prisma } = await import("../db.js");
 const app = createApp();
 
 beforeAll(async () => {
-  execSync("npx prisma db push --schema ../prisma/schema.prisma --skip-generate --force-reset", {
+  execSync("npx prisma migrate reset --force --skip-seed --schema ../prisma/schema.prisma", {
     env: { ...process.env, DATABASE_URL: `file:${TEST_DB_ABS}` },
     cwd: process.cwd().endsWith("/server") ? process.cwd() : process.cwd() + "/server",
     stdio: "pipe",

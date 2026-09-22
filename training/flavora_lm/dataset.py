@@ -283,9 +283,18 @@ def write_jsonl(path: str | Path, examples: List[Tuple[str, Dict]]) -> None:
 
 def read_jsonl(path: str | Path) -> List[Tuple[str, Dict]]:
     out: List[Tuple[str, Dict]] = []
-    for line in Path(path).read_text(encoding="utf-8").splitlines():
+    try:
+        raw = Path(path).read_text(encoding="utf-8")
+    except OSError as e:
+        raise FileNotFoundError(f"dataset file not found: {path}: {e}") from e
+    for lineno, line in enumerate(raw.splitlines(), 1):
         if not line.strip():
             continue
-        obj = json.loads(line)
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"{path}:{lineno}: invalid JSON: {e}") from e
+        if not isinstance(obj, dict) or "input" not in obj or "target" not in obj:
+            raise ValueError(f"{path}:{lineno}: missing input/target keys")
         out.append((obj["input"], obj["target"]))
     return out

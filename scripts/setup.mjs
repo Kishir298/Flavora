@@ -316,8 +316,9 @@ async function setup() {
   console.log("Checking environment...");
 
   const major = Number(process.versions.node.split(".")[0]);
-  if (major < 20) {
-    fail(`Node.js ${major} is too old. Flavora requires Node.js 20+.`);
+  const minor = Number(process.versions.node.split(".")[1] ?? 0);
+  if (major < 22 || (major === 22 && minor < 12)) {
+    fail(`Node.js ${process.versions.node} is too old. Flavora requires Node.js 22.12+.`);
     process.exit(1);
   }
   ok(`Node.js v${process.versions.node}`);

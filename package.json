@@ -26,7 +26,7 @@
     "evaluate:llm:sample": "node scripts/py.mjs -m training.evaluate --artifacts models/flavora-lm/v0.1 --test-file training/data-small/test.jsonl --max-examples 25",
     "evaluate:llm:dev": "node scripts/py.mjs -m training.evaluate --artifacts models/flavora-lm/dev",
     "eval:full": "node scripts/py.mjs -m training.evaluate --artifacts models/flavora-lm/v0.1 --test-file training/data-small/test.jsonl",
-    "eval:slow": "mkdir -p playwright-eval-results && npm run test:e2e --workspace=client -- --config=playwright.slow.config.ts",
+    "eval:slow": "node -e \"fs.mkdirSync('playwright-eval-results',{recursive:true})\" && npm run test:e2e --workspace=client -- --config=playwright.slow.config.ts",
     "lm:serve": "node scripts/py.mjs -m training.flavora_lm.service",
     "db:push": "npx prisma db push --schema prisma/schema.prisma",
     "db:seed": "npm run seed --workspace=server",

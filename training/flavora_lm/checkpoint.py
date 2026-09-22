@@ -53,8 +53,21 @@ class TrainingMeta:
 
 
 def set_seed(seed: int) -> None:
+    import os
+
     random.seed(seed)
     torch.manual_seed(seed)
+    try:
+        import numpy as np
+
+        np.random.seed(seed % (2**32))
+    except ImportError:
+        pass
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    try:
+        torch.use_deterministic_algorithms(True, warn_only=True)
+    except (AttributeError, RuntimeError):
+        pass
 
 
 def save_checkpoint(

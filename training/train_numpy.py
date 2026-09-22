@@ -145,6 +145,20 @@ def main() -> int:
         "elapsed_s": round(time.time() - t0, 1),
     }
     (out_dir / "metrics.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+    # Held-out test is diagnostic only — keep it out of metrics.json so the
+    # val-driven workflow never tunes on test. Write separately.
+    test_report = {
+        "model": MODEL_NAME, "version": MODEL_VERSION,
+        "test_loss": final_test["loss"], "test_macro_acc": final_test["macro_acc"],
+        "test_per_head": {k: v for k, v in final_test.items() if k.startswith("acc/")},
+        "test_size": len(test_ex), "note": "held-out diagnostic, do not tune on this",
+    }
+    (out_dir / "test-metrics.json").write_text(json.dumps(test_report, indent=2), encoding="utf-8")
+    # Remove test leakage from the primary report (val-only for tuning).
+    report.pop("test_loss", None)
+    report.pop("test_macro_acc", None)
+    report.pop("test_per_head", None)
+    (out_dir / "metrics.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(f"  artifacts -> {out_dir} (model.npz, tokenizer.json, metrics.json)")
     print(f"  test macro_acc {final_test['macro_acc']:.3f} loss {final_test['loss']:.4f} "
           f"({time.time() - t0:.0f}s)")

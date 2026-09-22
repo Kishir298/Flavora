@@ -19,15 +19,15 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "npm run dev --workspace=flavora-server -- --port 4000",
+      command: "npm run dev --workspace=server -- --port 4000",
       port: 4000,
-      reuseExistingServer: true,
+      reuseExistingServer: !process.env.CI,
       env: { ...process.env } as Record<string, string>,
     },
     {
-      command: "npm run preview --workspace=flavora-client -- --port 4173",
+      command: "npm run preview --workspace=client -- --port 4173",
       port: 4173,
-      reuseExistingServer: true,
+      reuseExistingServer: !process.env.CI,
     },
   ],
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],

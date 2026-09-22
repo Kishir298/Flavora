@@ -7,7 +7,7 @@ Personal data and recipe data stay on your machine. Core recommendations never r
 
 Requirements:
 
-- Node.js 20+
+- Node.js 22.12+ (engines: >=22.12.0; CI uses Node 22)
 - Python 3.11+
 
 ### First-time setup
@@ -299,7 +299,11 @@ The retrain trigger prefers `server/src/engine/.venv/bin/python` when that venv 
 | `npm run setup` | setup only (no services started) |
 | `npm run dev` | client + server concurrently |
 | `npm run train:llm` / `train:llm:dev` | train FlavoraLM (small / fast dev config) |
-| `npm run train:tokenizer` | train the BPE tokenizer standalone |
+| `npm run train:llm-numpy` / `train:llm-numpy:full` | train NumPy v0.2 sidecar (2k / 8k examples) |
+| `npm run train:tokenizer` / `train:tokenizer:dev` | train the BPE tokenizer standalone (prod / dev) |
+| `npm run evaluate:llm` | held-out FlavoraLM evaluation, full 1000-example set, ~2.5h (alias of `eval:full`) |
+| `npm run evaluate:llm:dev` | eval dev checkpoint in `models/flavora-lm/dev` |
+| `npm run verify:llm:init:dev` | prove dev weights are freshly initialized |
 | `npm run evaluate:llm` | held-out FlavoraLM evaluation, full 1000-example set, ~2.5h (alias of `eval:full`) |
 | `npm run evaluate:llm:sample` | 25-example eval smoke (minutes; report → `eval.json`, gitignored) |
 | `npm run eval:full` | full-set evaluation, resumable via `-- --resume`, bounded via `-- --limit N` (see Evaluation below) |
@@ -308,6 +312,8 @@ The retrain trigger prefers `server/src/engine/.venv/bin/python` when that venv 
 | `npm run verify:llm:init` | prove weights are freshly initialized |
 | `npm run lm:serve` | run the FlavoraLM inference service manually |
 | `npm run test` | server unit+integration + client component tests |
+| `npm run dev:server` / `dev:client` | run API or website only |
+| `npm run db:studio` | Prisma Studio for local DB inspection |
 | `npm run test:e2e` | Playwright critical paths (needs `npm run setup` once + `npx playwright install chromium`; API base overridable via `API_URL`) |
 | `npx playwright test --config=playwright.offline.config.ts` (in `client/`) | offline sync E2E only (needs `npm run build --workspace=client` first; runs `vite preview`) |
 | `npm run db:push` / `db:seed` | init + seed SQLite from `/data` |
@@ -319,6 +325,10 @@ The retrain trigger prefers `server/src/engine/.venv/bin/python` when that venv 
 - `docs/FLAVORALM_ARCHITECTURE.md` — system/model/tokenizer/dataset/training/checkpoint/inference/API/safety/privacy/startup
 - `docs/FLAVORALM_TRAINING.md` — corpus → tokenizer → init → training → checkpoint → eval → repro
 - `docs/FLAVORALM_EVALUATION.md` — measured metrics, safety tests, honest weaknesses
+- `docs/FLAVORALM_FINAL_AUDIT.md` — final audit record (checkpoint history, timings)
+- `docs/FLAVORALM_NUMPY.md` — NumPy v0.2 sidecar (architecture, A/B switch, `FLAVORA_LM_ENGINE=numpy`)
+- `docs/ACCESSIBILITY.md` — accessibility conformance notes
+- `docs/accessibility-screen-reader-checklist.md` — human screen-reader validation plans
 - `training/README.md` — training commands and pipeline reference
 
 ## Accessibility

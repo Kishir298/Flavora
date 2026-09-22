@@ -35,6 +35,12 @@ def validate_example(text: str, intent: dict) -> list[str]:
     for key in ("ingredients", "allergies", "avoidFoods"):
         if key in intent and (not isinstance(intent[key], list) or not all(isinstance(x, str) and x for x in intent[key])):
             problems.append(f"{key} must be a non-empty string list")
+    # Hallucination guard: every labeled ingredient must appear verbatim in
+    # the text, otherwise the model learns to invent unmentioned items.
+    lowered = text.lower()
+    for ing in intent.get("ingredients", []) or []:
+        if isinstance(ing, str) and ing.lower() not in lowered:
+            problems.append(f"ingredient not verbatim in text: {ing!r}")
     unknown = set(intent) - {
         "intent", "ingredients", "timeLimit", "cuisine", "spicePreference",
         "craving", "cravingSignals", "allergies", "avoidFoods", "mode", "mealType",
@@ -59,13 +65,31 @@ def main() -> int:
     n_train, n_val, n_test = ds["train_examples"], ds["validation_examples"], ds["test_examples"]
     total = n_train + n_val + n_test
 
-    # Draw one deterministic stream, then split by index — no leakage, no overlaps.
+    # Draw one deterministic stream, then split by index. NOTE: contiguous
+    # slicing does NOT guarantee no exact-duplicate overlap when the generator
+    # can emit duplicates — dedupe below and fail on cross-split overlap.
     stream = list(generate_examples(total, seed=seed))
     splits = {
         "train.jsonl": stream[:n_train],
         "validation.jsonl": stream[n_train : n_train + n_val],
         "test.jsonl": stream[n_train + n_val :],
     }
+
+    # Dedupe + overlap guard: identical input text must not appear in two splits.
+    def _key(t: str, i: dict) -> str:
+        return f"{t.strip().lower()}||{json.dumps(i, sort_keys=True)}"
+    seen: dict[str, str] = {}
+    overlap = 0
+    for name, examples in splits.items():
+        for t, i in examples:
+            k = _key(t, i)
+            if k in seen and seen[k] != name:
+                print(f"  OVERLAP: {name} duplicates {seen[k]}: {t[:80]!r}", file=sys.stderr)
+                overlap += 1
+            seen.setdefault(k, name)
+    if overlap:
+        print(f"VALIDATION FAILED: {overlap} cross-split duplicates (train/eval leakage)", file=sys.stderr)
+        return 1
 
     problems = 0
     sha256: dict[str, str] = {}

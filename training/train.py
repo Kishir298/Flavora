@@ -116,6 +116,19 @@ def main() -> int:
     val_raw = read_jsonl(data_dir / "validation.jsonl")
     print(f"  dataset: {len(train_raw)} train / {len(val_raw)} val examples")
 
+    # Wrong-data guard: config dataset sizes must match the data dir, otherwise
+    # a small-config run silently trains on the wrong corpus (or vice versa).
+    exp_train = int(ds_cfg.get("train_examples", len(train_raw)))
+    exp_val = int(ds_cfg.get("validation_examples", len(val_raw)))
+    if len(train_raw) != exp_train or len(val_raw) != exp_val:
+        print(
+            f"ERROR: dataset size mismatch: got {len(train_raw)}/{len(val_raw)} "
+            f"train/val in {data_dir}, config expects {exp_train}/{exp_val}. "
+            f"Pass the matching --data-dir (dev: training/data, prod: training/data-small).",
+            file=sys.stderr,
+        )
+        return 1
+
     # 1-2. Validate dataset (the builder validates too; this re-checks).
     problems = sum(1 for t, i in train_raw if not t.strip() or not isinstance(i, dict))
     if problems:

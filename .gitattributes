@@ -1,0 +1,14 @@
+# FlavoraLM weights — tracked with Git LFS (fresh-track, no history rewrite).
+# Keep tokenizer/config JSON in plain git (diffable); binaries go to LFS.
+# After cloning: `git lfs install --local && git lfs pull`.
+# NOTE: renormalization (`git rm --cached` + re-add) requires git-lfs installed;
+# this file lands first so runners can set `actions/checkout: lfs:true`.
+models/flavora-lm/**/*.pt filter=lfs diff=lfs merge=lfs -text
+models/flavora-lm/**/*.pth filter=lfs diff=lfs merge=lfs -text
+models/flavora-lm/**/*.ckpt filter=lfs diff=lfs merge=lfs -text
+models/flavora-lm/**/*.safetensors filter=lfs diff=lfs merge=lfs -text
+models/flavora-lm/**/*.bin filter=lfs diff=lfs merge=lfs -text
+models/flavora-lm/**/*.onnx filter=lfs diff=lfs merge=lfs -text
+models/flavora-lm/**/*.npz filter=lfs diff=lfs merge=lfs -text
+# training_state.pt stays IGNORED (resume-only, 57M) — do not force-add to LFS
+# unless the team explicitly wants shared resume checkpoints.

@@ -29,6 +29,10 @@ jobs:
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Model weights are Git LFS (see .gitattributes); pointers alone
+          # would make torch.load fail on the pointer text.
+          lfs: true
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -69,7 +73,7 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
         working-directory: client
-      - run: npx prisma db push --schema prisma/schema.prisma --skip-generate
+      - run: npx prisma migrate deploy --schema prisma/schema.prisma
       - run: npm run db:seed
       - name: Run slow specs (persisted JSON + list output)
         run: npx playwright test --config=playwright.slow.config.ts

@@ -10,9 +10,18 @@ export const devRouter = Router();
 const here = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.resolve(here, "../../../data");
 
-function guard(_req: unknown, res: { status: (n: number) => { json: (o: unknown) => void } }, next: () => void) {
-  if (!config.isDev && process.env.NODE_ENV === "production") {
+function guard(req: { ip?: string; socket?: { remoteAddress?: string } }, res: { status: (n: number) => { json: (o: unknown) => void } }, next: () => void) {
+  // Defense in depth: require dev mode AND (loopback OR explicit opt-in).
+  // Never rely on NODE_ENV alone — unset NODE_ENV previously left these open.
+  const allowExplicit = process.env.ENABLE_DEV_ROUTES === "1";
+  const remote = req.ip ?? req.socket?.remoteAddress ?? "";
+  const isLoopback = remote === "127.0.0.1" || remote === "::1" || remote === "::ffff:127.0.0.1" || remote === "";
+  if ((!config.isDev && process.env.NODE_ENV === "production") || (!config.isDev && !allowExplicit)) {
     res.status(403).json({ error: "dev routes disabled in production" });
+    return;
+  }
+  if (!isLoopback && !allowExplicit) {
+    res.status(403).json({ error: "dev routes require loopback or ENABLE_DEV_ROUTES=1" });
     return;
   }
   next();

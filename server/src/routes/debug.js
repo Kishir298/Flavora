@@ -9,13 +9,18 @@ import { getRecipeById } from "../recipesDb.js";
 import { computeFeatures } from "../engine/features.js";
 import { scoreWithFeatures, weightsForMode } from "../engine/scorer.js";
 import { resolveWeights } from "../engine/weights.js";
+import { isSafetyProfileCorrupt, corruptProfileResponse } from "../profileSafety.js";
 
 export const debugRouter = Router();
 
 debugRouter.get("/explain", async (req, res, next) => {
   try {
-    if (process.env.NODE_ENV === "production") {
-      return res.status(403).json({ error: "debug endpoints disabled in production" });
+    // Match devRouter: require non-production AND (loopback OR explicit flag).
+    const allowExplicit = process.env.ENABLE_DEV_ROUTES === "1";
+    const remote = req.ip ?? req.socket?.remoteAddress ?? "";
+    const isLoopback = remote === "127.0.0.1" || remote === "::1" || remote === "::ffff:127.0.0.1" || remote === "";
+    if (process.env.NODE_ENV === "production" || (!isLoopback && !allowExplicit)) {
+      return res.status(403).json({ error: "debug endpoints disabled (loopback or ENABLE_DEV_ROUTES=1 required)" });
     }
     const userId = req.query.userId ?? "local";
     const recipeId = req.query.recipeId;
@@ -24,6 +29,7 @@ debugRouter.get("/explain", async (req, res, next) => {
 
     await ensureProfileRow();
     const row = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
+    if (isSafetyProfileCorrupt(row)) return corruptProfileResponse(res);
     const safeA = (raw) => {
       try {
         const v = JSON.parse(raw);

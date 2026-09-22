@@ -113,11 +113,13 @@ export function Settings({ onTheme }: { onTheme: (t: string) => void }) {
                       entityType: "profile",
                       entityId: "local",
                       payload: { theme: next },
-                    }).then(() => {
-                      setProfile({ ...profile, theme: next });
-                      onTheme(next);
-                      setMsg("Theme saved locally — will sync when online.");
-                    });
+                    })
+                      .then(() => {
+                        setProfile({ ...profile, theme: next });
+                        onTheme(next);
+                        setMsg("Theme saved locally — will sync when online.");
+                      })
+                      .catch(() => setError("Could not save theme offline."));
                     return;
                   }
                   setError("Could not update theme.");
@@ -127,16 +129,19 @@ export function Settings({ onTheme }: { onTheme: (t: string) => void }) {
             Toggle dark / light (now: {profile.theme})
           </button>
         </div>
+        {import.meta.env.DEV && (
         <div className="flex gap-2 flex-wrap">
           <button
             type="button"
             className="px-3 py-2 rounded border text-sm"
-            onClick={() =>
-              api
-                .seed()
-                .then(() => setMsg("Demo data loaded."))
-                .catch(() => setError("Seed failed."))
-            }
+            onClick={() => {
+              if (confirm("Load demo data? This overwrites profile and recipes.")) {
+                api
+                  .seed()
+                  .then(() => setMsg("Demo data loaded."))
+                  .catch(() => setError("Seed failed."));
+              }
+            }}
           >
             Load demo data
           </button>
@@ -155,6 +160,7 @@ export function Settings({ onTheme }: { onTheme: (t: string) => void }) {
             Reset all data
           </button>
         </div>
+        )}
         {msg && (
           <p className="text-sm text-green-700 dark:text-green-400" role="status">
             {msg}

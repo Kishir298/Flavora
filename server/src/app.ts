@@ -26,7 +26,9 @@ import { prisma } from "./db.js";
 export function createApp() {
   const app = express();
   // Localhost-only single-user app: helmet + rate-limit are defense-in-depth
-  // in case the port is ever forwarded. CORS stays open for Vite dev (:5173).
+  // in case the port is ever forwarded. CORS is allowlisted to local Vite
+  // origins only (dev :5173, preview :4173). CSP stays off for Vite dev HMR;
+  // enable a strict CSP when serving a production build behind a proxy.
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use(
     rateLimit({
@@ -36,7 +38,27 @@ export function createApp() {
       legacyHeaders: false,
     })
   );
-  app.use(cors());
+  // Stricter limiter for expensive AI/recommendation routes (FlavoraLM is
+  // single-threaded, ~10s+/request). Prevents CPU/LLM queue DoS.
+  const aiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use("/api/assistant", aiLimiter);
+  app.use("/api/recommendations", aiLimiter);
+  app.use("/api/groceries/generate", aiLimiter);
+  app.use(
+    cors({
+      origin: [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:4173",
+        "http://127.0.0.1:4173",
+      ],
+    })
+  );
   app.use(express.json({ limit: "256kb" }));
   app.use(requestIdMiddleware);
   app.use(requestLogger);
@@ -58,7 +80,7 @@ export function createApp() {
         ? await probed.probeStatus()
         : null;
     res.json({
-      ok: true,
+      ok: dbOk,
       service: "flavora",
       version: 1,
       db: { ok: dbOk, error: dbError },
@@ -118,6 +140,13 @@ export function createApp() {
       try {
         const prow = await prisma.userProfile.findUnique({ where: { id: 1 } });
         if (prow) {
+          const { isSafetyProfileCorrupt } = await import("./profileSafety.js");
+          // Fail-closed for safety flags: corrupt profile must not silently
+          // mark everything safe. Return 500 instead of unsafe=false list.
+          if (isSafetyProfileCorrupt(prow)) {
+            const { corruptProfileResponse } = await import("./profileSafety.js");
+            return corruptProfileResponse(res);
+          }
           const safeParse = (raw: string, fb: string[]) => {
             try {
               const v = JSON.parse(raw);
@@ -185,8 +214,19 @@ export function createApp() {
 
   // Central error handler (keeps error shape stable for frontend).
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    console.error(JSON.stringify({ ts: new Date().toISOString(), event: "unhandled_error", error: String(err) }));
+  app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    // Malformed JSON bodies should be 400, not 500.
+    if (err instanceof SyntaxError && "body" in (err as unknown as Record<string, unknown>)) {
+      res.status(400).json({ error: "VALIDATION_ERROR", message: "malformed JSON body" });
+      return;
+    }
+    // Fail-closed safety: corrupt allergy data maps to CORRUPT_PROFILE, never silent [].
+    if ((err as { code?: string })?.code === "CORRUPT_PROFILE" || (err as Error)?.name === "CorruptProfileError") {
+      res.status(500).json({ error: "CORRUPT_PROFILE", message: "profile safety data corrupt — reset profile before continuing" });
+      return;
+    }
+    const reqId = (req as unknown as Record<string, unknown>).requestId ?? "-";
+    console.error(JSON.stringify({ ts: new Date().toISOString(), event: "unhandled_error", reqId, error: String(err && (err as Error).stack ? (err as Error).stack : err) }));
     res.status(500).json({ error: "internal error" });
   });
   return app;

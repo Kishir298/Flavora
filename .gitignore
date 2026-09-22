@@ -3,7 +3,7 @@ node_modules/
 .pnp
 .pnp.js
 
-# Env / secrets (Spoonacular key lives here, never commit)
+# Env / secrets (USDA_FDC_API_KEY lives here, never commit)
 .env
 .env.local
 .env.*.local
@@ -66,6 +66,9 @@ server/src/engine/.venv/
 *.pyc
 # FlavoraLM dev-model outputs (fast-test only; `npm run train:llm:dev` regenerates).
 # The v0.1/ production release IS committed — never ignore it.
+# training_state.pt is a 57M resume checkpoint — intentionally untracked, never commit.
+models/flavora-lm/v0.1/training_state.pt
+**/training_state.pt
 models/flavora-lm/dev/
 # NumPy v0.2 sidecar checkpoint IS committed alongside v0.1 (412 KB);
 # regenerate via `npm run train:llm-numpy`.

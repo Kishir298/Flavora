@@ -2,16 +2,28 @@ import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-// Load .env from server/, root/, and CWD — whichever exists (local-first dev).
+// Load .env with explicit precedence: CWD first (dotenv default, no override),
+// then repo root, then server/.env. First-found wins (dotenv never overrides).
+// Keep secrets in root .env only; server/.env is legacy fallback.
 const here = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config();
 dotenv.config({ path: path.resolve(here, "../../.env") });
 dotenv.config({ path: path.resolve(here, "../.env") });
 
+function parsePort(v: string | undefined, dflt: number): number {
+  if (v === undefined || v === "") return dflt;
+  const n = Number(v);
+  if (!Number.isInteger(n) || n < 1 || n > 65535) {
+    console.warn(`Invalid PORT=${v}, falling back to ${dflt}`);
+    return dflt;
+  }
+  return n;
+}
+
 export const config = {
   nodeEnv: process.env.NODE_ENV ?? "development",
-  port: Number(process.env.PORT ?? 4000),
-  databaseUrl: process.env.DATABASE_URL ?? "file:./dev.db",
+  port: parsePort(process.env.PORT, 4000),
+  databaseUrl: process.env.DATABASE_URL ?? "file:../prisma/dev.db",
   isDev: (process.env.NODE_ENV ?? "development") !== "production",
   /** Local-first dev: no remote AI keys. All inference runs on this machine. */
   /**

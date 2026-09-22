@@ -167,12 +167,13 @@ export function createApp() {
       const { passesHardFilter } = await import("./engine/filter.js");
       res.json(
         rows.map((c) => {
-          let nutrition: Record<string, unknown> = {};
+          let parsedNutrition: Record<string, unknown>;
           try {
-            nutrition = JSON.parse(c.nutrition);
+            parsedNutrition = JSON.parse(c.nutrition);
           } catch {
-            nutrition = {};
+            parsedNutrition = {};
           }
+          const nutrition: Record<string, unknown> = parsedNutrition;
           const cal = (nutrition as { calories?: unknown }).calories;
           return {
             id: c.id,
@@ -213,7 +214,6 @@ export function createApp() {
   app.use("/api/nutrition", nutritionRouter);
 
   // Central error handler (keeps error shape stable for frontend).
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
     // Malformed JSON bodies should be 400, not 500.
     if (err instanceof SyntaxError && "body" in (err as unknown as Record<string, unknown>)) {

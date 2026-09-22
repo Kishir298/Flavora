@@ -166,12 +166,13 @@ async function req<T>(path: string, init?: RequestInit & { timeoutMs?: number })
     clearTimeout(timer);
     // Normalize aborts/timeouts to network errors so offline queueing catches them.
     if (e instanceof DOMException && e.name === "AbortError") {
-      throw new Error(`network timeout: ${fetchInit?.method ?? "GET"} ${path} aborted after ${timeoutMs}ms`);
+      throw new Error(`network timeout: ${fetchInit?.method ?? "GET"} ${path} aborted after ${timeoutMs}ms`, { cause: e });
     }
     if (e instanceof Error && /abort/i.test(e.message)) {
-      throw new Error(`network timeout: ${e.message}`);
+      throw new Error(`network timeout: ${e.message}`, { cause: e });
     }
-    throw e instanceof Error ? e : new Error(String(e));
+    if (e instanceof Error) throw e;
+    throw new Error(String(e), { cause: e });
   }
   clearTimeout(timer);
   if (!res.ok) {

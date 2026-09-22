@@ -25,6 +25,21 @@ jobs:
       - run: npm run test --workspace=server
       - run: npm run test --workspace=client
 
+  # Advisory lint/format (non-blocking until baseline clean — see eslint.config.mjs).
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx eslint .
+      - run: npx prettier --check .
+
   # Dependency + secret hygiene (localhost-only still needs CVE signal).
   # react-router v6 + vite/vitest breaking fixes deferred (see package.json overrides for qs pin).
   security:

@@ -170,9 +170,13 @@ class Handler(BaseHTTPRequestHandler):
             self._json(503, {"error": "model not loaded", "detail": STATE["error"]})
             return
         try:
-            length = int(self.headers.get("Content-Length", 0))
+            length_raw = self.headers.get("Content-Length", 0)
+            length = int(length_raw or 0)
+            if length < 0 or length > 1_000_000:
+                self._json(400, {"error": "invalid Content-Length"})
+                return
             payload = json.loads(self.rfile.read(length) or b"{}")
-        except json.JSONDecodeError:
+        except (ValueError, TypeError, OSError, json.JSONDecodeError):
             self._json(400, {"error": "invalid JSON body"})
             return
 
@@ -190,6 +194,34 @@ class Handler(BaseHTTPRequestHandler):
         if not prompt.strip():
             self._json(400, {"error": "prompt required"})
             return
+        # Fail-closed input validation: malformed generation controls must be
+        # 400, never an uncaught ValueError that kills the handler thread.
+        try:
+            max_new = int(payload.get("maxNewTokens", 48))
+            temperature = float(payload.get("temperature", 0.7))
+            repetition_penalty = float(payload.get("repetitionPenalty", 1.15))
+            top_k = payload.get("topK", 40)
+            top_p = payload.get("topP", 0.9)
+            top_k = int(top_k) if top_k is not None else 40
+            top_p = float(top_p) if top_p is not None else 0.9
+        except (TypeError, ValueError):
+            self._json(400, {"error": "invalid generation parameters"})
+            return
+        if not 1 <= max_new <= 200:
+            self._json(400, {"error": "maxNewTokens must be 1..200"})
+            return
+        if not 0.0 <= temperature <= 2.0:
+            self._json(400, {"error": "temperature must be 0..2"})
+            return
+        if not 1 <= top_k <= 200:
+            self._json(400, {"error": "topK must be 1..200"})
+            return
+        if not 0.0 < top_p <= 1.0:
+            self._json(400, {"error": "topP must be 0..1"})
+            return
+        if not 1.0 <= repetition_penalty <= 2.0:
+            self._json(400, {"error": "repetitionPenalty must be 1..2"})
+            return
         model: FlavoraLM = STATE["model"]
         tok: BPETokenizer = STATE["tokenizer"]
         t0 = time.time()
@@ -198,14 +230,14 @@ class Handler(BaseHTTPRequestHandler):
             self._json(400, {"error": "prompt encoded to nothing"})
             return
         idx = torch.tensor([ids], dtype=torch.long)
-        max_new = min(int(payload.get("maxNewTokens", 48)), 200)
+        max_new = min(max_new, 200)
         out = model.generate(
             idx,
             max_new_tokens=max_new,
-            temperature=float(payload.get("temperature", 0.7)),
-            top_k=payload.get("topK", 40),
-            top_p=payload.get("topP", 0.9),
-            repetition_penalty=float(payload.get("repetitionPenalty", 1.15)),
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            repetition_penalty=repetition_penalty,
             eos_id=tok.eos_id,
         )
         gen = out[0, len(ids):].tolist()
@@ -239,9 +271,13 @@ class Handler(BaseHTTPRequestHandler):
             self._json(503, {"error": "numpy core not loaded", "detail": STATE["numpy_error"]})
             return
         try:
-            length = int(self.headers.get("Content-Length", 0))
+            length_raw = self.headers.get("Content-Length", 0)
+            length = int(length_raw or 0)
+            if length < 0 or length > 1_000_000:
+                self._json(400, {"error": "invalid Content-Length"})
+                return
             payload = json.loads(self.rfile.read(length) or b"{}")
-        except json.JSONDecodeError:
+        except (ValueError, TypeError, OSError, json.JSONDecodeError):
             self._json(400, {"error": "invalid JSON body"})
             return
         text = str(payload.get("text", ""))[:1000]

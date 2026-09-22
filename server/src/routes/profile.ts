@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma, ensureProfileRow } from "../db.js";
+import { isSafetyProfileCorrupt } from "../profileSafety.js";
 import type { UserProfileInput } from "../types.js";
 
 export const profileRouter = Router();
@@ -48,7 +49,14 @@ profileRouter.get("/", async (_req, res, next) => {
   try {
     await ensureProfileRow();
     const row = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
-    res.json(rowToProfile(row));
+    const profile = rowToProfile(row);
+    // Display path stays 200 (UI needs something), but flag corruption so the
+    // client can warn and safety paths (which now 500) are understood.
+    if (isSafetyProfileCorrupt(row)) {
+      res.json({ ...profile, profileCorrupt: true, profileWarning: "profile safety data corrupt — reset profile" });
+      return;
+    }
+    res.json(profile);
   } catch (e) {
     next(e);
   }

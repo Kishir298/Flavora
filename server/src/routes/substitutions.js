@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma, ensureProfileRow } from "../db.js";
+import { isSafetyProfileCorrupt, corruptProfileResponse } from "../profileSafety.js";
 import { substitutionSafety, validateSubstitutionInput } from "../engine/substitutionSafety.js";
 
 export const substitutionsRouter = Router();
@@ -15,6 +16,8 @@ function safeArr(raw) {
 async function loadProfile() {
   await ensureProfileRow();
   const row = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
+  const { assertSafetyProfileValid } = await import("../profileSafety.js");
+  assertSafetyProfileValid(row);
   return {
     allergies: safeArr(row.allergies),
     avoid_foods: safeArr(row.avoidFoods),
@@ -78,7 +81,8 @@ substitutionsRouter.delete("/", async (req, res, next) => {
   try {
     const { recipeId, originalName } = req.body ?? {};
     if (!recipeId || !originalName) return res.status(400).json({ error: "VALIDATION_ERROR", message: "recipeId and originalName required" });
-    await prisma.appliedSubstitution.deleteMany({ where: { userId: "local", recipeId: String(recipeId), originalName: String(originalName) } });
+    const result = await prisma.appliedSubstitution.deleteMany({ where: { userId: "local", recipeId: String(recipeId), originalName: String(originalName) } });
+    if (result.count === 0) return res.status(404).json({ error: "NOT_FOUND", message: "substitution not found" });
     res.json({ reverted: true, recipeId, originalName });
   } catch (e) { next(e); }
 });

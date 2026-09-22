@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../db.js";
+import { isSafetyProfileCorrupt, corruptProfileResponse } from "../profileSafety.js";
 import { getRecipeById } from "../recipesDb.js";
 import { passesHardFilter } from "../engine/filter.js";
 import { aggregateNutrition } from "../engine/nutrition.js";
@@ -13,6 +14,21 @@ function isNotFound(e) {
 }
 function isConflict(e) {
   return e?.code === "P2002";
+}
+function parseId(raw) {
+  const id = Number(raw);
+  if (!Number.isInteger(id) || id <= 0) return null;
+  return id;
+}
+function invalidId(res) {
+  return res.status(400).json({ error: "VALIDATION_ERROR", message: "invalid id (must be a positive integer)" });
+}
+/** Strict YYYY-MM-DD: rejects rollover dates like 2024-02-30. */
+function isValidCalendarDate(ds) {
+  if (!DATE_RE.test(ds)) return false;
+  const [y, m, d] = ds.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
 }
 function safeArr(raw) {
   try {
@@ -35,6 +51,8 @@ function shape(r) {
 
 async function loadProfile() {
   const row = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
+  const { assertSafetyProfileValid } = await import("../profileSafety.js");
+  assertSafetyProfileValid(row);
   return {
     allergies: safeArr(row.allergies),
     avoid_foods: safeArr(row.avoidFoods),
@@ -52,8 +70,8 @@ mealPlansRouter.get("/", async (_req, res, next) => {
 mealPlansRouter.post("/", async (req, res, next) => {
   try {
     const { day, date, meal, recipeId, servings } = req.body ?? {};
-    const d = String(day ?? "").toLowerCase();
-    const m = String(meal ?? "").toLowerCase();
+    const d = String(day ?? "").trim().toLowerCase();
+    const m = String(meal ?? "").trim().toLowerCase();
     if (!VALID_DAYS.has(d)) return res.status(400).json({ error: "VALIDATION_ERROR", message: "day must be monday..sunday" });
     if (!VALID_MEALS.has(m)) return res.status(400).json({ error: "VALIDATION_ERROR", message: "meal must be breakfast|lunch|dinner|snack" });
     if (!recipeId) return res.status(400).json({ error: "VALIDATION_ERROR", message: "recipeId required" });
@@ -67,29 +85,30 @@ mealPlansRouter.post("/", async (req, res, next) => {
     if (!Number.isInteger(sv) || sv < 1 || sv > 12) return res.status(400).json({ error: "VALIDATION_ERROR", message: "servings must be 1..12" });
     if (date !== undefined && date !== "" && date !== null) {
       const ds = String(date).slice(0, 10);
-      if (!DATE_RE.test(ds) || Number.isNaN(new Date(ds).getTime())) return res.status(400).json({ error: "VALIDATION_ERROR", message: "date must be YYYY-MM-DD" });
+      if (!isValidCalendarDate(ds)) return res.status(400).json({ error: "VALIDATION_ERROR", message: "date must be a real YYYY-MM-DD" });
     }
     const subs = await prisma.appliedSubstitution.findMany({ where: { userId: "local", recipeId: String(recipeId) } });
-    const row = await prisma.mealPlanSlot.upsert({
-      where: { userId_day_meal: { userId: "local", day: d, meal: m } },
-      create: {
+    // Fail-closed: never silently overwrite an occupied slot via POST (data loss).
+    const existing = await prisma.mealPlanSlot.findUnique({ where: { userId_day_meal: { userId: "local", day: d, meal: m } } });
+    if (existing) return res.status(409).json({ error: "CONFLICT", message: "a meal plan slot already occupies that day+meal (use PUT to move)" });
+    const row = await prisma.mealPlanSlot.create({
+      data: {
         userId: "local", day: d, date: date ? String(date).slice(0, 10) : "",
         meal: m, recipeId: String(recipeId), servings: sv,
         appliedSubs: JSON.stringify(subs.map((s) => ({ originalName: s.originalName, replacementName: s.replacementName }))),
       },
-      update: {
-        date: date ? String(date).slice(0, 10) : "",
-        recipeId: String(recipeId), servings: sv,
-        appliedSubs: JSON.stringify(subs.map((s) => ({ originalName: s.originalName, replacementName: s.replacementName }))),
-      },
     });
     res.status(201).json(shape(row));
-  } catch (e) { next(e); }
+  } catch (e) {
+    if (isConflict(e)) return res.status(409).json({ error: "CONFLICT", message: "a meal plan slot already occupies that day+meal" });
+    next(e);
+  }
 });
 
 mealPlansRouter.put("/:id", async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
+    const id = parseId(req.params.id);
+    if (id == null) return invalidId(res);
     const { servings, meal, day, date, recipeId } = req.body ?? {};
     const data = {};
     if (servings !== undefined) {
@@ -98,18 +117,18 @@ mealPlansRouter.put("/:id", async (req, res, next) => {
       data.servings = sv;
     }
     if (meal !== undefined) {
-      if (!VALID_MEALS.has(String(meal).toLowerCase())) return res.status(400).json({ error: "VALIDATION_ERROR", message: "invalid meal" });
-      data.meal = String(meal).toLowerCase();
+      if (!VALID_MEALS.has(String(meal).trim().toLowerCase())) return res.status(400).json({ error: "VALIDATION_ERROR", message: "invalid meal" });
+      data.meal = String(meal).trim().toLowerCase();
     }
     if (day !== undefined) {
-      if (!VALID_DAYS.has(String(day).toLowerCase())) return res.status(400).json({ error: "VALIDATION_ERROR", message: "invalid day" });
-      data.day = String(day).toLowerCase();
+      if (!VALID_DAYS.has(String(day).trim().toLowerCase())) return res.status(400).json({ error: "VALIDATION_ERROR", message: "invalid day" });
+      data.day = String(day).trim().toLowerCase();
     }
     if (date !== undefined) {
       if (date === "" || date === null) data.date = "";
       else {
         const ds = String(date).slice(0, 10);
-        if (!DATE_RE.test(ds) || Number.isNaN(new Date(ds).getTime())) return res.status(400).json({ error: "VALIDATION_ERROR", message: "date must be YYYY-MM-DD" });
+        if (!isValidCalendarDate(ds)) return res.status(400).json({ error: "VALIDATION_ERROR", message: "date must be a real YYYY-MM-DD" });
         data.date = ds;
       }
     }
@@ -131,7 +150,9 @@ mealPlansRouter.put("/:id", async (req, res, next) => {
 
 mealPlansRouter.delete("/:id", async (req, res, next) => {
   try {
-    await prisma.mealPlanSlot.delete({ where: { id: Number(req.params.id) } });
+    const id = parseId(req.params.id);
+    if (id == null) return invalidId(res);
+    await prisma.mealPlanSlot.delete({ where: { id } });
     res.json({ removed: true });
   } catch (e) {
     if (isNotFound(e)) return res.status(404).json({ error: "NOT_FOUND", message: "meal plan slot not found" });
@@ -152,9 +173,11 @@ mealPlansRouter.post("/clear-day", async (req, res, next) => {
 mealPlansRouter.get("/nutrition/summary", async (_req, res, next) => {
   try {
     const slots = await prisma.mealPlanSlot.findMany({ where: { userId: "local" } });
+    const recipes = await Promise.all(slots.map((s) => getRecipeById(s.recipeId)));
     const items = [];
-    for (const s of slots) {
-      const recipe = await getRecipeById(s.recipeId);
+    for (let i = 0; i < slots.length; i++) {
+      const s = slots[i];
+      const recipe = recipes[i];
       if (!recipe) continue;
       items.push({ day: s.day, nutrition: recipe.nutrition ?? {}, servings: s.servings ?? 1 });
     }

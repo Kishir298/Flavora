@@ -55,6 +55,8 @@ recipesRouter.get("/:id", async (req, res, next) => {
 
     await ensureProfileRow();
     const profileRow = await prisma.userProfile.findUnique({ where: { id: 1 } });
+    const { isSafetyProfileCorrupt, corruptProfileResponse } = await import("../profileSafety.js");
+    if (profileRow && isSafetyProfileCorrupt(profileRow)) return corruptProfileResponse(res);
     const safeArr = (raw: string): string[] => {
       try {
         const v = JSON.parse(raw);
@@ -79,11 +81,11 @@ recipesRouter.get("/:id", async (req, res, next) => {
     // Dedupe viewed spam (bots/refresh): at most one viewed per recipe per hour.
     const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const recent = await prisma.interaction.findFirst({
-      where: { recipeId: id, action: "viewed", createdAt: { gte: hourAgo } },
+      where: { recipeId: id, userId: "local", action: "viewed", createdAt: { gte: hourAgo } },
       orderBy: { createdAt: "desc" },
     });
     if (!recent) {
-      await prisma.interaction.create({ data: { recipeId: id, action: "viewed" } });
+      await prisma.interaction.create({ data: { userId: "local", recipeId: id, action: "viewed" } });
     }
     res.json(toDetail(recipe, substitutionsDetailed, have));
   } catch (e) {

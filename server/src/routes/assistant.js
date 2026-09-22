@@ -9,6 +9,7 @@ import { recommendWithEngine } from "../engine/recommend.js";
 import { resolveWeights } from "../engine/weights.js";
 import { maybeTriggerRetrain } from "../engine/retrainTrigger.js";
 import { logEvent, getReqId } from "../logger.js";
+import { isSafetyProfileCorrupt, corruptProfileResponse } from "../profileSafety.js";
 import { parseUserIntent, buildAssistantReply } from "../ai/assistantService.js";
 import {
   advanceConversation,
@@ -118,6 +119,7 @@ assistantRouter.post("/conversation", async (req, res, next) => {
 
     await ensureProfileRow();
     const row = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
+    if (isSafetyProfileCorrupt(row)) return corruptProfileResponse(res);
     const profileFood = {
       ...(row.spicePreference ? { spiceLevel: row.spicePreference } : {}),
       ...(row.skillLevel ? { skillLevel: row.skillLevel } : {}),
@@ -315,8 +317,7 @@ assistantRouter.post("/", async (req, res, next) => {
 
     await ensureProfileRow();
     const userId = req.body?.userId ?? "local";
-    const provided = req.body?.intent ? normalizeIntent(req.body.intent) : undefined;
-    const parsed = await parseUserIntent(message || JSON.stringify(provided ?? {}), {
+    const provided = req.body?.intent ? normalizeIntent(req.body.intent) : undefined;    const parsed = await parseUserIntent(message || JSON.stringify(provided ?? {}), {
       provided: message ? undefined : provided,
     });
 
@@ -328,10 +329,11 @@ assistantRouter.post("/", async (req, res, next) => {
 
     const mode = intent.mode ?? "normal";
     if (!["normal", "food_waste", "budget"].includes(mode)) {
-      return res.status(400).json({ error: "mode must be normal|food_waste|budget" });
+      return res.status(400).json({ error: "VALIDATION_ERROR", message: "mode must be normal|food_waste|budget" });
     }
 
     const row = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
+    if (isSafetyProfileCorrupt(row)) return corruptProfileResponse(res);
     let profile = loadProfile(row);
 
     // Additive safety constraints from natural language ("allergic to peanuts",

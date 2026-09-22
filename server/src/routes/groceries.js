@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { isSafetyProfileCorrupt, corruptProfileResponse } from "../profileSafety.js";
 import { prisma, ensureProfileRow } from "../db.js";
 import { getRecipeById } from "../recipesDb.js";
 import { passesHardFilter } from "../engine/filter.js";
@@ -11,6 +12,14 @@ function isNotFound(e) {
 }
 function isConflict(e) {
   return e?.code === "P2002";
+}
+function parseId(raw) {
+  const id = Number(raw);
+  if (!Number.isInteger(id) || id <= 0) return null;
+  return id;
+}
+function invalidId(res) {
+  return res.status(400).json({ error: "VALIDATION_ERROR", message: "invalid id (must be a positive integer)" });
 }
 const VALID_GROCERY_CATEGORIES = new Set([
   "produce", "protein", "dairy", "grains", "pantry", "spices", "frozen", "other",
@@ -43,6 +52,10 @@ groceriesRouter.post("/", async (req, res, next) => {
     if (!name || !String(name).trim()) return res.status(400).json({ error: "VALIDATION_ERROR", message: "name is required" });
     const err = validateAmount(quantity, unit);
     if (err) return res.status(400).json({ error: "VALIDATION_ERROR", message: err });
+    if (category !== undefined && category !== null && category !== "") {
+      const cat = String(category).toLowerCase();
+      if (!VALID_GROCERY_CATEGORIES.has(cat)) return res.status(400).json({ error: "VALIDATION_ERROR", message: "invalid category" });
+    }
     const { name: base, note: parsedNote } = parseIngredient(name);
     const finalNote = (note ?? parsedNote ?? "").toString().slice(0, 200);
     const row = await prisma.groceryItem.upsert({
@@ -65,7 +78,8 @@ groceriesRouter.post("/", async (req, res, next) => {
 
 groceriesRouter.put("/:id", async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
+    const id = parseId(req.params.id);
+    if (id == null) return invalidId(res);
     const { name, quantity, unit, note, category, checked } = req.body ?? {};
     const data = {};
     if (name != null) data.name = ingredientKey(name);
@@ -95,12 +109,14 @@ groceriesRouter.put("/:id", async (req, res, next) => {
 
 groceriesRouter.delete("/:id", async (req, res, next) => {
   try {
+    const id = parseId(req.params.id);
+    if (id == null) return invalidId(res);
     const restore = req.query.restore === "1";
     if (restore) {
-      const row = await prisma.groceryItem.update({ where: { id: Number(req.params.id) }, data: { removed: false } });
+      const row = await prisma.groceryItem.update({ where: { id }, data: { removed: false } });
       return res.json(shape(row));
     }
-    const row = await prisma.groceryItem.update({ where: { id: Number(req.params.id) }, data: { removed: true } });
+    const row = await prisma.groceryItem.update({ where: { id }, data: { removed: true } });
     res.json(shape(row));
   } catch (e) {
     if (isNotFound(e)) return res.status(404).json({ error: "NOT_FOUND", message: "grocery item not found" });
@@ -126,8 +142,12 @@ groceriesRouter.post("/generate", async (req, res, next) => {
       return res.status(400).json({ error: "VALIDATION_ERROR", message: "recipeIds must be a non-empty array" });
     }
     if (recipeIds.length > 50) return res.status(400).json({ error: "VALIDATION_ERROR", message: "too many recipes" });
+    if (!recipeIds.every((r) => typeof r === "string" && r.length > 0 && r.length <= 120)) {
+      return res.status(400).json({ error: "VALIDATION_ERROR", message: "recipeIds must be non-empty strings (max 120)" });
+    }
     await ensureProfileRow();
     const prow = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
+    if (isSafetyProfileCorrupt(prow)) return corruptProfileResponse(res);
     const safeParse = (raw, fb) => { try { const v = JSON.parse(raw); return Array.isArray(v) ? v : fb; } catch { return fb; } };
     const profile = {
       allergies: safeParse(prow.allergies, []),
@@ -136,9 +156,12 @@ groceriesRouter.post("/generate", async (req, res, next) => {
     };
     const subs = await prisma.appliedSubstitution.findMany({ where: { userId: "local", recipeId: { in: recipeIds } } });
     const subMap = new Map(subs.map((s) => [`${s.recipeId}||${ingredientKey(s.originalName)}`, s.replacementName]));
+    // Batch recipe fetch (was sequential N+1).
+    const recipes = await Promise.all(recipeIds.map((rid) => getRecipeById(String(rid))));
     const needed = [];
-    for (const rid of recipeIds) {
-      const recipe = await getRecipeById(String(rid));
+    for (let i = 0; i < recipeIds.length; i++) {
+      const rid = recipeIds[i];
+      const recipe = recipes[i];
       if (!recipe) return res.status(400).json({ error: "VALIDATION_ERROR", message: `unknown recipeId: ${rid}` });
       if (!passesHardFilter(recipe, profile)) {
         return res.status(400).json({ error: "UNSAFE_RECIPE", message: `recipe conflicts with allergies/avoid foods: ${rid}` });

@@ -1,5 +1,6 @@
 /** Shared route helpers — profile loading, expiry status, ingredient parsing. */
 import { prisma, ensureProfileRow } from "../db.js";
+import { assertSafetyProfileValid } from "../profileSafety.js";
 
 function safeArr(raw: string): string[] {
   try {
@@ -21,6 +22,8 @@ function safeObj(raw: string): Record<string, unknown> {
 export async function loadEngineProfile(_userId = "local") {
   await ensureProfileRow();
   const row = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
+  // Fail-closed: corrupt allergy data must never become [] silently.
+  assertSafetyProfileValid(row);
   const favs = safeArr(row.favoriteCuisines);
   const goals = safeObj(row.nutritionGoals);
   return {

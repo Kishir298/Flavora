@@ -10,6 +10,7 @@ import { recommendWithEngine } from "../engine/recommend.js";
 import { resolveWeights } from "../engine/weights.js";
 import { maybeTriggerRetrain } from "../engine/retrainTrigger.js";
 import { logEvent, getReqId } from "../logger.js";
+import { isSafetyProfileCorrupt, corruptProfileResponse } from "../profileSafety.js";
 
 export const recommendationsRouter = Router();
 
@@ -45,6 +46,8 @@ recommendationsRouter.post("/", async (req, res, next) => {
 
     const safeParse = (raw, fb) => { try { return JSON.parse(raw); } catch { return fb; } };
     const row = await prisma.userProfile.findUniqueOrThrow({ where: { id: 1 } });
+    // Fail-closed: corrupt allergy data must never silently become [].
+    if (isSafetyProfileCorrupt(row)) return corruptProfileResponse(res);
     const favs = safeParse(row.favoriteCuisines, []);
     const goals = safeParse(row.nutritionGoals, {});
     const profile = {

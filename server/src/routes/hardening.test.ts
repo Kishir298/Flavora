@@ -143,12 +143,13 @@ describe("hardening: corrupt profile columns never 500", () => {
       });
     }
   });
-  it("GET /api/recipes/:id survives corrupt profile columns", async () => {
+  it("GET /api/recipes/:id fail-closed on corrupt profile columns", async () => {
     await prisma.userProfile.update({ where: { id: 1 }, data: { allergies: "{corrupt" } });
     try {
       const r = await request(app).get("/api/recipes/italian-minestrone-soup");
-      expect(r.status).toBe(200);
-      expect(r.body.id).toBe("italian-minestrone-soup");
+      // Fail-closed: corrupt allergy data must never silently become [].
+      expect(r.status).toBe(500);
+      expect(r.body.error).toBe("CORRUPT_PROFILE");
     } finally {
       await prisma.userProfile.update({ where: { id: 1 }, data: { allergies: "[]" } });
     }

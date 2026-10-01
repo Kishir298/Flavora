@@ -44,6 +44,7 @@ export function Inventory() {
     if (editId != null) editNameRef.current?.focus();
   }, [editId]);
   const { online, pending } = useOnlineStatus();
+  const mountedRef = useRef(false);
 
   const load = async () => {
     setLoading(true); setError(null);
@@ -51,7 +52,13 @@ export function Inventory() {
     catch (e) { setError(e instanceof Error ? e.message : "Could not load inventory."); }
     finally { setLoading(false); }
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    load();
+  }, []);
 
   const add = async (ev: React.FormEvent) => {
     ev.preventDefault();

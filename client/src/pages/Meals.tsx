@@ -28,6 +28,7 @@ export function Meals() {
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
   const mealNameRef = useRef<HTMLInputElement>(null);
+  const mountedRef = useRef(false);
   useEffect(() => {
     if (editingId != null) mealNameRef.current?.focus();
   }, [editingId]);
@@ -44,7 +45,13 @@ export function Meals() {
       if (!opts?.quiet) setError(e instanceof Error ? e.message : String(e));
     }
   };
-  useEffect(() => { void reload(); }, []);
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    void reload();
+  }, []);
 
   const set = (k: keyof ReturnType<typeof blank>, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -65,14 +72,37 @@ export function Meals() {
     };
     try {
       if (editingId) {
-        try { await api.mealLog.update(editingId, body); }
-        catch { await enqueueMealLog("update", { ...body, id: editingId }); setMsg("Saved locally — will sync when online."); }
-        setEditingId(null);
+        try {
+          await api.mealLog.update(editingId, body);
+          setEditingId(null);
+          setForm(blank());
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          const isNetworkErr = /failed to fetch|network|offline|load failed|fetch failed|aborted/i.test(msg);
+          if (isNetworkErr) {
+            await enqueueMealLog("update", { ...body, id: editingId });
+            setMsg("Saved locally — will sync when online.");
+          } else {
+            setError(msg);
+            return;
+          }
+        }
       } else {
-        try { await api.mealLog.add(body); }
-        catch { await enqueueMealLog("add", body); setMsg("Saved locally — will sync when online."); }
+        try {
+          await api.mealLog.add(body);
+          setForm(blank());
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          const isNetworkErr = /failed to fetch|network|offline|load failed|fetch failed|aborted/i.test(msg);
+          if (isNetworkErr) {
+            await enqueueMealLog("add", body);
+            setMsg("Saved locally — will sync when online.");
+          } else {
+            setError(msg);
+            return;
+          }
+        }
       }
-      setForm(blank());
       try {
         await reload();
       } catch {
@@ -113,20 +143,27 @@ export function Meals() {
     e.preventDefault();
     const ml = Number(waterMl);
     if (!Number.isFinite(ml) || ml <= 0) { setError("Enter water in ml."); return; }
-    try { await api.addWater(ml); setWaterMl(""); await reload(); }
-    catch {
-      try {
-        await enqueueMutation({ operation: "water.add", entityType: "water", entityId: `ml-${Date.now()}`, payload: { ml } });
-        setWaterMl("");
-        setMsg("Water saved locally — will sync when online.");
+    const loggedAt = new Date().toISOString();
+    try {
+      await api.addWater(ml);
+      setWaterMl("");
+      await reload();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const isNetworkErr = /failed to fetch|network|offline|load failed|fetch failed|aborted/i.test(msg);
+      if (isNetworkErr) {
         try {
-          await reload({ quiet: true });
+          await enqueueMutation({ operation: "water.add", entityType: "water", entityId: `ml-${Date.now()}`, payload: { ml, loggedAt } });
+          setWaterMl("");
+          setMsg("Water saved locally — will sync when online.");
         } catch {
-          /* offline — keep local message */
+          setError("Could not log water.");
         }
-      } catch {
-        setError("Could not log water.");
+      } else {
+        // Validation error or other server error - don't queue, show error
+        setError(msg);
       }
+      // Don't reload on error - the UI shows the error state
     }
   }
 

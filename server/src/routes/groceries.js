@@ -26,7 +26,7 @@ const VALID_GROCERY_CATEGORIES = new Set([
 ]);
 
 function shape(r) {
-  let recipeIds = [];
+  let recipeIds;
   try { recipeIds = JSON.parse(r.recipeIds ?? "[]"); } catch { recipeIds = []; }
   return {
     id: r.id, name: r.name, quantity: r.quantity, unit: r.unit, note: r.note,
@@ -170,7 +170,7 @@ groceriesRouter.post("/generate", async (req, res, next) => {
         const raw = typeof ing === "string" ? { name: ing, quantity: null, unit: null } : ing;
         const key = ingredientKey(raw.name);
         const replacement = subMap.get(`${rid}||${key}`);
-        const { name: base, note } = parseIngredient(raw.name);
+        const { note } = parseIngredient(raw.name);
         needed.push({
           name: replacement ? ingredientKey(replacement) : key,
           quantity: raw.quantity ?? null,

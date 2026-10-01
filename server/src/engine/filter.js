@@ -39,20 +39,46 @@ export const SYNONYMS = {
   coconut: ["coconut milk", "coconut oil"],
 };
 
+/** Plant-named lookalikes that must NOT count as the allergen they resemble. */
+const MILK_EXEMPT = ["coconut milk", "oat milk", "soy milk", "almond milk", "cashew milk", "rice milk", "hemp milk", "plant milk"];
+const BUTTER_EXEMPT = ["peanut butter", "cocoa butter", "shea butter", "apple butter"];
+const CREAM_EXEMPT = ["coconut cream", "cashew cream", "oat cream", "soy cream"];
+const ALL_EXEMPTIONS = [...MILK_EXEMPT, ...BUTTER_EXEMPT, ...CREAM_EXEMPT, "vegan cheese"];
+
+function isExempt(ingredient, term) {
+  const ing = normalize(ingredient);
+  const termNorm = normalize(term);
+  // If the ingredient is a known lookalike for the term, it's exempt
+  if (termNorm === "milk" && MILK_EXEMPT.some((e) => ing.includes(e))) return true;
+  if (termNorm === "butter" && BUTTER_EXEMPT.some((e) => ing.includes(e))) return true;
+  if (termNorm === "cream" && CREAM_EXEMPT.some((e) => ing.includes(e))) return true;
+  if (termNorm === "cheese" && ing.includes("vegan cheese")) return true;
+  if (termNorm === "dairy" && ALL_EXEMPTIONS.some((e) => ing.includes(e))) return true;
+  return false;
+}
+
 function normalize(s) {
   return String(s ?? "").toLowerCase().trim();
 }
 
-/** Expand a forbidden term into itself + known synonyms. */
+/** Expand a forbidden term into itself + transitive closure of synonyms. */
 export function expandTerm(term) {
   const t = normalize(term);
   if (!t) return [];
   const out = new Set([t]);
-  if (SYNONYMS[t]) {
-    for (const s of SYNONYMS[t]) out.add(normalize(s));
+  const queue = [t];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (SYNONYMS[current]) {
+      for (const s of SYNONYMS[current]) {
+        const norm = normalize(s);
+        if (!out.has(norm)) {
+          out.add(norm);
+          queue.push(norm);
+        }
+      }
+    }
   }
-  // Reverse lookup: "parmesan" entered directly still matches itself (already in set).
-  // Also map plural tolerance at match time.
   return [...out];
 }
 
@@ -93,6 +119,7 @@ export function ingredientViolatesTerm(ingredient, term) {
   const ing = normalize(ingredient);
   if (!ing) return false;
   for (const variant of expandTerm(term)) {
+    if (isExempt(ingredient, variant)) continue;
     if (matchesWithPlural(ing, variant)) return true;
   }
   return false;

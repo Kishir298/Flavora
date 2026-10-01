@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { prisma } from "../db.js";
-import { isSafetyProfileCorrupt, corruptProfileResponse } from "../profileSafety.js";
 import { getRecipeById } from "../recipesDb.js";
 import { passesHardFilter } from "../engine/filter.js";
 import { aggregateNutrition } from "../engine/nutrition.js";
@@ -41,7 +40,7 @@ function safeArr(raw) {
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function shape(r) {
-  let appliedSubs = [];
+  let appliedSubs;
   try { appliedSubs = JSON.parse(r.appliedSubs ?? "[]"); } catch { appliedSubs = []; }
   return {
     id: r.id, day: r.day, date: r.date, meal: r.meal, recipeId: r.recipeId,

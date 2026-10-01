@@ -75,6 +75,8 @@ export interface UserData {
   groceryLists: unknown[];
   inventory: unknown[];
   activity: { type: string; at: string; detail?: unknown }[];
+  /** Idempotency keys for deduplicating retried mutations. */
+  idempotencyKeys: Record<string, { response: unknown; createdAt: number }>;
 }
 
 export function defaultUserData(): UserData {
@@ -91,6 +93,7 @@ export function defaultUserData(): UserData {
     groceryLists: [],
     inventory: [],
     activity: [],
+    idempotencyKeys: {},
   };
 }
 
@@ -203,6 +206,7 @@ function sanitizeLoaded(raw: unknown): UserData {
     groceryLists: Array.isArray(o.groceryLists) ? o.groceryLists : [],
     inventory: Array.isArray(o.inventory) ? o.inventory : [],
     activity: Array.isArray(o.activity) ? (o.activity as UserData["activity"]) : [],
+    idempotencyKeys: o.idempotencyKeys && typeof o.idempotencyKeys === "object" ? (o.idempotencyKeys as Record<string, { response: unknown; createdAt: number }>) : {},
   };
 }
 
@@ -349,6 +353,29 @@ export class UserDataStore {
     const d = this.ensure();
     d.activity.push({ type, at: new Date().toISOString(), detail });
     if (d.activity.length > 500) d.activity = d.activity.slice(-500);
+  }
+
+  /** Check if an idempotency key was already processed. Returns cached response or null. */
+  checkIdempotencyKey(key: string): unknown | null {
+    const d = this.ensure();
+    const entry = d.idempotencyKeys[key];
+    if (entry) return entry.response;
+    return null;
+  }
+
+  /** Store an idempotency key with its response. */
+  storeIdempotencyKey(key: string, response: unknown): void {
+    const d = this.ensure();
+    d.idempotencyKeys[key] = { response, createdAt: Date.now() };
+    // Prune old keys (keep last 1000)
+    const keys = Object.keys(d.idempotencyKeys);
+    if (keys.length > 1000) {
+      keys.sort((a, b) => d.idempotencyKeys[a].createdAt - d.idempotencyKeys[b].createdAt);
+      for (const k of keys.slice(0, keys.length - 1000)) {
+        delete d.idempotencyKeys[k];
+      }
+    }
+    this.flush();
   }
 }
 

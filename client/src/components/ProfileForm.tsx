@@ -24,35 +24,22 @@ export function ProfileForm({
   onSave: (p: Partial<Profile>) => Promise<void> | void;
   saving?: boolean;
 }) {
-  const [allergies, setAllergies] = useState(initial.allergies.join(", "));
-  const [avoidFoods, setAvoidFoods] = useState(initial.avoidFoods.join(", "));
-  const [favoriteCuisines, setFavoriteCuisines] = useState<string[]>(initial.favoriteCuisines);
-  const [spicePreference, setSpicePreference] = useState<Profile["spicePreference"]>(initial.spicePreference);
-  const [skillLevel, setSkillLevel] = useState(initial.skillLevel);
-  const [preferredCookTimeMinutes, setPreferredCookTimeMinutes] = useState(initial.preferredCookTimeMinutes);
-  const [maxCalories, setMaxCalories] = useState(initial.nutritionGoals?.maxCalories?.toString() ?? "");
-  const [highProtein, setHighProtein] = useState(!!initial.nutritionGoals?.highProtein);
-  const [lowCarb, setLowCarb] = useState(!!initial.nutritionGoals?.lowCarb);
-
-  // Sync when parent loads/updates profile after save (Settings stale-form fix).
-  useEffect(() => {
-    setAllergies(initial.allergies.join(", "));
-    setAvoidFoods(initial.avoidFoods.join(", "));
-    setFavoriteCuisines(initial.favoriteCuisines);
-    setSpicePreference(initial.spicePreference);
-    setSkillLevel(initial.skillLevel);
-    setPreferredCookTimeMinutes(initial.preferredCookTimeMinutes);
-    setMaxCalories(initial.nutritionGoals?.maxCalories?.toString() ?? "");
-    setHighProtein(!!initial.nutritionGoals?.highProtein);
-    setLowCarb(!!initial.nutritionGoals?.lowCarb);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initial.allergies.join(","), initial.avoidFoods.join(","), initial.favoriteCuisines.join(","), initial.spicePreference, initial.skillLevel, initial.preferredCookTimeMinutes, initial.nutritionGoals?.maxCalories, initial.nutritionGoals?.highProtein, initial.nutritionGoals?.lowCarb]);
+  const [allergies, setAllergies] = useState(() => initial.allergies.join(", "));
+  const [avoidFoods, setAvoidFoods] = useState(() => initial.avoidFoods.join(", "));
+  const [favoriteCuisines, setFavoriteCuisines] = useState<string[]>(() => initial.favoriteCuisines);
+  const [spicePreference, setSpicePreference] = useState<Profile["spicePreference"]>(() => initial.spicePreference);
+  const [skillLevel, setSkillLevel] = useState(() => initial.skillLevel);
+  const [preferredCookTimeMinutes, setPreferredCookTimeMinutes] = useState(() => initial.preferredCookTimeMinutes);
+  const [maxCalories, setMaxCalories] = useState(() => initial.nutritionGoals?.maxCalories?.toString() ?? "");
+  const [highProtein, setHighProtein] = useState(() => !!initial.nutritionGoals?.highProtein);
+  const [lowCarb, setLowCarb] = useState(() => !!initial.nutritionGoals?.lowCarb);
 
   const split = (s: string) => s.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
   const clampCookTime = (n: number) => (Number.isFinite(n) ? Math.min(300, Math.max(5, Math.round(n))) : 30);
 
   return (
     <form
+      key={JSON.stringify(initial)}
       aria-label="profile-form"
       className="space-y-4"
       onSubmit={(e) => {

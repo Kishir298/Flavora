@@ -78,6 +78,11 @@ export async function listPending(): Promise<QueuedMutation[]> {
   return all.filter((m) => m.status === "pending").sort((a, b) => a.createdAt - b.createdAt);
 }
 
+export async function listFailed(): Promise<QueuedMutation[]> {
+  const all = await tx<QueuedMutation>("readonly", () => {});
+  return all.filter((m) => m.status === "failed").sort((a, b) => a.createdAt - b.createdAt);
+}
+
 export async function listAll(): Promise<QueuedMutation[]> {
   const all = await tx<QueuedMutation>("readonly", () => {});
   return all.sort((a, b) => a.createdAt - b.createdAt);
@@ -111,18 +116,46 @@ export async function markFailed(id: string, error: string): Promise<void> {
   });
 }
 
+export async function retryFailed(id: string): Promise<void> {
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const t = db.transaction(STORE, "readwrite");
+    const get = t.objectStore(STORE).get(id);
+    get.onsuccess = () => {
+      const cur = get.result as QueuedMutation | undefined;
+      if (!cur) return;
+      cur.status = "pending";
+      cur.attemptCount = 0;
+      cur.lastError = undefined;
+      t.objectStore(STORE).put(cur);
+    };
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
+export async function retryAllFailed(): Promise<number> {
+  const failed = await listFailed();
+  for (const m of failed) {
+    await retryFailed(m.id);
+  }
+  return failed.length;
+}
+
 /** Shared offline detector: fetch TypeErrors differ per browser (Safari: "Load failed"). */
 export function isNetworkError(msg: string): boolean {
   return /failed to fetch|network|offline|load failed|fetch failed|aborted/i.test(msg);
 }
 /**
- * Replay pending mutations in order using the provided executor.
+ * Replay pending and failed mutations in order using the provided executor.
  * Executor should throw on failure. Stops on first network-unavailable error.
  */
 export async function replayQueue(exec: (m: QueuedMutation) => Promise<void>): Promise<{ replayed: number; failed: number }> {
   const pending = await listPending();
+  const failedMutations = await listFailed();
+  const allToReplay = [...pending, ...failedMutations].sort((a, b) => a.createdAt - b.createdAt);
   let replayed = 0, failed = 0;
-  for (const m of pending) {
+  for (const m of allToReplay) {
     try {
       await exec(m);
       await markDone(m.id);

@@ -38,14 +38,14 @@ function loadChat(): { messages: ChatMsg[]; sessionId?: string } | null {
 
 /** Flavora home: zero-friction conversational food requests (§6). */
 export function Home() {
-  const restored = useRef(loadChat());
-  const [messages, setMessages] = useState<ChatMsg[]>(
-    restored.current?.messages ?? [
+  const [messages, setMessages] = useState<ChatMsg[]>(() => {
+    const restored = loadChat();
+    return restored?.messages ?? [
       { id: nextId(), role: "flavora", text: "Tell me what you're craving — I'll figure out what I need to know." },
-    ]
-  );
+    ];
+  });
   const [input, setInput] = useState("");
-  const [sessionId, setSessionId] = useState<string | undefined>(restored.current?.sessionId);
+  const [sessionId, setSessionId] = useState<string | undefined>(() => loadChat()?.sessionId);
   const [results, setResults] = useState<Recommendation[]>([]);
   const [mealType, setMealType] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);

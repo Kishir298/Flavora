@@ -117,53 +117,51 @@ export function createApp() {
   app.get("/api/saved", async (req, res, next) => {
     try {
       const limit = Math.min(200, Math.max(1, Number(req.query.limit ?? 100) || 100));
-      const all = await prisma.interaction.findMany({
+      // Fail-closed: check profile corruption FIRST, before any early returns.
+      // A corrupt profile must never silently return "safe" results (even empty).
+      const prow = await prisma.userProfile.findUnique({ where: { id: 1 } });
+      if (!prow) {
+        throw new Error("Profile not found");
+      }
+      const { isSafetyProfileCorrupt } = await import("./profileSafety.js");
+      if (isSafetyProfileCorrupt(prow)) {
+        const { corruptProfileResponse } = await import("./profileSafety.js");
+        return corruptProfileResponse(res);
+      }
+      // Get all saved/unsaved interactions to determine current saved state per recipe.
+      // A recipe is saved if the latest saved/unsaved action is "saved" (not "unsaved").
+      const savedInteractions = await prisma.interaction.findMany({
+        where: { action: { in: ["saved", "unsaved"] } },
         orderBy: { createdAt: "desc" },
-        take: limit * 4, // over-fetch then collapse to latest-per-recipe
       });
-      const latest = new Map<string, (typeof all)[number]>();
-      for (const i of all) if (!latest.has(i.recipeId)) latest.set(i.recipeId, i);
-      const ids = [...latest.entries()]
-        .filter(([, i]) => ["saved", "cooked", "rated_positive", "rated"].includes(i.action))
+      const savedState = new Map<string, boolean>();
+      for (const i of savedInteractions) {
+        if (!savedState.has(i.recipeId)) {
+          savedState.set(i.recipeId, i.action === "saved");
+        }
+      }
+      const savedRecipeIds = [...savedState.entries()]
+        .filter(([, isSaved]) => isSaved)
         .map(([id]) => id)
         .slice(0, limit);
-      if (ids.length === 0) return res.json([]);
-      const rows = await prisma.recipe.findMany({ where: { id: { in: ids } } });
+      if (savedRecipeIds.length === 0) return res.json([]);
+      const rows = await prisma.recipe.findMany({ where: { id: { in: savedRecipeIds } } });
       // Current profile for honest safety flags: a saved recipe that now
       // conflicts with allergies/avoid foods is still returned (user data is
       // never silently dropped) but marked unsafe so the UI can warn.
-      let profile: { allergies: string[]; avoid_foods: string[]; avoidFoods: string[] } = {
-        allergies: [],
-        avoid_foods: [],
-        avoidFoods: [],
-      };
-      try {
-        const prow = await prisma.userProfile.findUnique({ where: { id: 1 } });
-        if (prow) {
-          const { isSafetyProfileCorrupt } = await import("./profileSafety.js");
-          // Fail-closed for safety flags: corrupt profile must not silently
-          // mark everything safe. Return 500 instead of unsafe=false list.
-          if (isSafetyProfileCorrupt(prow)) {
-            const { corruptProfileResponse } = await import("./profileSafety.js");
-            return corruptProfileResponse(res);
-          }
-          const safeParse = (raw: string, fb: string[]) => {
-            try {
-              const v = JSON.parse(raw);
-              return Array.isArray(v) ? v : fb;
-            } catch {
-              return fb;
-            }
-          };
-          profile = {
-            allergies: safeParse(prow.allergies, []),
-            avoid_foods: safeParse(prow.avoidFoods, []),
-            avoidFoods: safeParse(prow.avoidFoods, []),
-          };
+      const safeParse = (raw: string): string[] => {
+        try {
+          const v = JSON.parse(raw);
+          return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+        } catch {
+          throw new Error("Corrupt profile JSON");
         }
-      } catch {
-        /* profile optional for saved display */
-      }
+      };
+      const profile = {
+        allergies: safeParse(prow.allergies),
+        avoid_foods: safeParse(prow.avoidFoods),
+        avoidFoods: safeParse(prow.avoidFoods),
+      };
       const { passesHardFilter } = await import("./engine/filter.js");
       res.json(
         rows.map((c) => {

@@ -15,10 +15,10 @@ vi.mock("./api", () => ({
 describe("offline meal-log replay", () => {
   it("replays add/update/remove against the meal-log API", async () => {
     await executeMutation({ id: "a", operation: "meallog.add", entityType: "meallog", entityId: "new", payload: { name: "Soup" }, createdAt: 0, attemptCount: 0, status: "pending" });
-    expect(api.mealLog.add).toHaveBeenCalledWith({ name: "Soup" });
+    expect(api.mealLog.add).toHaveBeenCalledWith({ name: "Soup" }, "a");
     await executeMutation({ id: "b", operation: "meallog.update", entityType: "meallog", entityId: "x", payload: { id: "x", name: "Soup+" }, createdAt: 0, attemptCount: 0, status: "pending" });
-    expect(api.mealLog.update).toHaveBeenCalledWith("x", { id: "x", name: "Soup+" });
+    expect(api.mealLog.update).toHaveBeenCalledWith("x", { id: "x", name: "Soup+" }, "b");
     await executeMutation({ id: "c", operation: "meallog.remove", entityType: "meallog", entityId: "x", payload: { id: "x" }, createdAt: 0, attemptCount: 0, status: "pending" });
-    expect(api.mealLog.remove).toHaveBeenCalledWith("x");
+    expect(api.mealLog.remove).toHaveBeenCalledWith("x", "c");
   });
 });

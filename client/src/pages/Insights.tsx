@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, type StatsResult, type Insight } from "../lib/api";
 import { BarChart, GoalRing } from "../components/charts";
 
@@ -9,8 +9,13 @@ export function Insights() {
   const [stats, setStats] = useState<StatsResult | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [error, setError] = useState("");
+  const mountedRef = useRef(false);
 
   useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
     let cancelled = false;
     setError("");
     api.statistics(range).then((s) => { if (!cancelled) setStats(s); }).catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : String(e)); });
@@ -19,6 +24,7 @@ export function Insights() {
     if (range === "weekly") {
       api.insights().then((i) => { if (!cancelled) setInsights(i); }).catch(() => {});
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInsights([]);
     }
     return () => { cancelled = true; };

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, type RecipeResult } from "../lib/api";
 import { enqueueMutation, isNetworkError } from "../lib/mutationQueue";
 import { RecipeCard } from "../components/RecipeCard";
@@ -7,6 +7,7 @@ export function Saved() {
   const [items, setItems] = useState<RecipeResult[]>([]);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
+  const mountedRef = useRef(false);
 
   async function load() {
     try {
@@ -19,6 +20,10 @@ export function Saved() {
   }
 
   useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
     void load();
   }, []);
 

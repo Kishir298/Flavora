@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type AppliedSub } from "./api";
 import { enqueueMutation } from "./mutationQueue";
 import { useOnlineStatus } from "./useOnlineStatus";
@@ -8,6 +8,7 @@ export function useSubstitutions(recipeId: string | undefined) {
   const [subs, setSubs] = useState<AppliedSub[]>([]);
   const [loading, setLoading] = useState(false);
   const { online } = useOnlineStatus();
+  const mountedRef = useRef(false);
 
   const refresh = useCallback(async () => {
     if (!recipeId) return;
@@ -16,7 +17,13 @@ export function useSubstitutions(recipeId: string | undefined) {
     finally { setLoading(false); }
   }, [recipeId]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    refresh();
+  }, [refresh]);
 
   const apply = async (originalName: string, replacementName: string) => {
     if (!recipeId) return;

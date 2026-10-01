@@ -24,7 +24,7 @@
  * @typedef {Object} RecipeLike
  * @property {(string|{name:string})[]} ingredients — seed rows use {name,quantity,unit} objects
  */
-import { ingredientViolatesTerm } from "./filter.js";
+import { ingredientViolatesTerm, expandTerm } from "./filter.js";
 
 /** Animal flesh: meat, poultry, fish, seafood (blocks vegan AND vegetarian). */
 const MEAT_TERMS = [
@@ -79,12 +79,16 @@ function ingredientNames(recipe) {
  * Delegates matching to filter.js so boundary/plural behavior stays in one place,
  * except short terms (<4 chars, e.g. "egg"): filter.js rewards recall there and
  * would match "eggplant", so diet matching requires a strict word boundary.
+ * Checks exemptions for all terms in the transitive synonym closure.
  */
 export function violatesTerm(ingredient, term) {
   const ing = norm(ingredient);
   if (!ing) return false;
-  for (const exempt of LOOKALIKE_EXEMPTIONS[term] ?? []) {
-    if (ing.includes(exempt)) return false;
+  // Check exemptions for the original term AND all terms in its transitive closure
+  for (const expandedTerm of expandTerm(term)) {
+    for (const exempt of LOOKALIKE_EXEMPTIONS[expandedTerm] ?? []) {
+      if (ing.includes(exempt)) return false;
+    }
   }
   const t = norm(term);
   if (t && t.length < 4) {

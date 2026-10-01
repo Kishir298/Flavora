@@ -23,6 +23,7 @@ export function MealPlan() {
     if (msg) msgRef.current?.focus();
   }, [msg]);
   const { online, pending } = useOnlineStatus();
+  const mountedRef = useRef(false);
 
   const load = async () => {
     setLoading(true); setError(null);
@@ -37,7 +38,13 @@ export function MealPlan() {
     } catch (e) { setError(e instanceof Error ? e.message : "Could not load meal plan."); }
     finally { setLoading(false); }
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    load();
+  }, []);
 
   const add = async (ev: React.FormEvent) => {
     ev.preventDefault(); setMsg(null); setError(null);

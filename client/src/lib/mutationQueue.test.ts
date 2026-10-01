@@ -25,21 +25,23 @@ interface Firable {
   onerror: (() => void) | null;
 }
 
-function deferred<T>(result: T): IDBRequest<T> & { onsuccess: ((this: IDBRequest<T>, ev: Event) => any) | null } {
-  const req: { result: T; onsuccess: ((this: IDBRequest<T>, ev: Event) => any) | null; onerror: ((this: IDBRequest<T>, ev: Event) => any) | null; error: null } = {
+function deferred<T>(result: T): IDBRequest<T> & { onsuccess: ((this: IDBRequest<T>, ev: Event) => unknown) | null; onerror: ((this: IDBRequest<T>, ev: Event) => unknown) | null } {
+  const req: { result: T; onsuccess: ((this: IDBRequest<T>, ev: Event) => unknown) | null; onerror: ((this: IDBRequest<T>, ev: Event) => unknown) | null; error: null } = {
     result,
     onsuccess: null,
     onerror: null,
     error: null,
   };
   setTimeout(() => (req.onsuccess as ((...a: unknown[]) => void) | null)?.(), 0);
-  return req as unknown as IDBRequest<T> & { onsuccess: ((this: IDBRequest<T>, ev: Event) => any) | null };
+  return req as unknown as IDBRequest<T> & { onsuccess: ((this: IDBRequest<T>, ev: Event) => unknown) | null };
 }
 
 const mockData: Store = new Map();
 
 class MockIDBDatabase {
   objectStoreNames = { contains: (_n: string) => true };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  static _unused = 0;
   createObjectStore() {
     /* store pre-exists in the shim */
   }
@@ -198,7 +200,7 @@ describe("offline mutation queue (§6)", () => {
     expect(rec.status).toBe("pending"); // 1 attempt < max, still retryable
   });
 
-  it("skips permanently-failed mutations but replays the rest", async () => {
+  it("retries failed mutations and replays pending", async () => {
     const a = await enqueueMutation(makeMutation({ entityId: "a" }));
     for (let i = 0; i < QUEUE_MAX_ATTEMPTS; i++) {
       await markFailed(a.id, "nope");
@@ -209,8 +211,9 @@ describe("offline mutation queue (§6)", () => {
     const res = await replayQueue(async (m) => {
       played.push(m.entityId);
     });
-    expect(played).toEqual(["b"]);
-    expect(res.replayed).toBe(1);
+    // Both failed (a) and pending (b) should be replayed
+    expect(played).toEqual(["a", "b"]);
+    expect(res.replayed).toBe(2);
     expect(res.failed).toBe(0);
   });
 

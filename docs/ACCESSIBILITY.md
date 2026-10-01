@@ -29,13 +29,17 @@ Full 24-step NVDA + 24-step VoiceOver plans with result tables live in
 Run with at least VoiceOver (macOS/iOS Safari) + NVDA or JAWS (Windows
 Chrome/Firefox) before claiming WCAG AA conformance:
 
-1. Skip link announces and moves focus to main on every route.
+1. Skip link announces and moves focus to main on every route; RouteFocus
+   rule: every route change lands focus in `#main` unless focus is already
+   inside `main` (no strand on removed nodes, no steal from edit inputs).
 2. Chat flow fully operable screen-reader-only: user message announced,
    "Thinking…" loading announced, follow-up question / recommendations
-   announced, error + Retry announced.
+   announced, error + Retry announced; a server session reset announces
+   "Starting fresh — my earlier context expired or completed." in order.
 3. All icon-only buttons have accessible names at 200% zoom + 320px width.
 4. No keyboard traps; focus order matches visual order through nav →
-   banner → main → quick actions → results.
+   banner → main → quick actions → results; MealPlan mutations move focus
+   to the `role=status` confirmation ("Meal removed." / "Moved to …").
 5. Charts (Dashboard/Insights) convey the same data via text summaries.
 6. Dark mode meets 4.5:1 body-text contrast; focus rings visible in both
    themes with `prefers-reduced-motion` enabled.

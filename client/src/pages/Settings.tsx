@@ -177,8 +177,7 @@ export function Settings({ onTheme }: { onTheme: (t: string) => void }) {
 }
 
 function GoalsForm({ goals, onSave }: { goals: Goals; onSave: (g: Partial<Goals>) => Promise<void> }) {
-  const [form, setForm] = useState<Goals>({});
-  useEffect(() => setForm({ ...goals }), [goals]);
+  const [form, setForm] = useState<Goals>(() => ({ ...goals }));
   const num = (v: string): number | null => (v === "" ? null : Number(v));
   const val = (v: number | null | undefined): string => (v == null ? "" : String(v));
   return (

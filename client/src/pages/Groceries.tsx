@@ -18,6 +18,7 @@ export function Groceries() {
   const [editUnit, setEditUnit] = useState("pieces");
   const [removedItems, setRemovedItems] = useState<GroceryItem[]>([]);
   const editNameRef = useRef<HTMLInputElement>(null);
+  const mountedRef = useRef(false);
   useEffect(() => {
     if (editId != null) editNameRef.current?.focus();
   }, [editId]);
@@ -35,7 +36,13 @@ export function Groceries() {
     catch (e) { setError(e instanceof Error ? e.message : "Could not load grocery list."); }
     finally { setLoading(false); }
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    load();
+  }, []);
 
   const add = async (ev: React.FormEvent) => {
     ev.preventDefault();

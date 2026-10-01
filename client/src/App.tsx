@@ -133,19 +133,25 @@ function RouteFocus() {
 }
 
 function SyncBanner() {
-  const { online, pending, syncState, syncNow } = useOnlineStatus();
-  if (online && pending === 0 && syncState !== "syncing") return null;
+  const { online, pending, failed, syncState, syncNow, retryFailed } = useOnlineStatus();
+  const totalPending = pending + failed;
+  if (online && totalPending === 0 && syncState !== "syncing") return null;
   return (
     <div role="status" aria-live="polite" className="bg-amber-100 dark:bg-amber-900 px-4 py-1 text-xs text-amber-900 dark:text-amber-100">
       {!online
-        ? `Offline — ${pending} change(s) saved locally and will sync when connection returns.`
+        ? `Offline — ${totalPending} change(s) saved locally and will sync when connection returns.`
         : syncState === "syncing"
           ? "Syncing changes…"
           : syncState === "failed"
-            ? "Some changes failed to sync. They stay saved locally — press Sync now to retry."
-            : `${pending} change(s) pending sync.`}
-      {online && pending > 0 && syncState !== "syncing" && (
-        <button type="button" onClick={() => void syncNow()} className="ml-2 underline">Sync now</button>
+            ? `Some changes failed to sync (${failed} failed). They stay saved locally — press Retry failed to retry.`
+            : `${totalPending} change(s) pending sync.`}
+      {online && totalPending > 0 && syncState !== "syncing" && (
+        <>
+          <button type="button" onClick={() => void syncNow()} className="ml-2 underline">Sync now</button>
+          {failed > 0 && (
+            <button type="button" onClick={() => void retryFailed()} className="ml-2 underline">Retry failed</button>
+          )}
+        </>
       )}
     </div>
   );

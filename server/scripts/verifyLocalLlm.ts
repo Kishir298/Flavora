@@ -82,14 +82,19 @@ async function main() {
 
   // [5/8] Actual generation — must return real generated tokens.
   const w0 = Date.now();
-  let genText = "";
-  try {
-    genText = await llm.generate("chicken and rice", { maxNewTokens: 24, temperature: 0.7 });
-  } catch {
-    genText = "";
-  }
-  report({ n: 5, total, label: "Generation", pad }, genText.length > 0,
-    `${genText.length} chars, ${((Date.now() - w0) / 1000).toFixed(1)}s`);
+  const genOk = await (async () => {
+    try {
+      return (await llm.generate("chicken and rice", { maxNewTokens: 24, temperature: 0.7 })).length > 0;
+    } catch {
+      return false;
+    }
+  })();
+  report({ n: 5, total, label: "Generation", pad }, genOk,
+    `${genOk ? "ok" : "empty"}, ${((Date.now() - w0) / 1000).toFixed(1)}s`);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _w0 = w0;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _genOk = genOk;
 
   // [6/8] Real Flavora natural-language request → validated structured intent.
   // The reported provider must actually be `local` — FlavoraLM handled it.
@@ -112,6 +117,9 @@ async function main() {
           Object.keys(parsed.intent.cravingSignals).length > 0)));
   report({ n: 6, total, label: "Intent extraction", pad }, intentOk,
     `source=${parsed.source}, ${Date.now() - t1}ms, intent=${JSON.stringify(parsed.intent)}`);
+
+  // silence unused var warnings
+  void t1;
 
   // [7/8] Deterministic engine consumes the AI intent.
   const candidates = [

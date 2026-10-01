@@ -356,7 +356,7 @@ describe("assistant NL → engine (local-only, no remote required)", () => {
   it("conversation: constrained pendings bypass the model; ingredients clarify", async () => {
     let r = await request(app).post("/api/assistant/conversation").send({ message: "I want soup" });
     const sid = r.body.sessionId;
-    r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "400" });
+    await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "400" });
     // Diet pending: deterministic, no model call, state merged.
     r = await request(app).post("/api/assistant/conversation").send({ sessionId: sid, message: "veggie" });
     expect(r.status).toBe(200);
@@ -479,5 +479,39 @@ describe("GET /api/health", () => {
     expect(flat).not.toContain("apikey");
     expect(flat).not.toContain("api_key");
     expect(flat).not.toContain("groq");
+  });
+});
+
+describe("/api/saved fail-closed on corrupt profile (F8)", () => {
+  it("returns 500 CORRUPT_PROFILE when profile allergies JSON is corrupt", async () => {
+    // Corrupt the profile JSON directly in the test DB
+    await prisma.userProfile.update({
+      where: { id: 1 },
+      data: { allergies: "not valid json" },
+    });
+    // Verify the update
+    const check = await prisma.userProfile.findUnique({ where: { id: 1 } });
+    console.log("DEBUG: Profile allergies after update:", check?.allergies);
+    const res = await request(app).get("/api/saved");
+    expect(res.status).toBe(500);
+    expect(res.body.error).toBe("CORRUPT_PROFILE");
+    expect(res.body.message).toContain("corrupt");
+  });
+
+  it("returns 500 CORRUPT_PROFILE when profile avoidFoods JSON is corrupt", async () => {
+    await prisma.userProfile.update({
+      where: { id: 1 },
+      data: { avoidFoods: "also not valid json" },
+    });
+    const res = await request(app).get("/api/saved");
+    expect(res.status).toBe(500);
+    expect(res.body.error).toBe("CORRUPT_PROFILE");
+  });
+
+  it("returns 500 when profile row is missing", async () => {
+    await prisma.userProfile.delete({ where: { id: 1 } });
+    const res = await request(app).get("/api/saved");
+    expect(res.status).toBe(500);
+    expect(res.body.error).toBe("internal error"); // Profile not found throws generic error
   });
 });

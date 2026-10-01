@@ -22,17 +22,15 @@ function costTierLabel(tier?: string): string {
   return `${tier} cost tier (recipe estimate — not live grocery prices)`;
 }
 
-function SubRow({ ingredient, options, recipeId, applied, onApply, onRevert, onMsg }: {
+function SubRow({ ingredient, options, applied, onApply, onRevert, onMsg }: {
   ingredient: string;
   options: { name: string; notes: string }[];
-  recipeId: string;
   applied?: { replacementName: string; safety?: string };
   onApply: (original: string, replacement: string) => Promise<unknown>;
   onRevert: (original: string) => Promise<unknown>;
   onMsg: (m: string | null) => void;
 }) {
-  const [choice, setChoice] = useState(options[0]?.name ?? "");
-  useEffect(() => { setChoice(options[0]?.name ?? ""); }, [ingredient]);
+  const [choice, setChoice] = useState(() => options[0]?.name ?? "");
   return (
     <li className="rounded border px-2 py-2">
       <div className="font-medium">{ingredient}
@@ -266,7 +264,7 @@ export function RecipeDetail() {
             <ul className="text-sm mt-2 space-y-3">
               {subDetails && Object.keys(subDetails).length > 0
                 ? Object.entries(subDetails).map(([ing, options]) => (
-                    <SubRow key={ing} ingredient={ing} options={options} recipeId={decodedId} applied={subs.find((s) => s.originalName.toLowerCase() === ing.toLowerCase())} onApply={apply} onRevert={revert} onMsg={setSubMsg} />
+                    <SubRow key={ing} ingredient={ing} options={options} applied={subs.find((s) => s.originalName.toLowerCase() === ing.toLowerCase())} onApply={apply} onRevert={revert} onMsg={setSubMsg} />
                   ))
                 : Object.entries(recipe.substitutions ?? {}).map(([ing, names]) => (
                     <li key={ing}>

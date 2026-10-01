@@ -151,14 +151,16 @@ if (RAW_BASE && !/^https?:\/\//.test(RAW_BASE) && !RAW_BASE.startsWith("/")) {
 }
 const BASE = (/^https?:\/\//.test(RAW_BASE) || RAW_BASE.startsWith("/") ? RAW_BASE : "").replace(/\/$/, "");
 
-async function req<T>(path: string, init?: RequestInit & { timeoutMs?: number }): Promise<T> {
-  const { timeoutMs = 30_000, ...fetchInit } = init ?? {};
+async function req<T>(path: string, init?: RequestInit & { timeoutMs?: number; idempotencyKey?: string }): Promise<T> {
+  const { timeoutMs = 30_000, idempotencyKey, ...fetchInit } = init ?? {};
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
   let res: Response;
   try {
     res = await fetch(`${BASE}${path}`, {
-      headers: { "Content-Type": "application/json" },
+      headers,
       ...fetchInit,
       signal: controller.signal,
     });
@@ -232,8 +234,8 @@ export const api = {
       };
     }>("/api/health"),
   getProfile: () => req<Profile>("/api/profile"),
-  saveProfile: (p: Partial<Profile>) =>
-    req<Profile>("/api/profile", { method: "PUT", body: JSON.stringify(p) }),
+  saveProfile: (p: Partial<Profile>, idempotencyKey?: string) =>
+    req<Profile>("/api/profile", { method: "PUT", body: JSON.stringify(p), idempotencyKey }),
   /** Canonical contract recommendations (matchReasons + mode). */
   recommendations: (body: {
     availableIngredients: string[];
@@ -313,14 +315,14 @@ export const api = {
   // Meal log / goals / statistics (local JSON store, deterministic engines)
   mealLog: {
     list: () => req<MealLog[]>("/api/meals"),
-    add: (b: Omit<MealLog, "id">) => req<MealLog>("/api/meals", { method: "POST", body: JSON.stringify(b) }),
-    update: (id: string, b: Partial<MealLog>) => req<MealLog>(`/api/meals/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(b) }),
-    remove: (id: string) => req(`/api/meals/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    add: (b: Omit<MealLog, "id">, idempotencyKey?: string) => req<MealLog>("/api/meals", { method: "POST", body: JSON.stringify(b), idempotencyKey }),
+    update: (id: string, b: Partial<MealLog>, idempotencyKey?: string) => req<MealLog>(`/api/meals/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(b), idempotencyKey }),
+    remove: (id: string, idempotencyKey?: string) => req(`/api/meals/${encodeURIComponent(id)}`, { method: "DELETE", idempotencyKey }),
   },
   getGoals: () => req<Goals>("/api/goals"),
-  saveGoals: (b: Partial<Goals>) => req<Goals>("/api/goals", { method: "PUT", body: JSON.stringify(b) }),
+  saveGoals: (b: Partial<Goals>, idempotencyKey?: string) => req<Goals>("/api/goals", { method: "PUT", body: JSON.stringify(b), idempotencyKey }),
   water: () => req<{ id: string; loggedAt: string; ml: number }[]>("/api/water"),
-  addWater: (ml: number) => req<{ id: string; loggedAt: string; ml: number }>("/api/water", { method: "POST", body: JSON.stringify({ ml }) }),
+  addWater: (ml: number, idempotencyKey?: string, loggedAt?: string) => req<{ id: string; loggedAt: string; ml: number }>("/api/water", { method: "POST", body: JSON.stringify({ ml, loggedAt }), idempotencyKey }),
   statistics: (range: "daily" | "weekly" | "monthly" = "weekly") => req<StatsResult>(`/api/statistics?range=${range}`),
   insights: () => req<Insight[]>("/api/insights"),
 };

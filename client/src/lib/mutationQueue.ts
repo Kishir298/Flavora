@@ -46,6 +46,7 @@ async function tx<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBReq
       try { fn(store); } catch (e) { reject(e); return; }
       t.oncomplete = () => resolve(out);
       t.onerror = () => reject(t.error);
+      t.onabort = () => reject(t.error ?? new Error("Transaction aborted"));
     }
   });
 }
@@ -62,12 +63,8 @@ export async function enqueueMutation(m: Omit<QueuedMutation, "id" | "createdAt"
     createdAt: Date.now(), attemptCount: 0, status: "pending",
     operation: m.operation, entityType: m.entityType, entityId: m.entityId, payload: m.payload,
   };
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const t = db.transaction(STORE, "readwrite");
-    const put = t.objectStore(STORE).put(full);
-    put.onsuccess = () => resolve();
-    put.onerror = () => reject(put.error);
+  await tx("readwrite", (store) => {
+    store.put(full);
   });
   // duplicate prevention: put by id overwrites — same id never duplicates
   return full;
@@ -89,48 +86,38 @@ export async function listAll(): Promise<QueuedMutation[]> {
 }
 
 export async function markDone(id: string): Promise<void> {
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const t = db.transaction(STORE, "readwrite");
-    t.objectStore(STORE).delete(id);
-    t.oncomplete = () => resolve();
-    t.onerror = () => reject(t.error);
+  await tx("readwrite", (store) => {
+    store.delete(id);
   });
 }
 
 export async function markFailed(id: string, error: string): Promise<void> {
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const t = db.transaction(STORE, "readwrite");
-    const get = t.objectStore(STORE).get(id);
+  await tx("readwrite", (store) => {
+    const get = store.get(id);
     get.onsuccess = () => {
       const cur = get.result as QueuedMutation | undefined;
       if (!cur) return;
       cur.attemptCount += 1;
       cur.lastError = error.slice(0, 500);
       if (cur.attemptCount >= MAX_ATTEMPTS) cur.status = "failed";
-      t.objectStore(STORE).put(cur);
+      store.put(cur);
     };
-    t.oncomplete = () => resolve();
-    t.onerror = () => reject(t.error);
+    get.onerror = () => { throw get.error; };
   });
 }
 
 export async function retryFailed(id: string): Promise<void> {
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const t = db.transaction(STORE, "readwrite");
-    const get = t.objectStore(STORE).get(id);
+  await tx("readwrite", (store) => {
+    const get = store.get(id);
     get.onsuccess = () => {
       const cur = get.result as QueuedMutation | undefined;
       if (!cur) return;
       cur.status = "pending";
       cur.attemptCount = 0;
       cur.lastError = undefined;
-      t.objectStore(STORE).put(cur);
+      store.put(cur);
     };
-    t.oncomplete = () => resolve();
-    t.onerror = () => reject(t.error);
+    get.onerror = () => { throw get.error; };
   });
 }
 
@@ -147,15 +134,14 @@ export function isNetworkError(msg: string): boolean {
   return /failed to fetch|network|offline|load failed|fetch failed|aborted/i.test(msg);
 }
 /**
- * Replay pending and failed mutations in order using the provided executor.
+ * Replay pending mutations in order using the provided executor.
  * Executor should throw on failure. Stops on first network-unavailable error.
+ * Failed mutations (at MAX_ATTEMPTS) are NOT replayed automatically — they require explicit retry/reset.
  */
 export async function replayQueue(exec: (m: QueuedMutation) => Promise<void>): Promise<{ replayed: number; failed: number }> {
   const pending = await listPending();
-  const failedMutations = await listFailed();
-  const allToReplay = [...pending, ...failedMutations].sort((a, b) => a.createdAt - b.createdAt);
   let replayed = 0, failed = 0;
-  for (const m of allToReplay) {
+  for (const m of pending) {
     try {
       await exec(m);
       await markDone(m.id);

@@ -216,7 +216,7 @@ npm run evaluate:llm:sample               # 25-example model eval smoke
 ```
 
 Full evaluation (~2.5h @ ~9s/example on laptop CPU; manual/scheduled only,
-never on PR — see `.github/workflows/eval.yml`):
+never on PR — see `.github/workflows/eval.yml`). **Note: The full 1000-example evaluation has not been run on the production model; the committed checkpoint was validated via 25-example smoke test and training metrics only.**
 
 ```bash
 npm run eval:full                          # 1000 held-out examples
@@ -301,10 +301,9 @@ The retrain trigger prefers `server/src/engine/.venv/bin/python` when that venv 
 | `npm run train:llm` / `train:llm:dev` | train FlavoraLM (small / fast dev config) |
 | `npm run train:llm-numpy` / `train:llm-numpy:full` | train NumPy v0.2 sidecar (2k / 8k examples) |
 | `npm run train:tokenizer` / `train:tokenizer:dev` | train the BPE tokenizer standalone (prod / dev) |
-| `npm run evaluate:llm` | held-out FlavoraLM evaluation, full 1000-example set, ~2.5h (alias of `eval:full`) |
+| `npm run evaluate:llm` | held-out FlavoraLM evaluation, full 1000-example set, ~2.5h (alias of `eval:full`; not yet run on production model) |
 | `npm run evaluate:llm:dev` | eval dev checkpoint in `models/flavora-lm/dev` |
 | `npm run verify:llm:init:dev` | prove dev weights are freshly initialized |
-| `npm run evaluate:llm` | held-out FlavoraLM evaluation, full 1000-example set, ~2.5h (alias of `eval:full`) |
 | `npm run evaluate:llm:sample` | 25-example eval smoke (minutes; report → `eval.json`, gitignored) |
 | `npm run eval:full` | full-set evaluation, resumable via `-- --resume`, bounded via `-- --limit N` (see Evaluation below) |
 | `npm run eval:slow` | slow browser specs (`flavoralm` + `journey` + `foodlog`; long-running, heuristic mode) |

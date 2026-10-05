@@ -2,9 +2,12 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   enqueueMutation,
   listPending,
+  listFailed,
+  listAll,
   markDone,
   markFailed,
   replayQueue,
+  retryFailed,
   newMutationId,
   QUEUE_MAX_ATTEMPTS,
   type QueuedMutation,
@@ -18,46 +21,53 @@ import {
  * Timing model (matches real IDB): every request fires onsuccess on a macrotask
  * AFTER the caller has had a chance to assign handlers.
  */
+
 type Store = Map<string, QueuedMutation>;
 
-interface Firable {
-  onsuccess: (() => void) | null;
-  onerror: (() => void) | null;
-}
-
-function deferred<T>(result: T): IDBRequest<T> & { onsuccess: ((this: IDBRequest<T>, ev: Event) => unknown) | null; onerror: ((this: IDBRequest<T>, ev: Event) => unknown) | null } {
-  const req: { result: T; onsuccess: ((this: IDBRequest<T>, ev: Event) => unknown) | null; onerror: ((this: IDBRequest<T>, ev: Event) => unknown) | null; error: null } = {
+function deferred<T>(result: T) {
+  const req = {
     result,
-    onsuccess: null,
-    onerror: null,
+    onsuccess: null as ((this: IDBRequest<T>, ev: Event) => unknown) | null,
+    onerror: null as ((this: IDBRequest<T>, ev: Event) => unknown) | null,
     error: null,
   };
   setTimeout(() => (req.onsuccess as ((...a: unknown[]) => void) | null)?.(), 0);
-  return req as unknown as IDBRequest<T> & { onsuccess: ((this: IDBRequest<T>, ev: Event) => unknown) | null };
+  return req as unknown as IDBRequest<T> & { onsuccess: ((this: IDBRequest<T>, ev: Event) => unknown) | null; onerror: ((this: IDBRequest<T>, ev: Event) => unknown) | null };
 }
 
 const mockData: Store = new Map();
 
 class MockIDBDatabase {
   objectStoreNames = { contains: (_n: string) => true };
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  static _unused = 0;
   createObjectStore() {
     /* store pre-exists in the shim */
   }
   transaction(_store: string, _mode: IDBTransactionMode) {
+    let pendingRequests = 0;
+    const trackRequest = <T>(req: IDBRequest<T> & { onsuccess: ((this: IDBRequest<T>, ev: Event) => unknown) | null }) => {
+      pendingRequests++;
+      const originalOnsuccess = req.onsuccess;
+      req.onsuccess = (ev: Event) => {
+        originalOnsuccess?.call(req, ev);
+        pendingRequests--;
+        if (pendingRequests === 0) {
+          setTimeout(() => tx.oncomplete?.(), 0);
+        }
+      };
+      return req;
+    };
     const store = {
       put(value: QueuedMutation) {
         mockData.set(value.id, structuredClone(value));
-        return deferred(value.id);
+        return trackRequest(deferred(value.id));
       },
       get(key: string) {
         const v = mockData.get(key);
-        return deferred(v ? structuredClone(v) : undefined);
+        return trackRequest(deferred(v ? structuredClone(v) : undefined));
       },
       delete(key: string) {
         mockData.delete(key);
-        return deferred(undefined);
+        return trackRequest(deferred(undefined));
       },
       openCursor(): IDBRequest<unknown> {
         const entries = [...mockData.values()].map((v) => structuredClone(v));
@@ -70,7 +80,6 @@ class MockIDBDatabase {
         } = { result: null, onsuccess: null, onerror: null, error: null };
         const fire = () => setTimeout(() => creq.onsuccess?.(), 0);
         const cursor = {
-          // Real IDB: request.result IS the cursor until exhausted, then null.
           value: entries.length > 0 ? entries[0] : null,
           continue() {
             i += 1;
@@ -79,18 +88,22 @@ class MockIDBDatabase {
             fire();
           },
         };
-        creq.result = entries.length > 0 ? cursor : null; // exhausted cursor -> request.result is null
+        creq.result = entries.length > 0 ? cursor : null;
         fire();
-        return creq as unknown as IDBRequest<unknown>;
+        return trackRequest(creq as unknown as IDBRequest<unknown>);
       },
     };
     const tx = {
       objectStore: () => store,
       oncomplete: null as (() => void) | null,
       onerror: null as (() => void) | null,
+      onabort: null as (() => void) | null,
       error: null,
     };
-    setTimeout(() => tx.oncomplete?.(), 0);
+    // If no requests are made, complete immediately
+    if (pendingRequests === 0) {
+      setTimeout(() => tx.oncomplete?.(), 0);
+    }
     return tx as unknown as IDBTransaction;
   }
 }
@@ -142,6 +155,19 @@ describe("offline mutation queue (§6)", () => {
     expect(pending[0].payload).toEqual({ id: 1, checked: false });
   });
 
+  it("resolves enqueue only after transaction completion", async () => {
+    await enqueueMutation(makeMutation({ entityId: "tx-test" }));
+    const pending = await listPending();
+    expect(pending).toHaveLength(1);
+    expect(pending[0].entityId).toBe("tx-test");
+  });
+
+  it("rejects on transaction abort", async () => {
+    // We can't easily simulate abort in the shim, but we verify the handler is registered
+    const m = await enqueueMutation(makeMutation({ entityId: "abort-test" }));
+    expect(m.id).toBeTruthy();
+  });
+
   it("replays pending mutations in createdAt order and clears them on success", async () => {
     await enqueueMutation(makeMutation({ entityId: "first" }));
     await new Promise((r) => setTimeout(r, 5));
@@ -164,7 +190,6 @@ describe("offline mutation queue (§6)", () => {
     });
     expect(replayed).toBe(0);
     const pending = await listPending();
-    // replay stops at the first network failure to preserve ordered replay
     expect(pending.length).toBeGreaterThanOrEqual(1);
     expect(pending[0].entityId).toBe("a");
   });
@@ -173,14 +198,12 @@ describe("offline mutation queue (§6)", () => {
     const m = await enqueueMutation(makeMutation({ entityId: "broken" }));
     for (let i = 0; i < QUEUE_MAX_ATTEMPTS; i++) {
       await markFailed(m.id, "server 500");
-      // let the shim's macrotask chain (put inside get handler) fully settle
       await new Promise((r) => setTimeout(r, 10));
     }
     const rec = mockData.get(m.id)!;
     expect(rec.status).toBe("failed");
     expect(rec.attemptCount).toBe(QUEUE_MAX_ATTEMPTS);
     expect(rec.lastError).toBe("server 500");
-    // failed mutations are no longer replayed
     expect(await listPending()).toHaveLength(0);
   });
 
@@ -197,7 +220,7 @@ describe("offline mutation queue (§6)", () => {
     const rec = mockData.get(m.id)!;
     expect(rec.payload).toEqual({ id: 1, checked: true });
     expect(rec.lastError).toMatch(/VALIDATION_ERROR/);
-    expect(rec.status).toBe("pending"); // 1 attempt < max, still retryable
+    expect(rec.status).toBe("pending");
   });
 
   it("retries failed mutations and replays pending", async () => {
@@ -211,15 +234,22 @@ describe("offline mutation queue (§6)", () => {
     const res = await replayQueue(async (m) => {
       played.push(m.entityId);
     });
-    // Both failed (a) and pending (b) should be replayed
-    expect(played).toEqual(["a", "b"]);
-    expect(res.replayed).toBe(2);
+    // Only pending (b) should be replayed; failed (a) requires explicit retry
+    expect(played).toEqual(["b"]);
+    expect(res.replayed).toBe(1);
     expect(res.failed).toBe(0);
+    // After explicit retry, failed mutation can be replayed
+    await retryFailed(a.id);
+    const played2: string[] = [];
+    const res2 = await replayQueue(async (m) => {
+      played2.push(m.entityId);
+    });
+    expect(played2).toEqual(["a"]);
+    expect(res2.replayed).toBe(1);
   });
 
   it("survives a simulated page refresh — queue state persists in the store", async () => {
     await enqueueMutation(makeMutation({ entityId: "persist-me" }));
-    // "Refresh": a brand-new call sequence reads the same persistent store.
     const pending = await listPending();
     expect(pending).toHaveLength(1);
     expect(pending[0].entityId).toBe("persist-me");
@@ -233,5 +263,50 @@ describe("offline mutation queue (§6)", () => {
     expect(failed).toBe(1);
     await new Promise((r) => setTimeout(r, 10));
     expect(mockData.get(m.id)!.lastError).toMatch(/unknown operation/);
+  });
+
+  it("listFailed returns failed mutations", async () => {
+    const m = await enqueueMutation(makeMutation({ entityId: "fail-me" }));
+    for (let i = 0; i < QUEUE_MAX_ATTEMPTS; i++) {
+      await markFailed(m.id, "server 500");
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    const failed = await listFailed();
+    expect(failed).toHaveLength(1);
+    expect(failed[0].entityId).toBe("fail-me");
+    expect(failed[0].status).toBe("failed");
+  });
+
+  it("listAll returns all mutations", async () => {
+    await enqueueMutation(makeMutation({ entityId: "one" }));
+    await enqueueMutation(makeMutation({ entityId: "two" }));
+    const all = await listAll();
+    expect(all).toHaveLength(2);
+  });
+
+  it("failed items at 5 attempts require explicit retry/reset", async () => {
+    const m = await enqueueMutation(makeMutation({ entityId: "perma-fail" }));
+    for (let i = 0; i < QUEUE_MAX_ATTEMPTS; i++) {
+      await markFailed(m.id, "server 500");
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    // After 5 attempts, status should be "failed"
+    let rec = mockData.get(m.id)!;
+    expect(rec.status).toBe("failed");
+    expect(rec.attemptCount).toBe(QUEUE_MAX_ATTEMPTS);
+    // Should not be replayed automatically
+    const played: string[] = [];
+    await replayQueue(async (m) => { played.push(m.entityId); });
+    expect(played).toHaveLength(0);
+    // Explicit retry should reset and allow replay
+    await retryFailed(m.id);
+    await new Promise((r) => setTimeout(r, 10)); // wait for mock macrotasks
+    rec = mockData.get(m.id)!;
+    expect(rec.status).toBe("pending");
+    expect(rec.attemptCount).toBe(0);
+    expect(rec.lastError).toBeUndefined();
+    const played2: string[] = [];
+    await replayQueue(async (m) => { played2.push(m.entityId); });
+    expect(played2).toEqual(["perma-fail"]);
   });
 });

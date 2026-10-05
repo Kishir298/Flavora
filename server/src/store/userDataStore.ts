@@ -76,7 +76,13 @@ export interface UserData {
   inventory: unknown[];
   activity: { type: string; at: string; detail?: unknown }[];
   /** Idempotency keys for deduplicating retried mutations. */
-  idempotencyKeys: Record<string, { response: unknown; createdAt: number }>;
+  idempotencyKeys: Record<string, { response: unknown; createdAt: number; scope: IdempotencyScope }>;
+}
+
+export interface IdempotencyScope {
+  method: string;
+  path: string;
+  payloadHash: string;
 }
 
 export function defaultUserData(): UserData {
@@ -206,7 +212,27 @@ function sanitizeLoaded(raw: unknown): UserData {
     groceryLists: Array.isArray(o.groceryLists) ? o.groceryLists : [],
     inventory: Array.isArray(o.inventory) ? o.inventory : [],
     activity: Array.isArray(o.activity) ? (o.activity as UserData["activity"]) : [],
-    idempotencyKeys: o.idempotencyKeys && typeof o.idempotencyKeys === "object" ? (o.idempotencyKeys as Record<string, { response: unknown; createdAt: number }>) : {},
+    idempotencyKeys: o.idempotencyKeys && typeof o.idempotencyKeys === "object"
+      ? Object.fromEntries(
+          Object.entries(o.idempotencyKeys as Record<string, unknown>).map(([k, v]) => {
+            const entry = v as Record<string, unknown>;
+            return [
+              k,
+              {
+                response: entry.response,
+                createdAt: typeof entry.createdAt === "number" ? entry.createdAt : Date.now(),
+                scope: entry.scope && typeof entry.scope === "object"
+                  ? {
+                      method: String(entry.scope.method ?? ""),
+                      path: String(entry.scope.path ?? ""),
+                      payloadHash: String(entry.scope.payloadHash ?? ""),
+                    }
+                  : { method: "", path: "", payloadHash: "" },
+              },
+            ];
+          })
+        )
+      : {},
   };
 }
 
@@ -355,18 +381,22 @@ export class UserDataStore {
     if (d.activity.length > 500) d.activity = d.activity.slice(-500);
   }
 
-  /** Check if an idempotency key was already processed. Returns cached response or null. */
-  checkIdempotencyKey(key: string): unknown | null {
+  /** Check if an idempotency key was already processed for the same scope. Returns cached response or null. */
+  checkIdempotencyKey(key: string, scope: IdempotencyScope): unknown | null {
     const d = this.ensure();
     const entry = d.idempotencyKeys[key];
-    if (entry) return entry.response;
-    return null;
+    if (!entry) return null;
+    // Verify scope matches (method, path, payload hash)
+    if (entry.scope.method !== scope.method || entry.scope.path !== scope.path || entry.scope.payloadHash !== scope.payloadHash) {
+      throw new ValidationError(`Idempotency key reuse with different scope: expected ${scope.method} ${scope.path}, got ${entry.scope.method} ${entry.scope.path}`);
+    }
+    return entry.response;
   }
 
-  /** Store an idempotency key with its response. */
-  storeIdempotencyKey(key: string, response: unknown): void {
+  /** Store an idempotency key with its response and scope. */
+  storeIdempotencyKey(key: string, response: unknown, scope: IdempotencyScope): void {
     const d = this.ensure();
-    d.idempotencyKeys[key] = { response, createdAt: Date.now() };
+    d.idempotencyKeys[key] = { response, createdAt: Date.now(), scope };
     // Prune old keys (keep last 1000)
     const keys = Object.keys(d.idempotencyKeys);
     if (keys.length > 1000) {

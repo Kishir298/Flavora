@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
-import { getStore, ValidationError } from "../store/userDataStore.js";
+import { getStore, ValidationError, type IdempotencyScope } from "../store/userDataStore.js";
+import { createHash } from "node:crypto";
 
 export const mealsRouter = Router();
 
@@ -7,16 +8,30 @@ function getIdempotencyKey(req: Request): string | undefined {
   return req.header("Idempotency-Key") ?? req.body?.idempotencyKey;
 }
 
+function computeScope(req: Request): IdempotencyScope {
+  const method = req.method;
+  const path = req.path;
+  const payloadHash = createHash("sha256").update(JSON.stringify(req.body ?? {})).digest("hex").slice(0, 16);
+  return { method, path, payloadHash };
+}
+
 function withIdempotency(req: Request, res: Response, fn: () => unknown): unknown {
   const key = getIdempotencyKey(req);
   if (!key) return fn();
   const store = getStore();
-  const cached = store.checkIdempotencyKey(key);
+  const scope = computeScope(req);
+  let cached: unknown;
+  try {
+    cached = store.checkIdempotencyKey(key, scope);
+  } catch (e) {
+    if (e instanceof ValidationError) return res.status(409).json({ error: "IDEMPOTENCY_CONFLICT", message: e.message });
+    throw e;
+  }
   if (cached !== null) {
     return res.json(cached);
   }
   const result = fn();
-  store.storeIdempotencyKey(key, result);
+  store.storeIdempotencyKey(key, result, scope);
   return result;
 }
 

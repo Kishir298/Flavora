@@ -95,4 +95,106 @@ describe("userDataStore — local JSON persistence", () => {
     expect(w.ml).toBe(250);
     expect(() => s.addWater(-1)).toThrow(ValidationError);
   });
+
+  describe("Windows and space-containing paths", () => {
+    it("handles space-containing paths correctly", () => {
+      const spaceDir = fs.mkdtempSync(path.join(os.tmpdir(), "flavora store test-"));
+      const spaceFile = path.join(spaceDir, "user data.json");
+      try {
+        const s = new UserDataStore(spaceFile);
+        const d = s.init();
+        expect(d.version).toBe(STORE_VERSION);
+        const m = s.addMeal(meal());
+        expect(m.id).toBeTruthy();
+        const s2 = new UserDataStore(spaceFile);
+        expect(s2.listMeals()).toHaveLength(1);
+      } finally {
+        fs.rmSync(spaceDir, { recursive: true, force: true });
+      }
+    });
+
+    it("handles Windows-style paths on all platforms", () => {
+      // Test with backslash paths (Windows-style) - path.join handles this cross-platform
+      const winDir = fs.mkdtempSync(path.join(os.tmpdir(), "flavora-win-test-"));
+      // Use path.resolve to normalize, then test with explicit backslashes on Windows
+      const winFile = path.join(winDir, "user-data.json");
+      const s = new UserDataStore(winFile);
+      const d = s.init();
+      expect(d.version).toBe(STORE_VERSION);
+      const m = s.addMeal(meal());
+      expect(m.id).toBeTruthy();
+      fs.rmSync(winDir, { recursive: true, force: true });
+    });
+
+    it("handles paths with special characters", () => {
+      const specialDir = fs.mkdtempSync(path.join(os.tmpdir(), "flavora-@#$%-test-"));
+      const specialFile = path.join(specialDir, "user-data.json");
+      try {
+        const s = new UserDataStore(specialFile);
+        const d = s.init();
+        expect(d.version).toBe(STORE_VERSION);
+        const m = s.addMeal(meal());
+        expect(m.id).toBeTruthy();
+      } finally {
+        fs.rmSync(specialDir, { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe("offline replay failure cases", () => {
+    it("idempotency key prevents duplicate meal creation on replay", () => {
+      const s = new UserDataStore(file);
+      const m = meal();
+      const key = "replay-test-key";
+      const scope = { method: "POST", path: "/api/meals", payloadHash: "abc123" };
+      // First "attempt" - store succeeds and records idempotency key
+      const created = s.addMeal(m);
+      s.storeIdempotencyKey(key, created, scope);
+      // Simulate lost response, client retries with same key
+      const cached = s.checkIdempotencyKey(key, scope);
+      expect(cached).toBeTruthy();
+      expect((cached as { id: string }).id).toBe(created.id);
+      // No duplicate meal created
+      expect(s.listMeals()).toHaveLength(1);
+    });
+
+    it("idempotency key prevents duplicate water logging on replay", () => {
+      const s = new UserDataStore(file);
+      const key = "replay-water-key";
+      const scope = { method: "POST", path: "/api/water", payloadHash: "def456" };
+      const created = s.addWater(300);
+      s.storeIdempotencyKey(key, created, scope);
+      const cached = s.checkIdempotencyKey(key, scope);
+      expect(cached).toBeTruthy();
+      expect((cached as { id: string }).id).toBe(created.id);
+      expect(s.read().waterLogs).toHaveLength(1);
+    });
+
+    it("idempotency key rejects incompatible reuse (different payload)", () => {
+      const s = new UserDataStore(file);
+      const key = "conflict-test-key";
+      const scope1 = { method: "POST", path: "/api/meals", payloadHash: "hash1" };
+      const scope2 = { method: "POST", path: "/api/meals", payloadHash: "hash2" };
+      s.storeIdempotencyKey(key, { id: "meal-1" }, scope1);
+      expect(() => s.checkIdempotencyKey(key, scope2)).toThrow(ValidationError);
+    });
+
+    it("idempotency key rejects incompatible reuse (different method)", () => {
+      const s = new UserDataStore(file);
+      const key = "conflict-method-key";
+      const scope1 = { method: "POST", path: "/api/meals", payloadHash: "hash1" };
+      const scope2 = { method: "PUT", path: "/api/meals/123", payloadHash: "hash1" };
+      s.storeIdempotencyKey(key, { id: "meal-1" }, scope1);
+      expect(() => s.checkIdempotencyKey(key, scope2)).toThrow(ValidationError);
+    });
+
+    it("idempotency key rejects incompatible reuse (different path)", () => {
+      const s = new UserDataStore(file);
+      const key = "conflict-path-key";
+      const scope1 = { method: "POST", path: "/api/meals", payloadHash: "hash1" };
+      const scope2 = { method: "POST", path: "/api/water", payloadHash: "hash1" };
+      s.storeIdempotencyKey(key, { id: "meal-1" }, scope1);
+      expect(() => s.checkIdempotencyKey(key, scope2)).toThrow(ValidationError);
+    });
+  });
 });

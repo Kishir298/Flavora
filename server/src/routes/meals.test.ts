@@ -61,4 +61,80 @@ describe("meals/goals/water API — local JSON persistence", () => {
     expect((await request(app).post("/api/water").send({ ml: 300 })).status).toBe(201);
     expect((await request(app).post("/api/water").send({ ml: 0 })).status).toBe(400);
   });
+
+  describe("idempotency key binding", () => {
+    const idempotencyKey = "test-idempotency-key-123";
+
+    it("returns cached response for identical request with same key", async () => {
+      const m = meal({ name: "Idempotent meal" });
+      const res1 = await request(app).post("/api/meals").set("Idempotency-Key", idempotencyKey).send(m);
+      expect(res1.status).toBe(201);
+      const id = res1.body.id;
+
+      // Same key, same method, same path, same payload -> returns cached response
+      const res2 = await request(app).post("/api/meals").set("Idempotency-Key", idempotencyKey).send(m);
+      expect(res2.status).toBe(200); // cached response returns 200
+      expect(res2.body.id).toBe(id); // Same ID returned
+    });
+
+    it("rejects reuse with different payload (409 conflict)", async () => {
+      const key = "test-idempotency-key-diff-payload";
+      const m1 = meal({ name: "Meal A" });
+      const res1 = await request(app).post("/api/meals").set("Idempotency-Key", key).send(m1);
+      expect(res1.status).toBe(201);
+
+      // Same key, different payload -> 409 conflict
+      const m2 = meal({ name: "Meal B" });
+      const res2 = await request(app).post("/api/meals").set("Idempotency-Key", key).send(m2);
+      expect(res2.status).toBe(409);
+      expect(res2.body.error).toBe("IDEMPOTENCY_CONFLICT");
+    });
+
+    it("rejects reuse with different method (409 conflict)", async () => {
+      const key = "test-idempotency-key-diff-method";
+      const m = meal({ name: "Meal for PUT" });
+      const createRes = await request(app).post("/api/meals").set("Idempotency-Key", key).send(m);
+      expect(createRes.status).toBe(201);
+      const id = createRes.body.id;
+
+      // Same key, different method (PUT vs POST) -> 409 conflict
+      const res2 = await request(app).put(`/api/meals/${id}`).set("Idempotency-Key", key).send({ name: "Updated" });
+      expect(res2.status).toBe(409);
+      expect(res2.body.error).toBe("IDEMPOTENCY_CONFLICT");
+    });
+
+    it("rejects reuse with different path (409 conflict)", async () => {
+      const key = "test-idempotency-key-diff-path";
+      const m = meal({ name: "Meal for path test" });
+      const createRes = await request(app).post("/api/meals").set("Idempotency-Key", key).send(m);
+      expect(createRes.status).toBe(201);
+      const id = createRes.body.id;
+
+      // Same key, different path -> 409 conflict
+      const res2 = await request(app).delete(`/api/meals/${id}`).set("Idempotency-Key", key).send();
+      expect(res2.status).toBe(409);
+      expect(res2.body.error).toBe("IDEMPOTENCY_CONFLICT");
+    });
+
+    it("works for water endpoint with same key", async () => {
+      const key = "test-idempotency-water";
+      const res1 = await request(app).post("/api/water").set("Idempotency-Key", key).send({ ml: 250 });
+      expect(res1.status).toBe(201);
+      const id = res1.body.id;
+
+      const res2 = await request(app).post("/api/water").set("Idempotency-Key", key).send({ ml: 250 });
+      expect(res2.status).toBe(200); // cached response returns 200
+      expect(res2.body.id).toBe(id);
+    });
+
+    it("rejects different payload for water endpoint", async () => {
+      const key = "test-idempotency-water-diff";
+      const res1 = await request(app).post("/api/water").set("Idempotency-Key", key).send({ ml: 250 });
+      expect(res1.status).toBe(201);
+
+      const res2 = await request(app).post("/api/water").set("Idempotency-Key", key).send({ ml: 500 });
+      expect(res2.status).toBe(409);
+      expect(res2.body.error).toBe("IDEMPOTENCY_CONFLICT");
+    });
+  });
 });

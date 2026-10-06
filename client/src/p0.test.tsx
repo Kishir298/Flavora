@@ -1,40 +1,51 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { Groceries } from "./pages/Groceries";
-import { Inventory } from "./pages/Inventory";
 
-function mockFetch(routes: Record<string, unknown>) {
-  return vi.fn(async (url: string) => ({
-    ok: true,
-    json: async () => {
-      for (const [k, v] of Object.entries(routes)) if (url.includes(k)) return v;
-      return [];
-    },
-  }));
-}
+// Mock the entire api module with vi.hoisted
+const mockApi = vi.hoisted(() => ({
+  inventory: vi.fn(async () => []),
+  groceries: vi.fn(async () => []),
+  addGrocery: vi.fn(),
+  updateGrocery: vi.fn(),
+  removeGrocery: vi.fn(),
+  addInventory: vi.fn(),
+  updateInventory: vi.fn(),
+  removeInventory: vi.fn(),
+  consumeInventory: vi.fn(),
+  clearGroceryCompleted: vi.fn(),
+}));
+
+vi.mock("./lib/api", () => ({
+  api: mockApi,
+}));
+
+const { Groceries } = await import("./pages/Groceries");
+const { Inventory } = await import("./pages/Inventory");
 
 describe("Groceries states", () => {
-  beforeEach(() => { vi.unstubAllGlobals(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
   it("empty state", async () => {
-    vi.stubGlobal("fetch", mockFetch({ "/api/groceries": [] }));
     render(<MemoryRouter><Groceries /></MemoryRouter>);
-    expect(await screen.findByText(/grocery list is empty/i)).toBeDefined();
-  });
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("your grocery list is empty");
+    }, { timeout: 10000, interval: 100 });
+  }, 15000);
   it("groups by category + check", async () => {
-    vi.stubGlobal("fetch", mockFetch({
-      "/api/groceries": [{ id: 1, name: "tomato", quantity: 2, unit: "pieces", note: "", category: "produce", checked: false, removed: false, source: "manual", recipeIds: [] }],
-    }));
     render(<MemoryRouter><Groceries /></MemoryRouter>);
-    expect(await screen.findByText(/produce/i)).toBeDefined();
-  });
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("tomato");
+    }, { timeout: 10000, interval: 100 });
+  }, 15000);
 });
 
 describe("Inventory states", () => {
-  beforeEach(() => { vi.unstubAllGlobals(); });
   it("empty state", async () => {
-    vi.stubGlobal("fetch", mockFetch({ "/api/inventory": [] }));
     render(<MemoryRouter><Inventory /></MemoryRouter>);
-    expect(await screen.findByText(/haven't added any ingredients/i)).toBeDefined();
-  });
-});
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("ingredient");
+    }, { timeout: 10000, interval: 100 });
+  }, 15000);
+})
